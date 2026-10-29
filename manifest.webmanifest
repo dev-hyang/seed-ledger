@@ -1,0 +1,11 @@
+{
+  "name": "稻种账本",
+  "short_name": "稻种账本",
+  "description": "稻种经销商的进货、库存、销售、赊账与对账",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f6f1",
+  "theme_color": "#2c7548",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
