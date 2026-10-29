@@ -261,3 +261,8 @@ dialog[open]~.toast{z-index:1000}
 .wz-prog i.on{background:var(--brand)}.wz-prog i.done{background:var(--brand);opacity:.45}
 
 .row-main .badge{align-self:flex-start;margin:2px 0}   /* 同名等小标签不要被拉成整行 */
+
+/* 批量选择条：滚动时贴在顶部；待催账汇总 */
+.batchbar{position:sticky;top:56px;z-index:5;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 10px;margin-bottom:10px;background:var(--soft);border:1px solid var(--line);border-radius:12px}
+.batchbar b{margin-right:auto}
+.todo-sum{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 8px;font-size:14px}

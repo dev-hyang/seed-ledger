@@ -56,6 +56,7 @@ function reviewBody(){
   const on = sc.drafts.filter(d => d.on).length, cOpts = customerOpts(), bOpts = brandOpts();
   return `<p class="hint">${esc(t("共读到 {n} 笔，已勾选 {m} 笔。逐笔核对，不对的直接改；不想导入的取消勾选。", { n: sc.drafts.length, m: on }))}</p>
     ${sc.error ? `<p class="neg" role="alert">${esc(sc.error)}</p>` : ""}
+    <div class="actions"><button class="btn sm" data-act="scan-chase-all" data-v="1">🚩 ${esc(t("全部标记待催账"))}</button><button class="btn sm" data-act="scan-chase-all" data-v="0">${esc(t("全部取消标记"))}</button></div>
     ${newBrandBanner()}
     ${sc.drafts.map((d, i) => `<div class="card scan-d ${d.on ? "" : "off"}">
       <div class="card-head"><label class="chk" style="margin:0"><input type="checkbox" data-change="scan-on" data-i="${i}" ${d.on ? "checked" : ""}> <b>${esc(t("第 {n} 笔", { n: i + 1 }))}</b></label><span class="head-tools"><select data-change="scan-tier" data-i="${i}" aria-label="${esc(t("价格档"))}"><option value="retail" ${d.tier !== "wholesale" ? "selected" : ""}>${esc(t("零售价"))}</option><option value="wholesale" ${d.tier === "wholesale" ? "selected" : ""}>${esc(t("批发价"))}</option></select><b data-total="${i}">${esc(money(totalOf(d)))}</b></span></div>
@@ -65,6 +66,7 @@ function reviewBody(){
       ${d.flags.filter(f => f.startsWith("unit:")).map(f => `<p class="hint warn">${esc(t("不认识的单位「{u}」，数量先按斤算，请核对。", { u: f.slice(5) }))}</p>`).join("")}
       <div class="grid2"><label class="fld"><span>${esc(t("日期"))}</span><input type="date" value="${esc(d.date)}" data-input="scan-d" data-i="${i}" data-k="date"></label>
         <label class="fld"><span>${esc(t("本次已收（¥）"))}</span><input type="number" step="any" min="0" value="${d.paid ?? ""}" placeholder="${esc(t("没写 = 0"))}" data-input="scan-d" data-i="${i}" data-k="paid"></label></div>
+      <label class="chk"><input type="checkbox" data-change="scan-chase" data-i="${i}" ${d.chase ? "checked" : ""}> ${esc(t("标记为待催账（还没结清，要去催）"))}</label>
       <label class="fld"><span>${esc(t("客户"))}</span><select data-change="scan-cust" data-i="${i}"><option value="">${esc(t("＋ 新客户：{n}", { n: d.customer || t("（没读到姓名）") }))}</option>${d.customerId ? selected(cOpts, d.customerId) : cOpts}</select></label>
       ${d.customerId ? "" : `<div class="grid2"><label class="fld"><span>${esc(t("姓名"))}</span><input type="text" value="${esc(d.customer)}" maxlength="40" data-input="scan-d" data-i="${i}" data-k="customer"></label>
         <label class="fld"><span>${esc(t("电话"))}</span><input type="tel" value="${esc(d.phone)}" inputmode="tel" maxlength="20" data-input="scan-d" data-i="${i}" data-k="phone"></label>
@@ -117,6 +119,8 @@ CHG["scan-files"] = async el => {
   sc.reading--;
 };
 CHG["scan-on"] = el => { sc.drafts[+el.dataset.i].on = el.checked; };
+CHG["scan-chase"] = el => { sc.drafts[+el.dataset.i].chase = el.checked; };
+ACT["scan-chase-all"] = el => { for (const d of sc.drafts) if (d.on) d.chase = el.dataset.v === "1"; };   // 整批：这一批都没结账、要去催
 CHG["scan-cust"] = el => { sc.drafts[+el.dataset.i].customerId = el.value; };
 CHG["scan-brand"] = el => {   // 选已有品种，或「＋ 新品种」（同名新品种在各笔里共用一份设置）
   const d = sc.drafts[+el.dataset.i], l = d.lines[+el.dataset.l];
@@ -188,7 +192,7 @@ ACT["scan-import"] = async () => {
     for (const x of plan.customers) cuId.set(x.key, (await save("customer", { name: x.name, phone: x.phone, town: x.town, village: x.village, tier: x.tier })).id);
     for (const x of plan.sales) {
       const sale = await save("sale", { no: x.no, date: x.date, customerId: rid(x.customer, cuId), mode: x.mode, tier: x.tier, lines: x.lines.map(l => ({ brandId: rid(l.brand, brId), qty: l.qty, price: l.price })),
-        delivery: { type: "pickup" }, note: x.note, source: "scan", status: "active" });
+        delivery: { type: "pickup" }, note: x.note, source: "scan", status: "active", chase: x.chase || undefined, chaseAt: x.chase ? today() : undefined });
       if (x.paid > 0) await save("pay", { saleId: sale.id, date: x.date, amount: x.paid, method: "cash", note: t("扫描导入") });
       n++;
     }

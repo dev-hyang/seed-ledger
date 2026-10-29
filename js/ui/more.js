@@ -13,7 +13,7 @@ import { PROVIDERS, providerOf, aiSettings, saveAiSettings, aiReady, testAi } fr
 import { ACT, FORMS, CHG, INP } from "./actions.js";
 
 const ROLE = { owner: "创建者", partner: "合伙人（录入 + 批准申请）", staff: "录入员（可录入，不能管成员）", viewer: "只读成员" };
-const KIND_LAB = { sale: "销售单", pay: "收款", adj: "讨账调整", purchase: "进货", sreturn: "退货", spay: "打款入池", sfee: "手续费", customer: "客户", brand: "品种", price: "价格", supplier: "种子公司", trip: "送货", town: "镇", setting: "设置" };
+const KIND_LAB = { sale: "销售单", pay: "收款", adj: "催账调整", purchase: "进货", sreturn: "退货", spay: "打款入池", sfee: "手续费", customer: "客户", brand: "品种", price: "价格", supplier: "种子公司", trip: "送货", town: "镇", setting: "设置" };
 const ACTION_LAB = { create: "新增", update: "修改", delete: "删除", restore: "恢复" };
 
 function renderMore(){

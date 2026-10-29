@@ -1,5 +1,5 @@
 /* ============ 客户画像（规则打分，可解释，离线可用） ============
-   只依据这位客户自己的交易、收款、讨账记录，给出：风险等级、是否建议明年继续签约、建议的定金比例和赊账上限，以及要注意的保障事项。
+   只依据这位客户自己的交易、收款、催账记录，给出：风险等级、是否建议明年继续签约、建议的定金比例和赊账上限，以及要注意的保障事项。
    这是记录和风险提示，不构成法律意见；AI 只负责把这些结果写成更口语的建议，没有 AI 画像照样完整。
    规则里的数字是起点，经销商可以按自己的行情在 RULES 里调整。 */
 import { r2, EPS } from "./ledger.js";
@@ -38,7 +38,7 @@ function profileCustomer(m, customerId, today = new Date().toISOString().slice(0
   if (overdue.length) hit(Math.min(30, 12 * overdue.length), `${overdue.length} 单超过 ${RULES.overdueDays} 天未结清`);
   if (carryRatio > RULES.carryRatioLow) hit(20, "往年欠款比例高");
   else if (carryRatio > 0.15) hit(8, "往年有部分欠款没收齐");
-  if (concessionPct > RULES.heavyDiscountPct) hit(10, "讨账时议价 / 折上折幅度大");
+  if (concessionPct > RULES.heavyDiscountPct) hit(10, "催账时议价 / 折上折幅度大");
   if (avgSettleDays != null && avgSettleDays > RULES.slowSettleDays) hit(8, "回款偏慢");
   if (!reasons.length && settled.length) good.push("历史单据都按时结清");
   if (years.length >= 2 && !reasons.length) good.push("连续合作多年");
@@ -58,7 +58,7 @@ function profileCustomer(m, customerId, today = new Date().toISOString().slice(0
   if (grade === "C") guard.push("明年建议只做现款；如要赊账，须有书面欠条（写明金额、还款日期）");
   if (owing > EPS) guard.push("往年仍有欠款：先清旧账再签新单");
   if (concessionPct > RULES.heavyDiscountPct) guard.push("提前约定「按时付款才享受折扣」，并写在单据上");
-  if (writtenOff > EPS || overdue.length) guard.push("保留全部销售单、收款和讨账记录，必要时可导出对账单交法务");
+  if (writtenOff > EPS || overdue.length) guard.push("保留全部销售单、收款和催账记录，必要时可导出对账单交法务");
   return { grade, score, renew, deposit, creditLimit, reasons, good, guard,
     stats: { years, gross, net, paid, owing, negotiated, discounted, writtenOff, concessionPct, overdue: overdue.length, avgSettleDays, creditCount: creditSales.length, orders: mine.length } };
 }

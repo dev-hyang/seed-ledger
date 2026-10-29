@@ -56,7 +56,7 @@ function normalizeAi(json, { today }){
     const date = isDate(s.date) && +s.date.slice(0, 4) >= 2000 && s.date <= addDays(today, 366) ? s.date : today;
     const paid = num(s.paid);
     out.push({ on: true, date, noDate: !isDate(s.date), customer: String(s.customer || "").trim().slice(0, 40), phone: digits(s.phone).slice(0, 15), town: String(s.town || "").trim().slice(0, 30), village: String(s.village || "").trim().slice(0, 30),
-      customerId: "", tier: "retail", lines, paid: paid != null && paid >= 0 ? r2(paid) : null, note: String(s.note || "").trim().slice(0, 120), flags });
+      customerId: "", tier: "retail", chase: false, lines, paid: paid != null && paid >= 0 ? r2(paid) : null, note: String(s.note || "").trim().slice(0, 120), flags });
   }
   return out;
 }
@@ -106,6 +106,7 @@ function resolveDrafts(drafts, ctx){
     }
     d.dup = !!d.customerId && sales.some(s => s.status !== "void" && s.customerId === d.customerId && s.date === d.date && sameLines(s.lines, d.lines));
     if (d.dup) d.on = false;   // 疑似重复的默认不勾，防止同一张单导入两次
+    d.chase = d.paid != null && totalOf(d) > 0 && r2(d.paid) + 0.005 < totalOf(d);   // 单据上写明没收齐（赊账 / 只付了定金）的，默认标记待催账；没写收款的不替你猜
   }
   return drafts;
 }
@@ -175,7 +176,7 @@ function planImport(drafts, ctx){
     });
     counts[year] = (counts[year] || 0) + 1;
     const total = totalOf(d), paid = Math.min(d.paid ?? 0, total);
-    sales.push({ no: `${year}-${String(counts[year]).padStart(3, "0")}`, date: d.date, customer, lines, mode: modeFor(paid, total), tier: d.tier, note: d.note, paid, total });
+    sales.push({ no: `${year}-${String(counts[year]).padStart(3, "0")}`, date: d.date, customer, lines, mode: modeFor(paid, total), tier: d.tier, note: d.note, paid, total, chase: !!d.chase && total - paid > 0.005 });
   }
   return { suppliers, brands, customers, sales };
 }

@@ -58,3 +58,16 @@ test("汇总：库存卖超、种子公司需补款进提醒；超过上限只�
   const r2 = buildTodos({ m: buildModel(D2), today: TODAY, year: 2026, perms: P });
   assert.equal(r2.items.length, 12); assert.ok(r2.total >= 20);
 });
+
+test("手动标记「待催账」的单：不等 30 天就进提醒；有约定收款日且还早的不催；汇总给出客户数和金额", () => {
+  const D = base();
+  D.sale.push(sale("a", { date: "2026-10-25", chase: true }),                      // 才 4 天，但标记了
+    sale("b", { date: "2026-10-26", chase: true, customerId: "c2", dueOn: "2026-12-30" }),   // 标记了，但约定的收款日还早：按约定，不催
+    sale("c", { date: "2026-09-01", chase: true, customerId: "c2" }));               // 标记了，已 58 天 → 紧急
+  const r = buildTodos({ m: buildModel(D), today: TODAY, year: 2026, perms: P });
+  const by = Object.fromEntries(r.items.filter(x => x.kind === "collect").map(x => [x.params.customerId, x]));
+  assert.equal(by.c1.code, "collect-marked"); assert.equal(by.c1.tone, "warn");
+  assert.equal(by.c2.code, "collect-marked"); assert.equal(by.c2.tone, "bad"); assert.equal(by.c2.params.amount, 3500);   // 只有 c 那张；b 因为约定日还早不计入
+  assert.deepEqual(r.collect, { customers: 2, amount: 7000 });
+  const none = buildTodos({ m: buildModel(base()), today: TODAY, year: 2026, perms: P }); assert.deepEqual(none.collect, { customers: 0, amount: 0 });
+});

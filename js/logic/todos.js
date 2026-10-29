@@ -33,7 +33,8 @@ function collectTodos(m, today){
     if (s.status === "void" || s.balance <= EPS) continue;
     const age = dayDiff(today, s.date), due = s.dueOn ? dayDiff(s.dueOn, today) : null;   // due：距约定收款日还有几天（负数 = 已过期）
     let urgency = null;
-    if (due != null) { if (due <= SOON) urgency = { code: due < 0 ? "collect-due" : "collect-soon", days: Math.abs(due), over: due < 0 }; }
+    if (due != null) { if (due <= SOON) urgency = { code: due < 0 ? "collect-due" : "collect-soon", days: Math.abs(due), over: due < 0 }; }   // 有约定收款日：按约定
+    else if (s.chase) urgency = { code: "collect-marked", days: age, over: age >= OLD_DAYS };   // 手动标记了「待催账」：马上提醒，不等 30 天
     else if (age >= OLD_DAYS) urgency = { code: "collect-old", days: age, over: age >= 90 };
     if (!urgency) continue;
     const c = by.get(s.customerId) || { customerId: s.customerId, amount: 0, worst: null };
@@ -41,8 +42,8 @@ function collectTodos(m, today){
     if (!c.worst || urgency.over > c.worst.over || (urgency.over === c.worst.over && urgency.days > c.worst.days)) c.worst = { ...urgency, saleId: s.id };
     by.set(s.customerId, c);
   }
-  return [...by.values()].map(c => ({ id: "co:" + c.customerId, kind: "collect", code: c.worst.code, tone: c.worst.over ? "bad" : c.worst.code === "collect-soon" ? "warn" : "info",
-    rank: c.worst.code === "collect-due" ? 2 : c.worst.code === "collect-soon" ? 5 : c.worst.over ? 3 : 7, params: { customerId: c.customerId, amount: Math.round(c.amount * 100) / 100, days: c.worst.days }, act: { act: "customer-view", id: c.customerId } }));
+  return [...by.values()].map(c => ({ id: "co:" + c.customerId, kind: "collect", code: c.worst.code, tone: c.worst.over ? "bad" : c.worst.code === "collect-soon" || c.worst.code === "collect-marked" ? "warn" : "info",
+    rank: c.worst.code === "collect-due" ? 2 : c.worst.code === "collect-marked" ? (c.worst.over ? 2.5 : 4.5) : c.worst.code === "collect-soon" ? 5 : c.worst.over ? 3 : 7, params: { customerId: c.customerId, amount: Math.round(c.amount * 100) / 100, days: c.worst.days }, act: { act: "customer-view", id: c.customerId } }));
 }
 
 /* ---------- 成员：批准加入、表决、我的申请进度 ---------- */
@@ -73,7 +74,8 @@ function stockTodos(m, year){
 function buildTodos({ m, today, year, perms, team, me }){
   const all = [...deliveryTodos(m, today), ...collectTodos(m, today), ...teamTodos(team, me, perms), ...stockTodos(m, year)]
     .sort((a, b) => a.rank - b.rank || String(a.id).localeCompare(String(b.id)));
-  return { items: all.slice(0, MAX), total: all.length };
+  const col = all.filter(x => x.kind === "collect");
+  return { items: all.slice(0, MAX), total: all.length, collect: { customers: col.length, amount: Math.round(col.reduce((a, x) => a + x.params.amount, 0) * 100) / 100 } };   // collect：待催账的客户数和金额，概览顶部汇总用
 }
 
 export { buildTodos, deliveryTodos, collectTodos, teamTodos, stockTodos, dayDiff, SOON, OLD_DAYS, MAX };

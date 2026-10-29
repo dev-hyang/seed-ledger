@@ -22,7 +22,7 @@ test("成功：带上对应任务的系统提示词和输出语言，用户内�
   let sent = null; globalThis.fetch = async (url, init) => { sent = JSON.parse(init.body); return reply("  建议：按 30 元成交  "); };
   const payload = { grossAmount: 10500, customer: { grade: "B", reasons: ["回款偏慢"] } };
   assert.equal(await askAI("negotiate", payload, "zh-CN"), "建议：按 30 元成交");
-  assert.match(sent.messages[0].content, /讨账顾问/); assert.match(sent.messages[0].content, /用简体中文回答/);
+  assert.match(sent.messages[0].content, /催账顾问/); assert.match(sent.messages[0].content, /用简体中文回答/);
   assert.deepEqual(JSON.parse(sent.messages[1].content), payload);
   await askAI("route", {}, "en"); assert.match(sent.messages[0].content, /Answer in English/);
 });

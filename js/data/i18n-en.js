@@ -1,6 +1,6 @@
 /* ============ English UI dictionary ============
    Key = the Simplified Chinese source string used in the code; value = English. Missing keys show the Chinese original (never an error).
-   Terms: 赊账 = on credit · 讨账 = collections · 议价 = negotiated price · 折上折 = extra discount · 核销 = write-off · 钱池 = credit pool (money paid to a seed company that is drawn down by purchases). */
+   Terms: 赊账 = on credit · 催账 = collections · 议价 = negotiated price · 折上折 = extra discount · 核销 = write-off · 钱池 = credit pool (money paid to a seed company that is drawn down by purchases). */
 const EN = {
   // navigation, status
   "概览": "Overview", "销售": "Sales", "客户": "Customers", "库存": "Inventory", "报表": "Reports", "更多": "More", "稻种账本": "Rice Seed Ledger",
@@ -16,12 +16,12 @@ const EN = {
   "开始用：三步": "Get started in three steps", "在「库存 → 种子公司账」添加种子公司": "Add seed companies in Inventory → Seed company accounts",
   "在「库存 → 品种与价格」添加品种（早稻 / 一晚 / 二晚）和价格": "Add varieties (early / late I / late II) and prices in Inventory → Varieties & prices",
   "在「库存 → 进货 / 退货」记进货，然后就可以记销售了": "Record a purchase in Inventory → Purchases / returns, then you can record sales",
-  "欠款，年底要讨的账": "Receivables to collect by year end", "全部欠款 ›": "All receivables ›", "没有欠款。": "No receivables.", "{n} 单超过半年": "{n} over 6 months",
+  "待催账：欠款客户": "Receivables to collect by year end", "全部欠款 ›": "All receivables ›", "没有欠款。": "No receivables.", "{n} 单超过半年": "{n} over 6 months",
   "库存提醒": "Inventory alerts", "卖超了：": "Oversold: ", "检查进货记录": "check purchase records", "库存详情 ›": "Inventory details ›", "没有剩余库存。": "No stock left.", "还没有进货记录。": "No purchases yet.",
   "种子公司的钱池": "Seed company credit pools", "结转明年": "Carried to next year", "＋ 打开报表": "View reports", "＋ 记一笔销售": "+ New sale", "＋ 进货": "+ Purchase",
 
   // sales
-  "销售单": "Sales orders", "讨账": "Collections", "送货路线": "Delivery routes", "搜客户、品种、单号": "Search customer, variety, order no.", "有欠款": "With balance due", "已结清": "Settled",
+  "销售单": "Sales orders", "催账": "Collections", "送货路线": "Delivery routes", "搜客户、品种、单号": "Search customer, variety, order no.", "有欠款": "With balance due", "已结清": "Settled",
   "销售额": "Sales", "未收": "Outstanding", "单数": "Orders", "这一年还没有销售单。": "No sales orders this year.", "欠": "Owes",
   "未付款 / 赊账": "Unpaid / on credit", "部分已付": "Partly paid", "已作废": "Void", "逾期": "Overdue", "{n} 天": "{n} days", "欠款合计": "Total receivable", "欠款客户": "Customers owing", "超过半年未结": "Over 6 months",
   "没有欠款，账都收齐了。": "Nothing owed — all collected.",
@@ -35,7 +35,7 @@ const EN = {
   "作废原因：": "Void reason: ", "品种": "Variety", "数量": "Qty", "单价": "Unit price", "金额": "Amount", "当时可能给了": "May have given", "仅自己可见": "only you can see this", "货款": "Goods", "应收": "Receivable",
   "多收": "Overpaid", "欠款": "Balance due", "收款": "Payments", "按私下价结算的话，应收约 {a}（比现在少 {b}）。": "At the private price the receivable would be about {a} ({b} less than now).",
   "这张单的成本与利润（应收口径）": "Cost & profit of this order (receivable basis)", "进货成本": "Purchase cost", "送货成本": "Delivery cost", "取货方式": "Pickup", "利润": "Profit",
-  "＋ 收款": "+ Payment", "讨账 / 议价": "Collect / negotiate", "打印单据": "Print slip", "作废": "Void", "这张单已不存在。": "This order no longer exists.", "销售单 ": "Sales order ",
+  "＋ 收款": "+ Payment", "催账 / 议价": "Collect / negotiate", "打印单据": "Print slip", "作废": "Void", "这张单已不存在。": "This order no longer exists.", "销售单 ": "Sales order ",
   "议价": "Negotiated price", "折上折": "Extra discount", "核销坏账": "Write off bad debt", "撤销这条调整": "Undo this adjustment", "撤销这笔收款": "Undo this payment", "撤销这笔收款？": "Undo this payment?", "撤销这条调整？": "Undo this adjustment?",
   "撤销": "Undo", "记录会保留在审计日志里。": "The record stays in the audit log.", "应收会恢复。记录会保留在审计日志里。": "The receivable is restored. The record stays in the audit log.",
   "作废销售单": "Void sales order", "作废的单不计入销售、库存和利润，但记录和原因永久保留，可供查账。": "Voided orders are excluded from sales, stock and profit, but the record and reason are kept permanently for auditing.", "作废原因": "Void reason",
@@ -60,17 +60,17 @@ const EN = {
   "不建议明年继续赊账 / 签约": "Not recommended to extend credit / sign again next year", "新客户：先小额、现款或高定金": "New customer: start small, cash or a high deposit",
   "搜姓名、镇、村、电话": "Search name, town, village, phone", "还没有客户。记第一笔销售时可以直接新建客户。": "No customers yet. You can create one while recording your first sale.",
   "客户画像": "Customer profile", "规则打分 {n}/100": "Rule-based score {n}/100", "建议定金": "Suggested deposit", "建议赊账上限": "Suggested credit limit", "不赊账": "No credit", "扣分原因": "Reasons for deductions",
-  "讨账时让利合计占货款 {p}%（议价 {a}，折上折 {b}）": "Concessions during collection total {p}% of goods (negotiated {a}, extra discount {b})", "建议的保障措施": "Recommended safeguards",
+  "催账时让利合计占货款 {p}%（议价 {a}，折上折 {b}）": "Concessions during collection total {p}% of goods (negotiated {a}, extra discount {b})", "建议的保障措施": "Recommended safeguards",
   "AI 写成建议": "AI write-up", "以上只是根据交易记录的风险提示，不构成法律意见；重大纠纷请咨询律师，并保留全部单据。": "This is only a risk indication based on transaction records, not legal advice. For serious disputes consult a lawyer and keep all documents.",
   "交易记录": "Transactions", "还没有交易。": "No transactions yet.", "打印对账单": "Print statement", "累计应收": "Total receivable", "合作年数": "Years together", "这位客户已不存在。": "This customer no longer exists.",
   "修改客户": "Edit customer", "详细地址": "Address", "只填做生意必要的信息。客户个人信息请妥善保管，导出的文件不要随意转发。": "Only enter what the business needs. Keep customers' personal information safe and don't forward exported files.",
   "这位客户有销售记录，不能删除（账要留着）": "This customer has sales records and can't be deleted (the books must stay)", "确认删除这位客户？": "Delete this customer?",
   "有坏账核销记录": "Has bad-debt write-offs", "{a} 单超过 {b} 天未结清": "{a} order(s) unsettled for over {b} days", "往年欠款比例高": "High share of past-year balances unpaid", "往年有部分欠款没收齐": "Some past-year balances remain unpaid",
-  "讨账时议价 / 折上折幅度大": "Large negotiated / extra discounts when collecting", "回款偏慢": "Slow to pay", "历史单据都按时结清": "All past orders settled on time", "连续合作多年": "Multi-year customer",
+  "催账时议价 / 折上折幅度大": "Large negotiated / extra discounts when collecting", "回款偏慢": "Slow to pay", "历史单据都按时结清": "All past orders settled on time", "连续合作多年": "Multi-year customer",
   "新客户：先现款或高定金，小额起步，观察一季": "New customer: cash or a high deposit, start small, observe one season", "赊账请让客户在销售单上签字，并拍照留存": "For credit sales, get the customer's signature on the slip and keep a photo",
   "分批供货，上一批结清再供下一批": "Supply in batches; settle one before the next", "明年建议只做现款；如要赊账，须有书面欠条（写明金额、还款日期）": "Next year: cash only; if credit is unavoidable, get a written IOU (amount and repayment date)",
   "往年仍有欠款：先清旧账再签新单": "Past balance still owed: clear it before a new order", "提前约定「按时付款才享受折扣」，并写在单据上": "Agree in advance that the discount applies only if paid on time, and write it on the slip",
-  "保留全部销售单、收款和讨账记录，必要时可导出对账单交法务": "Keep all sales orders, payments and collection records; export a statement for legal if needed",
+  "保留全部销售单、收款和催账记录，必要时可导出对账单交法务": "Keep all sales orders, payments and collection records; export a statement for legal if needed",
 
   // inventory
   "进货 / 退货": "Purchases / returns", "品种与价格": "Varieties & prices", "种子公司账": "Seed company accounts", "还没有品种。先到「品种与价格」添加，再记进货。": "No varieties yet. Add them under Varieties & prices, then record purchases.", "＋ 添加品种": "+ Add variety",
@@ -122,7 +122,7 @@ const EN = {
   "来自云端，由数据库自动记录，不能被修改或删除。": "From the cloud, recorded automatically by the database; it can't be edited or deleted.", "本机记录；联网登录后以云端日志为准。": "Local record; once signed in online, the cloud log is authoritative.", "还没有记录。": "No records yet.", "新增": "Created", 
   "没有冲突。": "No conflicts.", "你的版本：": "Your version: ", "导出的文件包含客户个人信息和账务，请妥善保管，不要发到公开的地方。": "Exported files contain customers' personal information and financial data. Keep them safe and don't post them publicly.", "导出全部数据": "Export all data", "导入备份": "Import backup",
   "导入只会新增或覆盖同 ID 的记录，不会删除现有数据；每一条都会留痕。": "Import only adds or overwrites records with the same ID; nothing is deleted, and every change is logged.", "文件不对或太大": "Wrong file or too large", "已导入 {n} 条": "Imported {n} records", "导入失败：不是有效的备份文件": "Import failed: not a valid backup file",
-    "价格": "Price", "讨账调整": "Collection adjustment", 
+    "价格": "Price", "催账调整": "Collection adjustment", 
   // banners, sync messages
   "登录后数据会同步给合伙人，并在多台设备间保持一致。": "Sign in to sync data with your partners and keep devices consistent.", "还没有经销商账本：创建一个，或用邀请码加入合伙人的账本。": "No dealer ledger yet: create one, or join a partner's with an invite code.", "去设置": "Go to settings",
   "已申请加入，等待创建者批准。": "Requested to join — waiting for the owner to approve.", "现在离线：可以照常录入，恢复网络后自动同步。": "You're offline: keep entering data as usual; it syncs automatically when you're back online.", "云端组件加载失败，已切到本机模式": "Couldn't load the cloud component; switched to local mode",
@@ -364,6 +364,34 @@ const EN = {
   "请填正确的邮箱": "Enter a valid email",
   "密码至少 8 位": "Password must be at least 8 characters",
   "要留邮箱的话，请填正确的邮箱": "To leave an email, enter a valid one",
-  "要留邮箱的话，密码至少 8 位": "To leave an email, the password must be at least 8 characters"
+  "要留邮箱的话，密码至少 8 位": "To leave an email, the password must be at least 8 characters",
+
+  // chase (formerly 讨账): marks, batch select
+  "待催账": "To chase",
+  "🚩 标记待催账": "🚩 Mark to chase",
+  "取消催账标记": "Remove chase mark",
+  "已取消催账标记": "Chase mark removed",
+  "已标记待催账，概览里会提醒": "Marked to chase — it will show on the overview",
+  "批量选择": "Select several",
+  "批量操作": "Bulk actions",
+  "已选 {n} 张": "{n} selected",
+  "全选未结清": "Select all unsettled",
+  "标记待催账": "Mark to chase",
+  "取消标记": "Remove mark",
+  "设约定收款日": "Set agreed payment date",
+  "已标记 {n} 张待催账": "Marked {n} to chase",
+  "已取消 {n} 张的催账标记": "Removed the chase mark from {n}",
+  "已给 {n} 张设了约定收款日": "Set the agreed payment date on {n}",
+  "给选中的 {n} 张销售单统一设约定收款日": "Set the same agreed payment date on the {n} selected orders",
+  "约定收款日": "Agreed payment date",
+  "到期前 3 天起进概览的催账提醒；已结清的会跳过。": "Chase reminders on the overview start 3 days before it; settled orders are skipped.",
+  "标记为待催账（还没结清，要去催）": "Mark to chase (not settled yet)",
+  "全部标记待催账": "Mark all to chase",
+  "全部取消标记": "Remove all marks",
+  "待催账的客户": "Customers to chase",
+  "待催账：{c}": "To chase: {c}",
+  "欠款 {a} · 已 {n} 天": "Owes {a} · {n} days",
+  "待催账 {n} 位客户，共 {a}": "{n} customer(s) to chase, {a} in total",
+  "去催账 ›": "Chase ›"
 };
 export { EN };

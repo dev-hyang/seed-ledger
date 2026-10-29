@@ -147,3 +147,14 @@ test("导入计划：新公司名称和库里已有的重名（忽略空格大�
   assert.deepEqual(S.planImport(ds, { suppliers: ctx.suppliers }).suppliers, []);
   assert.deepEqual(S.planImport(ds, { suppliers: ctx.suppliers }).brands[0].supplier, { id: "s1" });
 });
+
+test("扫描：单据上写明没收齐（赊账 / 定金）的默认标记待催账；没写收款的不猜；可手动改；导入计划带上标记；已收齐的不会被标记", () => {
+  const ctx = baseCtx();
+  const ds = S.resolveDrafts(S.normalizeAi(ai([one({ paid: 0 }), one({ paid: 1000, date: "2026-04-01" }), one({ paid: null, date: "2026-05-01" }), one({ paid: 3500, date: "2026-06-01", lines: [{ brand: "富香977", qty: 100, price: 35 }] })]), { today }), ctx);
+  assert.deepEqual(ds.map(d => d.chase), [true, true, false, false]);   // 赊账 / 定金 → 标记；没写 → 不猜；收齐 → 不标记
+  ds[2].chase = true;   // 用户手动勾上
+  ds.forEach(d => { d.supplierId = ""; });
+  const plan = S.planImport(ds.map(d => { d.on = true; d.lines.forEach(l => { if (l.nb) { l.nb.supplierName = "公司"; } }); return d; }), { counts: {}, suppliers: [] });
+  assert.deepEqual(plan.sales.map(s => s.chase), [true, true, true, false]);
+  ds[3].chase = true; assert.equal(S.planImport(ds, { counts: {}, suppliers: [] }).sales[3].chase, false);   // 收齐了还勾着：不会真标记（没有欠款可催）
+});

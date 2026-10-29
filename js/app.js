@@ -105,7 +105,7 @@ document.addEventListener("input", e => {
 });
 $("#sheet").addEventListener("click", e => { if (e.target === e.currentTarget) closeAll(); });   // 点遮罩关闭
 $("#sheet").addEventListener("close", () => { if (sheetOpen()) return; });
-// 表单弹层打开后，跑一次该表单的「输入」处理（销售单的合计、讨账的预览）
+// 表单弹层打开后，跑一次该表单的「输入」处理（销售单的合计、催账的预览）
 new MutationObserver(() => { const f = $("#sheet form[data-input-form]"); if (f && !f.dataset.init) { f.dataset.init = "1"; INP[f.dataset.inputForm]?.(f.elements[0], f); } }).observe($("#sheet"), { childList: true, subtree: true });
 
 if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(() => {});

@@ -41,7 +41,7 @@ function customerPage(id){
       ${p.grade === "N" ? "" : `<div class="grid2">${kv("建议定金", pct(p.deposit))}${kv("建议赊账上限", p.creditLimit ? money(p.creditLimit) : t("不赊账"))}</div>`}
       ${p.reasons.length ? `<h4>${esc(t("扣分原因"))}</h4><ul class="bul">${p.reasons.map(r => `<li class="neg">${esc(t(r.replace(/(\d+) 单超过 (\d+) 天未结清/, (_, a, b) => t("{a} 单超过 {b} 天未结清", { a, b }))))}</li>`).join("")}</ul>` : ""}
       ${p.good.length ? `<ul class="bul">${p.good.map(r => `<li class="pos">${esc(t(r))}</li>`).join("")}</ul>` : ""}
-      ${s.concessionPct > 0 ? `<p class="hint">${esc(t("讨账时让利合计占货款 {p}%（议价 {a}，折上折 {b}）", { p: s.concessionPct, a: money(s.negotiated), b: money(s.discounted) }))}</p>` : ""}
+      ${s.concessionPct > 0 ? `<p class="hint">${esc(t("催账时让利合计占货款 {p}%（议价 {a}，折上折 {b}）", { p: s.concessionPct, a: money(s.negotiated), b: money(s.discounted) }))}</p>` : ""}
       ${p.guard.length ? `<h4>${esc(t("建议的保障措施"))}</h4><ul class="bul">${p.guard.map(g => `<li>${esc(t(g))}</li>`).join("")}</ul>` : ""}
       <div class="ai-box"><button class="btn sm" data-act="ai-customer" data-id="${id}">✨ ${esc(t("AI 写成建议"))}</button><div data-ai class="ai-out"></div></div>
       <small class="disc">${esc(t("以上只是根据交易记录的风险提示，不构成法律意见；重大纠纷请咨询律师，并保留全部单据。"))}</small></div>

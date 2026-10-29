@@ -20,9 +20,10 @@ function describe(it){
     case "deliver-tomorrow": return { title: t("明天送货：{c}", { c }), sub: `${qty(p.qty)} · ${dateFmt(p.on)}`, label: "查看" };
     case "deliver-soon": return { title: t("{n} 天后送货：{c}", { n: p.days, c }), sub: `${qty(p.qty)} · ${dateFmt(p.on)}`, label: "查看" };
     case "deliver-undated": return { title: t("{n} 张送货单还没定送货日期", { n: p.count }), sub: t("在销售单里填上送货日期，就会按日期提醒；也可以合并成一趟送"), label: "去安排" };
-    case "collect-due": return { title: t("收款已到期 {n} 天：{c}", { n: p.days, c }), sub: t("欠款 {a}", { a: money(p.amount) }), label: "去讨账" };
+    case "collect-due": return { title: t("收款已到期 {n} 天：{c}", { n: p.days, c }), sub: t("欠款 {a}", { a: money(p.amount) }), label: "去催账" };
     case "collect-soon": return { title: t("{n} 天后到约定收款日：{c}", { n: p.days, c }), sub: t("欠款 {a}", { a: money(p.amount) }), label: "查看" };
-    case "collect-old": return { title: t("{c} 赊账 {n} 天了", { n: p.days, c }), sub: t("欠款 {a}", { a: money(p.amount) }), label: "去讨账" };
+    case "collect-marked": return { title: t("待催账：{c}", { c }), sub: t("欠款 {a} · 已 {n} 天", { a: money(p.amount), n: p.days }), label: "去催账" };
+    case "collect-old": return { title: t("{c} 赊账 {n} 天了", { n: p.days, c }), sub: t("欠款 {a}", { a: money(p.amount) }), label: "去催账" };
     case "join": return { title: t("{n} 申请加入，等你批准", { n: p.name }), sub: t("认识再批准；批准后是只读成员"), label: "去处理" };
     case "vote-partner": return { title: t("{n} 申请成为合伙人，需要全体同意", { n: p.name }), sub: t("已同意 {a}/{b}", { a: p.agreed, b: p.total }), label: "去表决" };
     case "vote-remove": return { title: t("申请移出成员 {n}，需要全体同意", { n: p.name }), sub: t("已同意 {a}/{b}", { a: p.agreed, b: p.total }), label: "去表决" };
@@ -43,8 +44,8 @@ function card(it, write){
 }
 
 function todoSection(m, year){
-  const role = S.cloud === "local" ? "owner" : S.role, { items, total } = buildTodos({ m, today: today(), year, perms: perms(role), team: S.team || null, me: S.user?.id || "" });
-  const head = `<div class="card-head"><h3>${esc(t("待处理"))}${total ? ` <span class="badge ${items.some(x => x.tone === "bad") ? "bad" : "warn"}">${total}</span>` : ""}</h3></div>`;
+  const role = S.cloud === "local" ? "owner" : S.role, { items, total, collect } = buildTodos({ m, today: today(), year, perms: perms(role), team: S.team || null, me: S.user?.id || "" });
+  const head = `<div class="card-head"><h3>${esc(t("待处理"))}${total ? ` <span class="badge ${items.some(x => x.tone === "bad") ? "bad" : "warn"}">${total}</span>` : ""}</h3></div>${collect.customers ? `<p class="todo-sum">💰 ${esc(t("待催账 {n} 位客户，共 {a}", { n: collect.customers, a: money(collect.amount) }))} <button type="button" class="link" data-act="goto" data-tab="sales" data-sub="collect">${esc(t("去催账 ›"))}</button></p>` : ""}`;
   if (!items.length) return `<section class="card todo-card">${head}<p class="hint todo-empty">✓ ${esc(t("今天没有要处理的事"))}</p></section>`;
   return `<section class="card todo-card" aria-label="${esc(t("待处理"))}">${head}<ul class="todos">${items.map(it => card(it, canWrite())).join("")}</ul>${total > items.length ? `<p class="hint">${esc(t("还有 {n} 条没显示：先处理上面的", { n: total - items.length }))}</p>` : ""}</section>`;
 }
