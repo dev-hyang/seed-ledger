@@ -10,11 +10,20 @@ import * as db from "./db.js";
 import { S, adoptLocal, loadOrg, notify, setKick, settingsFrom } from "./state.js";
 import { debounce, toast } from "./util.js";
 import { t } from "./i18n.js";
-import { hashError } from "./auth-msg.js";
+import { hashError, joinOutcome, cleanInvite, inviteFresh, displayFromEmail } from "./auth-msg.js";
 
 const T = { orgs: DB_PREFIX + "orgs", members: DB_PREFIX + "org_members", records: DB_PREFIX + "records", audit: DB_PREFIX + "audit_log" };   // 表名（见 config.js 的 DB_PREFIX）
 const fn = name => DB_PREFIX + name;   // 函数名
 const SB = { client: null, channel: null, timer: null, running: false, again: false };
+/* 暂存邀请码（24 小时）：登录页填了邀请码、或点了邀请链接，登录成功后自动提交申请；注册要先去邮箱确认，所以不能只靠当场提交 */
+const INVITE_KEY = LS_PREFIX + ".invite";
+const peekInvite = () => { try { const v = JSON.parse(localStorage.getItem(INVITE_KEY) || "null"); return inviteFresh(v) ? v : null; } catch (e) { return null; } };
+function rememberInvite(code, display){
+  const c = cleanInvite(code);
+  if (c) { try { localStorage.setItem(INVITE_KEY, JSON.stringify({ code: c, display: String(display || "").trim().slice(0, 40), at: Date.now() })); } catch (e) { /* 忽略 */ } }
+  return c;
+}
+const forgetInvite = () => { try { localStorage.removeItem(INVITE_KEY); } catch (e) { /* 忽略 */ } };
 const isNet = e => !e || /fetch|network|Failed|load/i.test(e.message || "") || e.name === "TypeError";
 
 async function initCloud(){
@@ -23,11 +32,18 @@ async function initCloud(){
   S.cloud = "signedout"; notify();
   const linkErr = hashError(location.hash);   // 点了过期 / 用过的确认链接跳回来：说清楚，并清掉地址里的错误参数
   if (linkErr) { setTimeout(() => toast(linkErr), 400); history.replaceState(null, "", location.pathname + location.search); }
+  const inv = new URLSearchParams(location.search).get("invite");   // 邀请链接 ?invite=码：记下来，并把它从地址栏里去掉
+  if (inv) {
+    rememberInvite(inv, peekInvite()?.display);
+    const q = new URLSearchParams(location.search); q.delete("invite");
+    history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : "") + location.hash);
+  }
   try {
     await new Promise((res, rej) => { const s = document.createElement("script"); s.src = SUPABASE_JS; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
   } catch (e) { S.cloud = "offline"; toast(t("云端组件加载失败，已切到本机模式")); notify(); return; }
   SB.client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: LS_PREFIX + ".auth" } });
-  SB.client.auth.onAuthStateChange((_e, session) => { S.user = session?.user && !session.user.is_anonymous ? session.user : null; setTimeout(afterAuth, 0); });
+  // 含免邮箱（匿名）账号：只能申请加入，权限限制在数据库里（见 supabase/*anonymous_join.sql）
+  SB.client.auth.onAuthStateChange((_e, session) => { S.user = session?.user || null; setTimeout(afterAuth, 0); });
   window.addEventListener("online", () => kick());
   window.addEventListener("offline", () => { S.cloud = "offline"; notify(); });
   clearInterval(SB.timer); SB.timer = setInterval(() => kick(), 60e3);
@@ -41,7 +57,15 @@ async function afterAuth(){
   if (error) { S.cloud = "offline"; notify(); return; }
   const rows = data || [], active = rows.find(r => r.status === "active" && r.orgs);
   if (active) return enterOrg(active.orgs.id, active.orgs.name, active.role);
-  S.cloud = rows.some(r => r.status === "pending") ? "pending" : "noorg"; notify();
+  const pend = rows.some(r => r.status === "pending"), stash = !pend && peekInvite();
+  if (stash) {   // 登录前填过邀请码：自动提交申请（只试一次，结果留给界面显示）
+    forgetInvite();
+    const res = await SB.client.rpc(fn("join_org"), { p_code: stash.code, p_display: stash.display || displayFromEmail(S.user.email) });
+    const out = joinOutcome(res.data, res.error);
+    if (out.kind === "pending" || out.kind === "active") return afterAuth();
+    S.joinMsg = out.message; toast(out.message);
+  } else if (pend) S.joinMsg = "";
+  S.cloud = pend ? "pending" : "noorg"; notify();
 }
 async function enterOrg(orgId, name, role){
   S.orgName = name; S.role = role; await loadOrg(orgId);
@@ -130,6 +154,16 @@ async function joinOrg(code, display){
   return res;
 }
 /** 成员列表（创建者 / 合伙人能看到全部；只读成员只看到自己）+ 邀请码。邀请码只有创建者 / 合伙人读得到，过期了会由数据库自动换新（创建者主动关闭的除外） */
+/** 免邮箱加入：匿名登录 + 凭邀请码申请，一步完成。没申请成功就退出匿名账号，不在这台设备上留空账号 */
+async function joinAnonymous(code, display){
+  const c = cleanInvite(code);
+  if (!c) return { data: { status: "invalid" } };
+  const { error } = await SB.client.auth.signInAnonymously();
+  if (error) return { error };
+  const res = await joinOrg(c, display);
+  if (res.error || !["pending", "active"].includes(res.data?.status)) await SB.client.auth.signOut();
+  return res;
+}
 async function listMembers(){
   const m = await SB.client.from(T.members).select("user_id, role, status, name, created_at").eq("org_id", S.org).order("created_at");
   const info = S.role === "owner" || S.role === "partner" ? (await SB.client.rpc(fn("invite_info"), { p_org: S.org })).data : null;
@@ -147,5 +181,6 @@ async function cloudAudit(limit = 300){
 async function localAudit(){ return (await db.getAll("audit", S.org)).reverse(); }
 const conflictsList = async () => (await db.listAll("conflicts")).filter(c => c.org === S.org).reverse();
 
-const recheck = () => afterAuth();   // 等批准的人点「立即检查」
+const recheck = () => afterAuth();
+export { rememberInvite, peekInvite, joinAnonymous };   // 等批准的人点「立即检查」
 export { recheck, initCloud, sync, signIn, signUp, resendConfirm, signOut, createOrg, joinOrg, listMembers, setMember, approveMember, rejectMember, resetInvite, closeInvite, cloudAudit, localAudit, conflictsList, settingsFrom };

@@ -14,7 +14,7 @@ const SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/d
    两套二选一，前缀要和你实际执行的 SQL 一致。 */
 const DB_PREFIX = "sl_";
 const LS_PREFIX = "seedledger.v1";
-const APP_VERSION = "2026-10-29.2";
+const APP_VERSION = "2026-10-29.3";
 
 const CLOUD_CONFIGURED = /^https:\/\/(?!YOUR-)/.test(SUPABASE_URL) && !SUPABASE_ANON_KEY.includes("YOUR-");
 

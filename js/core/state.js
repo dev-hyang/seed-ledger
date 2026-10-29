@@ -20,7 +20,7 @@ const S = {
 const listeners = new Set();
 const subscribe = fn => { listeners.add(fn); return () => listeners.delete(fn); };
 const notify = () => { applySettings(); for (const f of listeners) f(); };
-const canWrite = () => S.role === "owner" || S.role === "partner";
+const canWrite = () => ["owner", "partner", "staff"].includes(S.role);   // 只读成员不能写；录入员能写但不能管成员（见 auth-msg.js 的 perms）
 
 function applySettings(){
   const st = S.settings;

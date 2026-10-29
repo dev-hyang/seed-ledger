@@ -1,5 +1,5 @@
 /* 各页面共用：账务模型（数据没变就复用）、名称查找、年份、手机号遮挡 */
-import { S, live, subscribe } from "../core/state.js";
+import { S, live, subscribe, canWrite } from "../core/state.js";
 import { buildModel, yearOf } from "../logic/ledger.js";
 import { t } from "../core/i18n.js";
 import { esc } from "../core/util.js";
@@ -29,6 +29,6 @@ function years(){
 const maskPhone = p => { const s = String(p || ""); return s.length >= 7 ? s.slice(0, 3) + "****" + s.slice(-4) : s; };
 const phoneHTML = p => !p ? "" : S.settings.maskPhone ? `<a class="tel" href="tel:${esc(p)}">${esc(maskPhone(p))}</a>` : `<a class="tel" href="tel:${esc(p)}">${esc(p)}</a>`;
 const yearSelect = (cur, name = "year", cls = "") => `<select class="${cls}" data-change="${name}" aria-label="${esc(t("年份"))}">${years().map(y => `<option value="${y}" ${+cur === y ? "selected" : ""}>${y}</option>`).join("")}</select>`;
-const ro = () => S.role === "viewer";
+const ro = () => !canWrite();
 
 export { model, byId, brandName, customerName, supplierName, seasonName, seasonOpts, sortBy, years, maskPhone, phoneHTML, yearSelect, ro };

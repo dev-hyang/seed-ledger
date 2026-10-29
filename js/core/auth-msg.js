@@ -15,6 +15,9 @@ function authMessage(error){
   if (code === "user_already_exists" || /already (been )?registered/i.test(msg)) return t("这个邮箱已经注册过了（姊妹应用共用同一个账号），请直接登录。");
   if (code === "email_not_confirmed" || /not confirmed/i.test(msg)) return t("这个邮箱还没确认：请点确认邮件里的链接，或点「重发确认邮件」。");
   if (code === "invalid_credentials" || /invalid login/i.test(msg)) return t("邮箱或密码不对。（小月亮等姊妹应用的账号也可以直接在这里登录）");
+  if (/email account required for this role/i.test(msg)) return t("免邮箱的账号只能是只读或录入员；请对方先用邮箱登录，再提升角色。");
+  if (/email account required/i.test(msg)) return t("这一步需要邮箱账号：免邮箱加入的人不能创建账本。");
+  if (/anonymous.*(disabled|not enabled)/i.test(msg)) return t("免邮箱加入还没有开启：请联系创建者，或用邮箱注册。");
   if (code === "weak_password") return t("密码太简单，请换一个更长、更复杂的。");
   return msg;
 }
@@ -38,9 +41,9 @@ function hashError(hash){
 export { authMessage, signupOutcome, hashError };
 
 /* ============ 角色权限、加入结果、邀请码状态（纯函数，有测试） ============
-   角色：owner 创建者（管成员：提升 / 降级 / 移出、重新生成 / 关闭邀请码）· partner 合伙人（录入 + 批准 / 拒绝加入申请）· viewer 只读。
-   凭邀请码加入的人批准后是只读；只有创建者能把别人提升为合伙人 / 创建者。界面只用来决定显示哪些按钮，真正的拦截在数据库函数里。 */
-const perms = role => ({ write: role === "owner" || role === "partner", approve: role === "owner" || role === "partner", manage: role === "owner" });
+   角色（权限从小到大）：viewer 只读 · staff 录入员（能录入，不能管成员）· partner 合伙人（录入 + 批准 / 拒绝加入申请、看邀请码和审计）· owner 创建者（改角色、移出成员、重新生成 / 关闭邀请码）。
+   凭邀请码加入的人批准后是只读；只有创建者能把别人设为录入员 / 合伙人 / 创建者。界面只用来决定显示哪些按钮，真正的拦截在数据库函数里。 */
+const perms = role => ({ write: ["owner", "partner", "staff"].includes(role), approve: role === "owner" || role === "partner", manage: role === "owner" });
 
 /** sl_join_org / join_org 返回的 { status } → { kind, message } */
 function joinOutcome(res, error){
@@ -63,3 +66,16 @@ function inviteState(info, now = Date.now()){
   return ms > 0 ? { kind: "valid", days: Math.max(1, Math.ceil(ms / 864e5)) } : { kind: "expired" };
 }
 export { perms, joinOutcome, inviteState };
+
+/* ============ 登录时顺带填邀请码：整理输入、没填名字时的默认名字、暂存是否还有效（纯函数，有测试） ============ */
+/** 邀请码：去掉空格和连字符（复制时常带进来），转大写（数据库不区分大小写），最长 20 位；不是字母数字就当没填 */
+function cleanInvite(s){
+  const c = String(s ?? "").replace(/[\s\-_]/g, "").toUpperCase().slice(0, 20);
+  return /^[A-Z0-9]{4,20}$/.test(c) ? c : "";
+}
+/** 没填名字时，用邮箱 @ 前面那段给创建者看（最多 20 个字符） */
+const displayFromEmail = email => String(email || "").split("@")[0].slice(0, 20) || "?";
+/** 暂存的邀请码 24 小时内有效（注册要先去邮箱确认，可能隔一阵才回来登录） */
+const INVITE_TTL = 24 * 3600e3;
+const inviteFresh = (stash, now = Date.now()) => !!stash && !!cleanInvite(stash.code) && now - (+stash.at || 0) < INVITE_TTL;
+export { cleanInvite, displayFromEmail, inviteFresh, INVITE_TTL };

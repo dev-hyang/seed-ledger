@@ -268,7 +268,6 @@ const EN = {
   // roles, invites, pending screen
   "等待批准": "Waiting for approval",
   "你已提交加入申请。创建者或合伙人批准后，这里会自动进入账本（每隔几秒自动检查一次）。": "Your request to join was submitted. Once the owner or a partner approves it, you'll be taken into the ledger automatically (checked every few seconds).",
-  "批准前你只能看到这个状态，看不到账本里的任何信息。批准后是「只读成员」，要录入请联系创建者提升为合伙人。": "Until approved you can only see this status — nothing in the ledger. After approval you are a read-only member; ask the owner to promote you to partner if you need to enter data.",
   "立即检查": "Check now",
   "还没批准，请耐心等一下": "Not approved yet — please wait a little",
   "已批准，正在进入": "Approved — entering now",
@@ -276,7 +275,6 @@ const EN = {
   "复制": "Copy",
   "重新生成（7 天）": "Regenerate (7 days)",
   "关闭邀请": "Close invite",
-  "凭邀请码加入的人要先经过批准；批准后是「只读」，要录入得由创建者提升为合伙人。": "Anyone joining with the code must be approved first; after approval they are read-only, and only the owner can promote them to partner so they can enter data.",
   "等你批准（{n}）": "Waiting for your approval ({n})",
   "认识这个人再批准：批准后他能看到账本里的全部数据（只读）。不认识就拒绝，并重新生成邀请码。": "Only approve people you know: once approved they can see all data in the ledger (read-only). If you don't know them, reject and regenerate the invite code.",
   "申请时间": "Requested on",
@@ -285,7 +283,6 @@ const EN = {
   "（我）": "(me)",
   "角色": "Role",
   "只读成员": "Read-only member",
-  "只有创建者能把别人设为合伙人或创建者，也只有创建者能移出成员。设为创建者后，对方拥有和你一样的全部权限。": "Only the owner can make someone a partner or owner, and only the owner can remove members. An owner has all the same permissions as you.",
   "邀请码已过期": "Invite code expired",
   "邀请已关闭，新的申请进不来。要邀请人就重新生成。": "Invites are closed; new requests can't come in. Regenerate the code to invite people again.",
   "邀请码已复制": "Invite code copied",
@@ -301,13 +298,35 @@ const EN = {
   "设为创建者": "Make owner",
   "邀请码、批准申请、改角色": "Invite code, approvals, roles",
   "邀请码、批准申请": "Invite code, approvals",
-  "创建者或合伙人会在「更多 → 成员与邀请」里看到你的申请并批准。批准前你只能看到「等待批准」，看不到任何数据；批准后是只读成员，要录入由创建者提升为合伙人。": "The owner or a partner will see your request under More → Members & invites and approve it. Until then you only see “Waiting for approval” and no data; after approval you are a read-only member, and the owner can promote you to partner to enter data.",
   "申请失败：": "Request failed: ",
   "已申请，等待创建者或合伙人批准。批准前你只能看到申请状态，看不到任何数据。": "Request sent — waiting for the owner or a partner to approve. Until then you only see the request status, no data.",
   "邀请码不对，请核对后再试。": "That invite code is not valid — please check it and try again.",
   "邀请码已失效（过期或被关闭），请联系创建者重新发一个。": "This invite code is no longer valid (expired or closed) — ask the owner for a new one.",
   "猜错次数太多了，{n} 分钟后再试。": "Too many wrong attempts — try again in {n} minutes.",
   "等待批准的人太多了，请先联系创建者处理。": "Too many requests are waiting — ask the owner to handle them first.",
-  "申请失败，请稍后再试。": "Request failed — please try again later."
+  "申请失败，请稍后再试。": "Request failed — please try again later.",
+
+  // staff role
+  "合伙人（录入 + 批准申请）": "Partner (enter data + approve requests)",
+  "录入员（可录入，不能管成员）": "Data entry (can enter data, can't manage members)",
+  "凭邀请码加入的人要先经过批准；批准后是「只读」，要录入得由创建者设为录入员或合伙人。": "Anyone joining with the code must be approved first; after approval they are read-only, and only the owner can make them data entry or partner so they can enter data.",
+  "只有创建者能改角色和移出成员。录入员能录入但不能管成员；合伙人还能批准申请、看邀请码和审计日志；创建者拥有全部权限。": "Only the owner can change roles and remove members. Data entry can enter data but can't manage members; partners can also approve requests and see the invite code and audit log; the owner has all permissions.",
+  "创建者或合伙人会在「更多 → 成员与邀请」里看到你的申请并批准。批准前你只能看到「等待批准」，看不到任何数据；批准后是只读成员，要录入由创建者设为录入员或合伙人。": "The owner or a partner will see your request under More → Members & invites and approve it. Until then you only see “Waiting for approval” and no data; after approval you are a read-only member, and the owner can make you data entry or partner so you can enter data.",
+  "批准前你只能看到这个状态，看不到账本里的任何信息。批准后是「只读成员」，要录入请联系创建者设为录入员或合伙人。": "Until approved you can only see this status — nothing in the ledger. After approval you are a read-only member; ask the owner to make you data entry or partner if you need to enter data.",
+
+  // join without email, invite link
+  "有邀请码？直接加入，不用邮箱": "Have an invite code? Join directly — no email needed",
+  "申请加入时给创建者看": "Shown to the owner with your request",
+  "只能申请加入，由创建者或合伙人批准；批准后是只读成员。这种账号只存在这台设备的浏览器里，清了浏览器数据就进不去了；想长期用或当合伙人，请用邮箱。": "You can only request to join; the owner or a partner must approve, and you start as a read-only member. This kind of account lives only in this device's browser — clearing browser data locks you out; use an email account for long-term use or to become a partner.",
+  "或者用邮箱登录 / 注册（上面填了邀请码的话，登录后会自动申请加入）": "Or sign in / sign up with email (if you entered an invite code above, you'll request to join automatically after signing in)",
+  "请填邀请码": "Enter the invite code",
+  "请填你的名字（给创建者看）": "Enter your name (shown to the owner)",
+  "邀请码已记下：确认邮箱并登录后会自动申请加入。": "Invite code saved: after you confirm your email and sign in, you'll request to join automatically.",
+  "访客（免邮箱）": "Guest (no email)",
+  "复制邀请链接": "Copy invite link",
+  "邀请链接已复制：对方打开后登录，会自动申请加入": "Invite link copied: after the person opens it and signs in, they request to join automatically",
+  "免邮箱的账号只能是只读或录入员；请对方先用邮箱登录，再提升角色。": "Accounts without email can only be read-only or data entry; ask them to sign in with email first, then change the role.",
+  "这一步需要邮箱账号：免邮箱加入的人不能创建账本。": "This needs an email account: people who joined without email can't create a ledger.",
+  "免邮箱加入还没有开启：请联系创建者，或用邮箱注册。": "Joining without email isn't enabled — contact the owner, or sign up with email."
 };
 export { EN };

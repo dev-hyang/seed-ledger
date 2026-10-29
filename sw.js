@@ -1,6 +1,6 @@
 /* 离线外壳：先缓存应用文件，断网也能打开；数据本来就在本机（IndexedDB），不经过这里。
    策略：同源文件「先网络、失败再用缓存」，所以发新版后联网打开就是新的；Supabase 等跨域请求不碰。 */
-const CACHE = "seed-ledger-2026-10-29.2";
+const CACHE = "seed-ledger-2026-10-29.3";
 const SHELL = ["./", "index.html", "app.css", "manifest.webmanifest", "icon.svg"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

@@ -4,7 +4,7 @@ import { esc, toast, newId, downloadText } from "../core/util.js";
 import { t, LOCALES, locale, setLocale, UNITS, currency } from "../core/i18n.js";
 import { CLOUD_CONFIGURED, APP_VERSION } from "../config.js";
 import * as cloud from "../core/sync.js";
-import { authMessage, signupOutcome, joinOutcome, inviteState, perms } from "../core/auth-msg.js";
+import { authMessage, signupOutcome, joinOutcome, inviteState, perms, cleanInvite } from "../core/auth-msg.js";
 import * as db from "../core/db.js";
 import { DIRS } from "../logic/route.js";
 import { byId, sortBy, ro } from "./common.js";
@@ -12,7 +12,7 @@ import { show, back, closeAll, fld, text, num, select, seg, formData, badge, emp
 import { PROVIDERS, providerOf, aiSettings, saveAiSettings, aiReady, testAi } from "../core/ai.js";
 import { ACT, FORMS, CHG, INP } from "./actions.js";
 
-const ROLE = { owner: "创建者", partner: "合伙人（可录入）", viewer: "只读成员" };
+const ROLE = { owner: "创建者", partner: "合伙人（录入 + 批准申请）", staff: "录入员（可录入，不能管成员）", viewer: "只读成员" };
 const KIND_LAB = { sale: "销售单", pay: "收款", adj: "讨账调整", purchase: "进货", sreturn: "退货", spay: "打款入池", sfee: "手续费", customer: "客户", brand: "品种", price: "价格", supplier: "种子公司", trip: "送货", town: "镇", setting: "设置" };
 const ACTION_LAB = { create: "新增", update: "修改", delete: "删除", restore: "恢复" };
 
@@ -23,7 +23,7 @@ function renderMore(){
     <ul class="list menu">
       <li><button class="row" data-act="open-settings"><span class="row-main"><b>${esc(t("设置"))}</b><small>${esc(t("语言、币种、单位、季节名称、送货参数、镇与距离"))}</small></span><span>›</span></button></li>
       <li><button class="row" data-act="open-ai"><span class="row-main"><b>${esc(t("AI 助手"))}</b><small>${esc(aiReady() ? t("已设置：") + t(providerOf(aiSettings().provider).name) : t("还没设置（可选）：议价、客户建议、送货路线"))}</small></span><span>›</span></button></li>
-      <li><button class="row" data-act="open-audit"><span class="row-main"><b>${esc(t("审计日志"))}</b><small>${esc(t("谁在什么时候新增、修改、删除了什么"))}</small></span><span>›</span></button></li>
+      ${perms(S.role).approve ? `<li><button class="row" data-act="open-audit"><span class="row-main"><b>${esc(t("审计日志"))}</b><small>${esc(t("谁在什么时候新增、修改、删除了什么"))}</small></span><span>›</span></button></li>` : ""}
       ${mem && perms(S.role).approve ? `<li><button class="row" data-act="open-members"><span class="row-main"><b>${esc(t("成员与邀请"))}</b><small>${esc(t(S.role === "owner" ? "邀请码、批准申请、改角色" : "邀请码、批准申请"))}</small></span><span>›</span></button></li>` : ""}
       <li><button class="row" data-act="open-conflicts"><span class="row-main"><b>${esc(t("同步冲突"))}</b><small>${esc(t("两个人同时改了同一条记录时，被放弃的那份留在这里"))}</small></span><span>›</span></button></li>
       <li><button class="row" data-act="open-backup"><span class="row-main"><b>${esc(t("备份与恢复"))}</b><small>${esc(t("导出 / 导入全部数据（JSON）"))}</small></span><span>›</span></button></li></ul>
@@ -34,24 +34,40 @@ function renderMore(){
 const CLOUD_LAB = { local: "本机模式（数据只在这台设备）", signedout: "未登录", noorg: "已登录，还没有经销商账本", pending: "等待创建者批准加入", online: "已同步", offline: "离线（恢复网络后自动同步）" };
 function accountBlock(){
   const c = S.cloud, st = [`<p>${badge(t(CLOUD_LAB[c]), c === "online" ? "good" : c === "offline" || c === "pending" ? "warn" : "")}${S.syncing ? " " + esc(t("同步中…")) : ""}</p>`];
-  if (S.user) st.push(`<p class="meta">${esc(S.user.email || "")}${S.orgName ? " · " + esc(S.orgName) : ""} · ${esc(t(ROLE[S.role] || ""))}</p>`);
+  if (S.user) st.push(`<p class="meta">${esc(S.user.is_anonymous ? t("访客（免邮箱）") : S.user.email || "")}${S.orgName ? " · " + esc(S.orgName) : ""} · ${esc(t(ROLE[S.role] || ""))}</p>`);
   if (S.pendingOps) st.push(`<p class="hint warn">${esc(t("{n} 条记录等待上传（已安全存在本机）", { n: S.pendingOps }))}</p>`);
   if (S.lastSync) st.push(`<p class="meta">${esc(t("上次同步"))} ${esc(S.lastSync.toLocaleTimeString())}</p>`);
   if (!CLOUD_CONFIGURED) st.push(`<p class="hint">${esc(t("云端还没配置：现在是本机模式，功能完整但不同步。配置步骤见 README。"))}</p>`);
   const acts = [];
   if (CLOUD_CONFIGURED && !S.user) acts.push(btn("登录 / 注册", "open-login", { cls: "primary" }));
-  if (S.user && c === "noorg") acts.push(btn("创建经销商账本", "open-createorg", { cls: "primary" }), btn("用邀请码加入", "open-joinorg"));
+  if (S.user && c === "noorg") { if (!S.user.is_anonymous) acts.push(btn("创建经销商账本", "open-createorg", { cls: "primary" })); acts.push(btn("用邀请码加入", "open-joinorg")); }   // 免邮箱账号不能创建账本
   if (S.user && (c === "online" || c === "offline")) acts.push(btn("立即同步", "sync-now"));
   if (S.user) acts.push(btn("退出登录", "sign-out"));
   return st.join("") + (acts.length ? `<div class="actions">${acts.join("")}</div>` : "");
 }
-ACT["open-login"] = () => show(() => ({ title: t("登录 / 注册"), body: `<form id="f" data-form="login">${fld("邮箱", text("email", "", { type: "email", req: true, max: 120 }))}${fld("密码", `<input name="password" type="password" minlength="8" required autocomplete="current-password">`, t("至少 8 位"))}
+/** 登录页上方：有邀请码就直接加入，不用邮箱（免邮箱账号只能申请加入，由创建者或合伙人批准）；填了邀请码再用邮箱登录 / 注册，登录后也会自动申请 */
+const inviteBox = () => { const k = cloud.peekInvite(); return `<fieldset class="box"><legend>${esc(t("有邀请码？直接加入，不用邮箱"))}</legend>
+  ${fld("邀请码", text("invite", k?.code || "", { max: 24 }))}${fld("你的名字", text("name", k?.display || "", { max: 40 }), t("申请加入时给创建者看"))}
+  <button type="button" class="btn primary" data-act="join-anon">${esc(t("用邀请码加入"))}</button>
+  <small>${esc(t("只能申请加入，由创建者或合伙人批准；批准后是只读成员。这种账号只存在这台设备的浏览器里，清了浏览器数据就进不去了；想长期用或当合伙人，请用邮箱。"))}</small></fieldset>
+  <p class="hint center">${esc(t("或者用邮箱登录 / 注册（上面填了邀请码的话，登录后会自动申请加入）"))}</p>`; };
+ACT["join-anon"] = async el => {
+  const f = authForm(el), d = formData(f), name = (d.name || "").trim();
+  if (!cleanInvite(d.invite)) { authSay(f, t("请填邀请码")); return; }
+  if (!name) { authSay(f, t("请填你的名字（给创建者看）")); return; }
+  authSay(f, t("提交中…"));
+  const res = await cloud.joinAnonymous(d.invite, name), out = joinOutcome(res.data, res.error);
+  authSay(f, out.message);
+  if (out.kind === "pending" || out.kind === "active") closeAll();
+};
+ACT["open-login"] = () => show(() => ({ title: t("登录 / 注册"), body: `<form id="f" data-form="login">${inviteBox()}${fld("邮箱", text("email", "", { type: "email", req: true, max: 120 }))}${fld("密码", `<input name="password" type="password" minlength="8" required autocomplete="current-password">`, t("至少 8 位"))}
   <p class="hint">${esc(t("合伙人各用自己的账号；注册后凭邀请码加入同一个账本。小月亮等姊妹应用的账号可以直接登录，不用重新注册。"))}</p>
   <p class="hint ai-out" data-authmsg role="status"></p></form>`,
   foot: `<button class="btn primary" form="f">${esc(t("登录"))}</button><button class="btn" data-act="signup">${esc(t("注册"))}</button><button class="btn" data-act="resend-confirm">${esc(t("重发确认邮件"))}</button>` }));
 const authForm = el => el.closest(".sheet-in").querySelector("form");
 const authSay = (f, msg) => { f.querySelector("[data-authmsg]").textContent = msg; };   // 消息留在弹层里，不会 3 秒就消失
 FORMS.login = async (d, f) => {
+  if (d.invite) cloud.rememberInvite(d.invite, d.name);   // 先记下，登录成功后自动申请加入
   const { error } = await cloud.signIn(d.email, d.password);
   if (error) authSay(f, t("登录失败：") + authMessage(error)); else closeAll();
 };
@@ -59,9 +75,10 @@ ACT.signup = async el => {
   const f = authForm(el), d = formData(f);
   if (!d.email || !d.password || d.password.length < 8) { authSay(f, t("请填邮箱和至少 8 位的密码")); return; }
   authSay(f, t("提交中…"));
+  if (d.invite) cloud.rememberInvite(d.invite, d.name);
   const { data, error } = await cloud.signUp(d.email, d.password);
   const out = signupOutcome(data, error, d.email);
-  authSay(f, out.message);
+  authSay(f, out.message + (out.kind === "confirm" && cleanInvite(d.invite) ? " " + t("邀请码已记下：确认邮箱并登录后会自动申请加入。") : ""));
   if (out.kind === "signed-in") closeAll();
 };
 ACT["resend-confirm"] = async el => {
@@ -76,7 +93,7 @@ ACT["sync-now"] = () => cloud.sync();
 const orgForm = (title, name, label, hint, kind) => ({ title: t(title), body: `<form id="f" data-form="${kind}">${fld(label, text(name, "", { req: true }))}${fld("你的名字（合伙人看得到）", text("display", "", { req: true, max: 40 }))}${hint ? `<p class="hint">${esc(t(hint))}</p>` : ""}${kind === "joinorg" ? `<p class="hint ai-out" data-authmsg role="status"></p>` : ""}
   ${kind === "createorg" && live("sale").length + live("purchase").length ? `<label class="chk"><input type="checkbox" name="adopt" checked> ${esc(t("把这台设备上已经录入的数据一起放进新账本"))}</label>` : ""}</form>`, foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("确定"))}</button>` });
 ACT["open-createorg"] = () => show(() => orgForm("创建经销商账本", "name", "店名 / 账本名称", "你将成为创建者，可以邀请合伙人、批准加入、设置权限。", "createorg"));
-ACT["open-joinorg"] = () => show(() => orgForm("用邀请码加入", "code", "邀请码", "创建者或合伙人会在「更多 → 成员与邀请」里看到你的申请并批准。批准前你只能看到「等待批准」，看不到任何数据；批准后是只读成员，要录入由创建者提升为合伙人。", "joinorg"));
+ACT["open-joinorg"] = () => show(() => orgForm("用邀请码加入", "code", "邀请码", "创建者或合伙人会在「更多 → 成员与邀请」里看到你的申请并批准。批准前你只能看到「等待批准」，看不到任何数据；批准后是只读成员，要录入由创建者设为录入员或合伙人。", "joinorg"));
 FORMS.createorg = async d => { try { await cloud.createOrg(d.name, d.display, d.adopt); closeAll(); } catch (e) { toast(t("创建失败：") + (e.message || e)); } };
 FORMS.joinorg = async (d, f) => {
   const res = await cloud.joinOrg(d.code, d.display), out = joinOutcome(res.data, res.error);
@@ -87,7 +104,7 @@ FORMS.joinorg = async (d, f) => {
 /* ---------- 成员与邀请 ----------
    创建者：改角色（只读 / 合伙人 / 创建者）、移出成员、重新生成 / 关闭邀请码、批准 / 拒绝申请。
    合伙人：批准 / 拒绝申请、查看邀请码；不能改任何人的角色，也不能移出正式成员。
-   凭邀请码加入的人批准后是「只读」，要录入得由创建者提升为合伙人。界面只决定显示哪些按钮，真正的拦截在数据库函数里（supabase/*roles_and_invites.sql）。 */
+   凭邀请码加入的人批准后是「只读」，要录入得由创建者设为录入员或合伙人。界面只决定显示哪些按钮，真正的拦截在数据库函数里（supabase/*roles_and_invites.sql）。 */
 const inviteLine = info => {
   const s = inviteState(info);
   return s.kind === "valid" ? t("有效期还有 {n} 天；过期后打开本页会自动换新的", { n: s.days })
@@ -98,13 +115,13 @@ ACT["open-members"] = async () => { const data = await cloud.listMembers(); show
 function membersPage({ members, invite }){
   const me = S.user?.id, p = perms(S.role), pend = members.filter(m => m.status === "pending"), active = members.filter(m => m.status !== "pending");
   const roleBox = m => p.manage && m.user_id !== me
-    ? `<select data-change="member-role" data-u="${esc(m.user_id)}" aria-label="${esc(t("角色"))}">${["viewer", "partner", "owner"].map(r => `<option value="${r}" ${m.role === r ? "selected" : ""}>${esc(t(ROLE[r]))}</option>`).join("")}</select>
+    ? `<select data-change="member-role" data-u="${esc(m.user_id)}" aria-label="${esc(t("角色"))}">${["viewer", "staff", "partner", "owner"].map(r => `<option value="${r}" ${m.role === r ? "selected" : ""}>${esc(t(ROLE[r]))}</option>`).join("")}</select>
        <button class="btn sm ghost-danger" data-act="member-rm" data-u="${esc(m.user_id)}">${esc(t("移出"))}</button>`
     : badge(t(ROLE[m.role] || m.role), m.role === "owner" ? "good" : "");
   return { title: t("成员与邀请"),
     body: `${p.approve ? `<div class="card"><p class="meta">${esc(t("邀请码"))}</p><p class="code">${esc(invite?.code || "—")}</p>
         <p class="hint">${esc(inviteLine(invite))}</p>
-        <div class="actions"><button class="btn sm" data-act="invite-copy" data-code="${esc(invite?.code || "")}">${esc(t("复制"))}</button>
+        <div class="actions"><button class="btn sm" data-act="invite-copy" data-code="${esc(invite?.code || "")}">${esc(t("复制"))}</button><button class="btn sm" data-act="invite-link" data-code="${esc(invite?.code || "")}">${esc(t("复制邀请链接"))}</button>
           ${p.manage ? `<button class="btn sm" data-act="invite-reset">${esc(t("重新生成（7 天）"))}</button>${invite?.closed ? "" : `<button class="btn sm ghost-danger" data-act="invite-close">${esc(t("关闭邀请"))}</button>`}` : ""}</div>
         <p class="hint">${esc(t("凭邀请码加入的人要先经过批准；批准后是「只读」，要录入得由创建者提升为合伙人。"))}</p></div>` : ""}
       ${pend.length ? `<h3 class="grp">${esc(t("等你批准（{n}）", { n: pend.length }))}</h3><p class="hint">${esc(t("认识这个人再批准：批准后他能看到账本里的全部数据（只读）。不认识就拒绝，并重新生成邀请码。"))}</p>
@@ -112,9 +129,10 @@ function membersPage({ members, invite }){
           <span class="row-side"><button class="btn sm primary" data-act="member-approve" data-u="${esc(m.user_id)}">${esc(t("批准"))}</button><button class="btn sm ghost-danger" data-act="member-reject" data-u="${esc(m.user_id)}">${esc(t("拒绝"))}</button></span></div></li>`).join("")}</ul>` : ""}
       <h3 class="grp">${esc(t("成员"))}</h3>
       <ul class="list">${active.map(m => `<li><div class="row static"><span class="row-main"><b>${esc(m.name || "?")}${m.user_id === me ? " " + esc(t("（我）")) : ""}</b></span><span class="row-side">${roleBox(m)}</span></div></li>`).join("")}</ul>
-      ${p.manage ? `<p class="hint">${esc(t("只有创建者能把别人设为合伙人或创建者，也只有创建者能移出成员。设为创建者后，对方拥有和你一样的全部权限。"))}</p>` : ""}` };
+      ${p.manage ? `<p class="hint">${esc(t("只有创建者能改角色和移出成员。录入员能录入但不能管成员；合伙人还能批准申请、看邀请码和审计日志；创建者拥有全部权限。"))}</p>` : ""}` };
 }
 ACT["invite-copy"] = async el => { try { await navigator.clipboard.writeText(el.dataset.code); toast(t("邀请码已复制")); } catch (e) { toast(el.dataset.code); } };
+ACT["invite-link"] = async el => { const url = `${location.origin}${location.pathname}?invite=${encodeURIComponent(el.dataset.code)}`; try { await navigator.clipboard.writeText(url); toast(t("邀请链接已复制：对方打开后登录，会自动申请加入")); } catch (e) { toast(url); } };
 ACT["invite-reset"] = () => ask(t("重新生成邀请码？"), t("旧邀请码立即失效，新的 7 天有效；已加入的成员不受影响。"), async () => { await memberAfter({ error: null, _: await cloud.resetInvite(7) }); }, "重新生成");
 ACT["invite-close"] = () => ask(t("关闭邀请？"), t("现在起邀请码失效，新的申请进不来（已申请的不受影响）。要再邀请人，点「重新生成」。"), async () => { await memberAfter(await cloud.closeInvite()); }, "关闭");
 ACT["member-approve"] = async el => memberAfter(await cloud.approveMember(el.dataset.u));

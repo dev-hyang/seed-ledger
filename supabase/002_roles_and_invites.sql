@@ -15,6 +15,27 @@
 --   join_org 因此返回 jsonb（status = invalid / expired / throttled / full / pending / active），不再用抛异常表示失败——抛异常会把「记一次失败」一起回滚，限速就失效了。
 begin;
 
+-- 【独立项目版特有】001 里没有这个函数（共用库的 sl_003 里有）：匿名（免邮箱）用户不能做的事都用它拦。
+create or replace function public.require_email_user() returns void language plpgsql stable as $$
+begin
+  if auth.uid() is null then raise exception 'login required' using errcode = '42501'; end if;
+  if coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false) then raise exception 'email account required' using errcode = '42501'; end if;
+end $$;
+revoke execute on function public.require_email_user() from public, anon;
+grant execute on function public.require_email_user() to authenticated;
+
+-- 【独立项目版特有】创建账本只认邮箱账号（001 里的版本只检查了登录；开了匿名登录后匿名用户也能建账本，这里堵上）
+create or replace function public.create_org(p_name text, p_display text) returns orgs
+language plpgsql security definer set search_path = public as $$
+declare o orgs;
+begin
+  perform public.require_email_user();
+  insert into orgs (name) values (left(trim(p_name), 60)) returning * into o;
+  insert into org_members (org_id, user_id, role, status, name) values (o.id, auth.uid(), 'owner', 'active', left(trim(p_display), 40));
+  return o;
+end $$;
+
+
 alter table public.orgs add column if not exists invite_expires_at timestamptz default (now() + interval '7 days');
 alter table public.orgs add column if not exists invite_closed boolean not null default false;
 alter table public.org_members alter column role set default 'viewer';
