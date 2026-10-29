@@ -7,13 +7,15 @@ import { model, byId, brandName, supplierName, seasonName, seasonOpts, sortBy, y
 import { show, back, fld, text, num, date, area, select, formData, badge, empty, btn, kv, ask } from "./kit.js";
 import { ACT, FORMS, CHG } from "./actions.js";
 
+import { normalizePrice } from "../logic/pricing.js";
+
 const subs = [["inv", "库存"], ["flow", "进货 / 退货"], ["brand", "品种与价格"], ["pool", "种子公司账"]];
 const yearNow = () => +S.filters.year || new Date().getFullYear();
 
 /** 某品种某年的价格；该年没填就沿用最近一年的 */
 function priceFor(brandId, year){
   const rows = sortBy(live("price").filter(p => p.brandId === brandId && +p.year <= year), p => +p.year, -1);
-  return rows[0] || { buy: 0, presale: 0 };
+  return normalizePrice(rows[0]);   // { buy, retail, wholesale }；旧记录的 presale 当零售价
 }
 
 function renderStock(){
@@ -94,7 +96,7 @@ function brandView(){
   const groups = S.settings.seasons.map(s => ({ s, rows: sortBy(brands.filter(b => b.seasonId === s.id), b => b.name) })).filter(g => g.rows.length);
   return head + `<p class="hint">${esc(t("价格是 {y} 年的；没单独设置的年份沿用上一年。", { y }))}</p>` + groups.map(g => `<h3 class="grp">${esc(t(g.s.name))}</h3><ul class="list">${g.rows.map(b => { const p = priceFor(b.id, y);
     return `<li><button class="row" data-act="brand-edit" data-id="${b.id}"><span class="row-main"><b>${esc(b.name)}</b><small>${esc(supplierName(b.supplierId))}${b.active === false ? " · " + esc(t("停用")) : ""}</small></span>
-    <span class="row-side"><small>${esc(t("进货"))} ${esc(money(p.buy))}</small><small>${esc(t("预售"))} ${esc(money(p.presale))}</small></span></button></li>`; }).join("")}</ul>`).join("");
+    <span class="row-side"><small>${esc(t("进货"))} ${esc(money(p.buy))}</small><small>${esc(t("零售"))} ${esc(money(p.retail))}</small><small>${esc(t("批发"))} ${p.wholesale ? esc(money(p.wholesale)) : "—"}</small></span></button></li>`; }).join("")}</ul>`).join("");
 }
 function brandForm(b){
   const y = yearNow(), p = b ? priceFor(b.id, y) : {};
@@ -104,7 +106,7 @@ function brandForm(b){
       ${fld("品种名称", text("name", b?.name, { req: true, ph: "例如 富香977" }))}
       ${fld("季节", select("seasonId", seasonOpts(), b?.seasonId || S.settings.seasons[0].id, { req: true, blank: false }))}
       ${fld("种子公司", select("supplierId", live("supplier").map(s => [s.id, s.name]), b?.supplierId, { req: true }))}
-      <div class="grid2">${fld(t("{y} 年进货价（¥/斤）", { y }), num("buy", p.buy, { min: 0 }))}${fld(t("{y} 年预售价（¥/斤）", { y }), num("presale", p.presale, { min: 0 }))}</div>
+      <div class="grid3">${fld(t("{y} 年进货价（¥/斤）", { y }), num("buy", p.buy, { min: 0 }))}${fld(t("{y} 年零售价（¥/斤）", { y }), num("retail", p.retail, { min: 0 }))}${fld(t("{y} 年批发价（¥/斤）", { y }), num("wholesale", p.wholesale, { min: 0 }), t("可不填，不填就按零售价"))}</div>
       ${b ? `<label class="chk"><input type="checkbox" name="inactive" ${b.active === false ? "checked" : ""}> ${esc(t("停用（不再出现在进货、销售的选择里）"))}</label>` : ""}
       ${fld("备注", area("note", b?.note))}</form>`,
     foot: `${b ? btn("删除", "del", { cls: "danger", data: { kind: "brand", id: b.id } }) : ""}<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("保存"))}</button>` };
@@ -114,7 +116,7 @@ ACT["brand-edit"] = el => show(() => brandForm(byId("brand", el.dataset.id)));
 FORMS.brand = async (d, f) => {
   const y = yearNow(), old = f.dataset.id ? byId("brand", f.dataset.id) : null;
   const b = await save("brand", { ...(old || {}), id: old?.id, name: d.name, seasonId: d.seasonId, supplierId: d.supplierId, note: d.note, active: !d.inactive });
-  if (d.buy != null || d.presale != null) await save("price", { id: `${b.id}:${y}`, brandId: b.id, year: y, buy: d.buy || 0, presale: d.presale || 0 });
+  if (d.buy != null || d.retail != null || d.wholesale != null) await save("price", { id: `${b.id}:${y}`, brandId: b.id, year: y, buy: d.buy || 0, retail: d.retail || 0, wholesale: d.wholesale || null });
   back();
 };
 

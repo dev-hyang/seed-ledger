@@ -55,11 +55,11 @@ test("重复检测：同客户、同日、同品种数量已有一笔 → 默认
   assert.equal(e.dup, false); assert.equal(e.on, true);
 });
 
-test("方式与校验：收款 → 售卖方式；未选品种 / 缺客户 / 多收会报错；没勾的不检查", () => {
+test("方式与校验：收款 → 售卖方式；新品种缺种子公司 / 缺客户 / 多收会报错；没勾的不检查", () => {
   assert.deepEqual([S.modeFor(0, 100), S.modeFor(30, 100), S.modeFor(100, 100)], ["credit", "partial", "cash"]);
-  const ctx = { customers: [], brands: [{ id: "b1", name: "富香977" }], sales: [] };
+  const ctx = { customers: [], brands: [{ id: "b1", name: "富香977" }], sales: [], seasons: [{ id: "early", name: "早稻" }] };
   const ds = S.resolveDrafts(S.normalizeAi(ai([one({ lines: [{ brand: "不认识", qty: 10, price: 5 }] }), one({ customer: "", lines: [{ brand: "富香977", qty: 10, price: 5 }] }), one({ paid: 999, lines: [{ brand: "富香977", qty: 10, price: 5 }] })]), { today }), ctx);
-  assert.deepEqual(S.validateDrafts(ds).map(e => e.key), ["brand", "customer", "paid"]);
+  assert.deepEqual(S.validateDrafts(ds).map(e => e.key), ["nbSupplier", "customer", "paid"]);   // 不认识的品种变成新品种草稿：还差种子公司
   ds.forEach(d => { d.on = false; }); assert.deepEqual(S.validateDrafts(ds), []);
   assert.equal(S.totalOf(ds[2]), 50);
 });
@@ -85,4 +85,65 @@ test("文字分段不丢行；敏感信息抹掉但保留手机号和姓名", ()
   const chunks = F.chunkText(text, 60); assert.ok(chunks.length > 1); assert.equal(chunks.join("\n"), text);
   const r = F.redactSensitive("小明 18900192299 a@b.test 身份证 110101199001011234 卡 6222 0212 3456 7890 123");
   assert.match(r, /小明 18900192299/); assert.match(r, /\[邮箱\]/); assert.ok(!/110101199001011234/.test(r)); assert.ok(!/6222 0212/.test(r));
+});
+
+/* ---------- 新品种、价格档、导入计划 ---------- */
+const seasons = [{ id: "early", name: "早稻" }, { id: "late1", name: "一晚" }];
+const baseCtx = (o = {}) => ({ customers: [], brands: [{ id: "b1", name: "富香977" }], sales: [], seasons, suppliers: [], ...o });
+
+test("新品种：库里没有的品种自动成草稿；季节按单据文字猜；种子公司不自动选（哪怕只有一家）；零售价取单据上的单价", () => {
+  const sup = [{ id: "s1", name: "富香种业" }];
+  const [d] = S.resolveDrafts(S.normalizeAi(ai([one({ lines: [{ brand: "优香7号（一晚）", qty: 100, unit: "斤", price: 38 }] })]), { today }), baseCtx({ suppliers: sup }));
+  const nb = d.lines[0].nb;
+  assert.equal(d.lines[0].brandId, ""); assert.equal(nb.name, "优香7号（一晚）"); assert.equal(nb.seasonId, "late1");
+  assert.equal(nb.supplierId, ""); assert.equal(nb.retail, 38); assert.equal(nb.wholesale, null);
+  assert.deepEqual(S.validateDrafts([d]).map(x => x.key), ["nbSupplier"]);   // 只有一家公司也不替用户选：归属要用户确认（影响各公司盈亏报表）
+  nb.supplierId = "s1"; assert.equal(S.validateDrafts([d]).length, 0);
+  const [e] = S.resolveDrafts(S.normalizeAi(ai([one({ lines: [{ brand: "新种", qty: 1, price: 1 }] })]), { today }), baseCtx({ suppliers: [] }));
+  assert.equal(e.lines[0].nb.seasonId, "early");   // 没写季节 → 第一个季节
+  assert.deepEqual(S.validateDrafts([e]).map(x => x.key), ["nbSupplier"]);
+  e.lines[0].nb.supplierName = "  新公司 "; assert.equal(S.validateDrafts([e]).length, 0);   // 填了新公司名称就行
+});
+
+test("价格档：单据没写单价时，按该客户的价格档（批发 / 零售）补；补了的会标记", () => {
+  const priceFor = (id, year, tier) => priceOf({ retail: 35, wholesale: tier === "wholesale" ? 32 : null }, tier);
+  const mk = tier => S.resolveDrafts(S.normalizeAi(ai([one({ lines: [{ brand: "富香977", qty: 100, unit: "斤" }] })]), { today }), baseCtx({ customers: [{ id: "c1", name: "小明", phone: "18900192299", tier }], priceFor }))[0];
+  assert.deepEqual([mk("wholesale").tier, mk("wholesale").lines[0].price], ["wholesale", 32]);
+  assert.deepEqual([mk("retail").tier, mk("retail").lines[0].price], ["retail", 35]);
+  assert.equal(mk("retail").lines[0].note, "price:tier");
+  const withPrice = S.resolveDrafts(S.normalizeAi(ai([one()]), { today }), baseCtx({ priceFor }))[0];
+  assert.equal(withPrice.lines[0].price, 35);   // 单据上写了价格就不动
+});
+
+import { priceOf } from "../js/logic/pricing.js";
+test("导入计划：先建种子公司，再建品种（带价格），再建客户，最后销售；同名只建一次；编号接着已有的", () => {
+  const ctx = baseCtx({ sales: [], suppliers: [{ id: "s1", name: "富香种业" }, { id: "s2", name: "美华种业" }] });
+  const ds = S.resolveDrafts(S.normalizeAi(ai([
+    one({ customer: "张三", phone: "", lines: [{ brand: "优香7号", qty: 100, unit: "斤", price: 38 }, { brand: "富香977", qty: 50, price: 35 }], paid: 0 }),
+    one({ customer: "张三", phone: "", date: "2026-05-01", lines: [{ brand: "优香7号", qty: 20, price: 40 }], paid: 500 }),
+    one({ customer: "李四", phone: "13900001111", lines: [{ brand: "又一个新种", qty: 10, price: 50 }], paid: null })
+  ]), { today }), ctx);
+  const [b1, b2] = [ds[0].lines[0].nb, ds[2].lines[0].nb];
+  b1.supplierId = "s2"; b1.wholesale = 36; b1.buy = 30;                  // 优香7号：已有公司美华
+  b2.supplierId = ""; b2.supplierName = "新公司"; b2.seasonId = "late1";   // 又一个新种：新公司
+  assert.equal(S.validateDrafts(ds).length, 0);
+  const plan = S.planImport(ds, { counts: { 2026: 4 }, suppliers: ctx.suppliers });
+  assert.deepEqual(plan.suppliers.map(s => s.name), ["新公司"]);
+  assert.equal(plan.brands.length, 2);                                  // 优香7号只建一次（两笔销售共用）
+  const u = plan.brands.find(b => b.name === "优香7号");
+  assert.deepEqual([u.supplier, u.seasonId, u.buy, u.retail, u.wholesale, u.year], [{ id: "s2" }, "early", 30, 38, 36, 2026]);
+  assert.ok(plan.brands.find(b => b.name === "又一个新种").supplier.key.startsWith("s:"));
+  assert.equal(plan.customers.length, 2);                                // 张三两笔只建一个客户
+  assert.deepEqual(plan.sales.map(s => s.no), ["2026-005", "2026-006", "2026-007"]);   // 接着已有的 4 笔编号（05-01 那笔也是 2026 年）
+  assert.deepEqual(plan.sales.map(s => s.mode), ["credit", "partial", "credit"]);
+  assert.deepEqual(plan.sales[0].lines.map(l => Object.keys(l.brand)[0]), ["key", "id"]);   // 新品种用 key，已有的用 id
+  assert.equal(plan.sales[0].customer.key, plan.sales[1].customer.key);
+});
+
+test("导入计划：新公司名称和库里已有的重名（忽略空格大小写）就复用，不重复建", () => {
+  const ctx = baseCtx({ suppliers: [{ id: "s1", name: "富香 种业" }] });
+  const ds = S.resolveDrafts(S.normalizeAi(ai([one({ lines: [{ brand: "新种", qty: 1, price: 1 }] })]), { today }), { ...ctx, suppliers: [] });
+  ds[0].lines[0].nb.supplierName = "富香种业";
+  assert.deepEqual(S.planImport(ds, { suppliers: ctx.suppliers }).suppliers, []);
+  assert.deepEqual(S.planImport(ds, { suppliers: ctx.suppliers }).brands[0].supplier, { id: "s1" });
 });

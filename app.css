@@ -230,3 +230,9 @@ dialog[open]~.toast{z-index:1000}
 .scan-ico{width:44px;height:44px;display:grid;place-items:center;font-size:24px;flex:none}
 .scan-d.off{opacity:.55}
 .scan-d .sline{margin-top:6px}
+
+/* 扫描导入：新品种面板 */
+.nbp{border-color:var(--brand);margin:6px 0 10px}
+.nbp>b{display:block;font-size:13.5px;margin-bottom:6px}
+.scan-d .card-head .head-tools{gap:8px}
+.scan-d .card-head select{min-height:36px;width:auto;padding:0 8px}

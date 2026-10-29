@@ -8,7 +8,8 @@ import { profileCustomer, anonymizedSummary } from "../logic/profile.js";
 import { r2, EPS } from "../logic/ledger.js";
 import { askAI, aiAvailable, aiError } from "../core/advice.js";
 import { model, byId, sortBy, phoneHTML, ro } from "./common.js";
-import { show, back, fld, text, area, formData, badge, empty, btn, kv, ask } from "./kit.js";
+import { show, back, fld, text, area, seg, formData, badge, empty, btn, kv, ask } from "./kit.js";
+import { tierOf } from "../logic/pricing.js";
 import { ACT, FORMS, INP } from "./actions.js";
 import { saleRow } from "./sales.js";
 
@@ -60,13 +61,14 @@ function customerForm(c){
     body: `<form id="f" data-form="customer" data-id="${c?.id || ""}">
       ${fld("姓名", text("name", c?.name, { req: true }))}${fld("电话", text("phone", c?.phone, { type: "tel", mode: "tel" }))}
       <div class="grid2">${fld("镇", text("town", c?.town))}${fld("村", text("village", c?.village))}</div>
+      ${fld("默认价格档", seg("tier", [["retail", t("零售价")], ["wholesale", t("批发价")]], tierOf(c?.tier)), t("记销售单时按这个档预选单价，随时可改"))}
       ${fld("详细地址", text("address", c?.address, { max: 120 }))}${fld("备注", area("note", c?.note))}
       <small>${esc(t("只填做生意必要的信息。客户个人信息请妥善保管，导出的文件不要随意转发。"))}</small></form>`,
     foot: `${c ? btn("删除", "customer-del", { cls: "danger", data: { id: c.id } }) : ""}<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("保存"))}</button>` };
 }
 ACT["customer-new"] = () => show(() => customerForm());
 ACT["customer-edit"] = el => show(() => customerForm(byId("customer", el.dataset.id)));
-FORMS.customer = async (d, f) => { const old = f.dataset.id ? byId("customer", f.dataset.id) : null; await save("customer", { ...(old || {}), id: old?.id, name: d.name, phone: d.phone, town: d.town, village: d.village, address: d.address, note: d.note }); back(); };
+FORMS.customer = async (d, f) => { const old = f.dataset.id ? byId("customer", f.dataset.id) : null; await save("customer", { ...(old || {}), id: old?.id, name: d.name, phone: d.phone, town: d.town, village: d.village, address: d.address, tier: d.tier, note: d.note }); back(); };
 ACT["customer-del"] = el => {
   if (model().sales.some(s => s.customerId === el.dataset.id)) { toast(t("这位客户有销售记录，不能删除（账要留着）")); return; }
   ask(t("确认删除这位客户？"), t("记录会保留在审计日志里。"), async () => { await remove("customer", el.dataset.id); back(); back(); }, "删除");

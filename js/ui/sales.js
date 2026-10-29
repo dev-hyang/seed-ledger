@@ -12,6 +12,7 @@ import { model, byId, brandName, customerName, seasonName, sortBy, yearSelect, r
 import { show, back, fld, text, num, date, area, select, seg, formData, badge, empty, btn, kv, ask } from "./kit.js";
 import { ACT, FORMS, CHG, INP } from "./actions.js";
 import { priceFor, brandOpts, yearNow } from "./stock.js";
+import { priceOf, tierOf } from "../logic/pricing.js";
 import { renderTrips } from "./routes.js";
 
 const subs = [["list", "销售单"], ["collect", "讨账"], ["trips", "送货路线"]];
@@ -71,12 +72,14 @@ function lineRow(l = {}){
 function saleForm(s){
   const d = s?.date || today(), cust = sortBy(Object.values(Object.fromEntries([...S.data.customer].filter(([, c]) => !c._del))), c => c.name).map(c => [c.id, `${c.name}${c.town ? " · " + c.town : ""}`]);
   const edit = !!s, firstLines = s?.lines?.length ? s.lines : [{}];
+  const tier = tierOf(s?.tier ?? byId("customer", s?.customerId)?.tier);
   return { title: t(edit ? "修改销售单" : "记一笔销售"),
-    body: `<form id="f" data-form="sale" data-id="${s?.id || ""}" data-input-form="sale">
-      ${fld("客户", select("customerId", cust, s?.customerId, { blank: t("— 选客户，或在下面新建 —") }))}
+    body: `<form id="f" data-form="sale" data-id="${s?.id || ""}" data-input-form="sale" data-tier="${tier}">
+      ${fld("客户", select("customerId", cust, s?.customerId, { blank: t("— 选客户，或在下面新建 —"), change: "sale-customer" }))}
       <details class="newcust" ${cust.length ? "" : "open"}><summary>${esc(t("＋ 新客户"))}</summary>
         <div class="grid2">${fld("姓名", text("newName"))}${fld("电话", text("newPhone", "", { type: "tel", mode: "tel" }))}${fld("镇", text("newTown"))}${fld("村", text("newVillage"))}</div></details>
       ${fld("日期", date("date", d))}
+      ${fld("价格档", seg("tier", [["retail", t("零售价")], ["wholesale", t("批发价")]], tier))}
       ${edit ? "" : fld("售卖方式", seg("mode", MODES.map(([k, l]) => [k, t(l)]), s?.mode || "cash"))}
       <div class="lines">${firstLines.map(lineRow).join("")}</div>
       <button type="button" class="btn sm" data-act="sale-line-add">${esc(t("＋ 再加一个品种"))}</button>
@@ -97,7 +100,7 @@ ACT["sale-line-del"] = el => { const box = el.closest(".lines"); if (box.childre
 CHG["sale-brand"] = (el, f) => {
   const line = el.closest(".sline"), b = byId("brand", el.value); if (!b) return;
   const price = line.querySelector("[name=price]"), yr = +(f.elements.date.value || today()).slice(0, 4);
-  if (!price.value) price.value = priceFor(b.id, yr).presale || "";
+  if (!price.value) price.value = priceOf(priceFor(b.id, yr), f.elements.tier.value) || "";
   saleTotals(f);
 };
 const readLines = f => [...f.querySelectorAll("[data-line]")].map(el => ({ brandId: el.querySelector("[name=brandId]").value, qty: +el.querySelector("[name=qty]").value || 0, price: +el.querySelector("[name=price]").value || 0, hint: el.querySelector("[name=hint]").value === "" ? undefined : +el.querySelector("[name=hint]").value })).filter(l => l.brandId && l.qty > 0);
@@ -125,7 +128,22 @@ function saleTotals(f){
 }
 const editQty = (saleId, brandId) => { const s = model().saleM.get(saleId); return s ? s.lines.filter(l => l.brandId === brandId).reduce((a, l) => a + l.qty, 0) : 0; };
 const inventoryOf = (brandId, year) => { const m = model(); let p = 0, r = 0, sold = 0; for (const x of m.D.purchase) if (x.brandId === brandId && x.year === year) p += +x.qty; for (const x of m.D.sreturn) if (x.brandId === brandId && x.year === year) r += +x.qty; for (const s of m.sales) if (s.status !== "void" && s.year === year) for (const l of s.lines) if (l.brandId === brandId) sold += l.qty; return p - r - sold; };
-INP.sale = (el, f) => { if (el.name === "payAmount") el.dataset.touched = "1"; if (el.name === "mode") delete f.elements.payAmount.dataset.touched; saleTotals(f); };
+/** 换价格档：单价为空，或还等于上一档的标准价（说明没手改过）的行，换成新档的标准价 */
+function retier(f){
+  const tier = f.elements.tier.value, prev = f.dataset.tier || "retail", yr = +(f.elements.date.value || today()).slice(0, 4);
+  f.dataset.tier = tier;
+  for (const el of f.querySelectorAll("[data-line]")) {
+    const id = el.querySelector("[name=brandId]").value; if (!id) continue;
+    const p = priceFor(id, yr), price = el.querySelector("[name=price]");
+    if (!price.value || +price.value === priceOf(p, prev)) price.value = priceOf(p, tier) || "";
+  }
+  saleTotals(f);
+}
+CHG["sale-customer"] = (el, f) => {
+  const c = byId("customer", el.value); if (!c || !c.tier) return;
+  const r = [...f.elements.tier].find(x => x.value === tierOf(c.tier)); if (r && !r.checked) { r.checked = true; retier(f); }
+};
+INP.sale = (el, f) => { if (el.name === "tier") { retier(f); return; } if (el.name === "payAmount") el.dataset.touched = "1"; if (el.name === "mode") delete f.elements.payAmount.dataset.touched; saleTotals(f); };
 CHG["sale-date"] = (el, f) => saleTotals(f);
 FORMS.sale = async (d, f) => {
   const lines = readLines(f); if (!lines.length) { toast(t("请至少选一个品种并填数量")); return; }
@@ -138,7 +156,7 @@ FORMS.sale = async (d, f) => {
   const no = old?.no || `${year}-${String(model().sales.filter(s => s.year === year).length + 1).padStart(3, "0")}`;
   const raw = old ? { ...byId("sale", old.id) } : {};
   const delivery = { type: d.dtype, labor: d.dtype === "deliver" ? d.labor || 0 : 0, vehicle: d.dtype === "deliver" ? d.vehicle || 0 : 0, tripId: d.dtype === "deliver" ? old?.delivery?.tripId : undefined };
-  const sale = await save("sale", { ...raw, id: old?.id, no, date: d.date, customerId, mode: old?.mode || d.mode, lines, delivery, note: d.note, status: old?.status || "active" });
+  const sale = await save("sale", { ...raw, id: old?.id, no, date: d.date, customerId, mode: old?.mode || d.mode, lines, delivery, tier: d.tier, note: d.note, status: old?.status || "active" });
   if (!old && d.payAmount > 0) await save("pay", { saleId: sale.id, date: d.date, amount: d.payAmount, method: d.method });
   back();
   if (!old) show(() => salePage(sale.id), true);
@@ -151,7 +169,7 @@ function salePage(id){
   const void_ = s.status === "void", hasHint = s.lines.some(l => l.hint != null);
   const adjLab = { negotiate: "议价", discount: "折上折", writeoff: "核销坏账" };
   const body = `<div class="detail-head"><button class="link" data-act="customer-view" data-id="${s.customerId}"><b>${esc(customerName(s.customerId))}</b></button><span>${statusBadge(s)}</span></div>
-    <p class="meta">${esc(s.no || "")} · ${esc(dateFmt(s.date))}${s.note ? " · " + esc(s.note) : ""}${void_ ? ` · <b class="neg">${esc(t("作废原因："))}${esc(s.voidReason || "")}</b>` : ""}</p>
+    <p class="meta">${esc(s.no || "")} · ${esc(dateFmt(s.date))} · ${esc(t(tierOf(s.tier) === "wholesale" ? "批发价" : "零售价"))}${s.note ? " · " + esc(s.note) : ""}${void_ ? ` · <b class="neg">${esc(t("作废原因："))}${esc(s.voidReason || "")}</b>` : ""}</p>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>${esc(t("品种"))}</th><th class="n">${esc(t("数量"))}</th><th class="n">${esc(t("单价"))}</th><th class="n">${esc(t("金额"))}</th></tr></thead><tbody>
       ${s.lines.map(l => `<tr><td><b>${esc(brandName(l.brandId))}</b><small>${esc(seasonName((byId("brand", l.brandId) || {}).seasonId))}</small>${l.hint != null ? `<small class="priv">🔒 ${esc(t("当时可能给了"))} ${esc(unitPrice(l.hint))}（${esc(t("仅自己可见"))}）</small>` : ""}</td><td class="n">${esc(qty(l.qty))}</td><td class="n">${esc(unitPrice(l.price))}</td><td class="n">${esc(money(l.amount))}</td></tr>`).join("")}</tbody></table></div>
     <div class="stmt">${kv("货款", money(s.gross))}

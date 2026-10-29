@@ -9,8 +9,10 @@ import { t, money, qty, dateFmt } from "../core/i18n.js";
 import { LS_PREFIX } from "../config.js";
 import { askText, aiReady, aiSettings, providerOf } from "../core/ai.js";
 import { readAnyFile, chunkText, redactSensitive, ACCEPT } from "../core/file-readers.js";
-import { SYSTEM, userPrompt, lenientJson, normalizeAi, resolveDrafts, totalOf, modeFor, validateDrafts } from "../logic/scan-import.js";
+import { SYSTEM, userPrompt, lenientJson, normalizeAi, resolveDrafts, totalOf, validateDrafts, planImport, newBrandSpec } from "../logic/scan-import.js";
+import { priceOf, tierOf } from "../logic/pricing.js";
 import { model, byId, sortBy } from "./common.js";
+import { priceFor } from "./stock.js";
 import { show, back, closeAll, refresh, badge, btn } from "./kit.js";
 import { ACT, CHG, INP } from "./actions.js";
 
@@ -53,8 +55,9 @@ function reviewBody(){
   const on = sc.drafts.filter(d => d.on).length, cOpts = customerOpts(), bOpts = brandOpts();
   return `<p class="hint">${esc(t("共读到 {n} 笔，已勾选 {m} 笔。逐笔核对，不对的直接改；不想导入的取消勾选。", { n: sc.drafts.length, m: on }))}</p>
     ${sc.error ? `<p class="neg" role="alert">${esc(sc.error)}</p>` : ""}
+    ${newBrandBanner()}
     ${sc.drafts.map((d, i) => `<div class="card scan-d ${d.on ? "" : "off"}">
-      <div class="card-head"><label class="chk" style="margin:0"><input type="checkbox" data-change="scan-on" data-i="${i}" ${d.on ? "checked" : ""}> <b>${esc(t("第 {n} 笔", { n: i + 1 }))}</b></label><b data-total="${i}">${esc(money(totalOf(d)))}</b></div>
+      <div class="card-head"><label class="chk" style="margin:0"><input type="checkbox" data-change="scan-on" data-i="${i}" ${d.on ? "checked" : ""}> <b>${esc(t("第 {n} 笔", { n: i + 1 }))}</b></label><span class="head-tools"><select data-change="scan-tier" data-i="${i}" aria-label="${esc(t("价格档"))}"><option value="retail" ${d.tier !== "wholesale" ? "selected" : ""}>${esc(t("零售价"))}</option><option value="wholesale" ${d.tier === "wholesale" ? "selected" : ""}>${esc(t("批发价"))}</option></select><b data-total="${i}">${esc(money(totalOf(d)))}</b></span></div>
       ${d.dup ? `<p class="hint warn">${esc(t("疑似重复：已有一笔同客户、同一天、同品种数量的销售，所以默认没勾选。"))}</p>` : ""}
       ${d.noDate ? `<p class="hint warn">${esc(t("没读到日期，先用了今天，请改成单据上的日期。"))}</p>` : ""}
       ${d.flags.filter(f => f.startsWith("unit:")).map(f => `<p class="hint warn">${esc(t("不认识的单位「{u}」，数量先按斤算，请核对。", { u: f.slice(5) }))}</p>`).join("")}
@@ -66,11 +69,32 @@ function reviewBody(){
         <label class="fld"><span>${esc(t("镇"))}</span><input type="text" value="${esc(d.town)}" maxlength="30" data-input="scan-d" data-i="${i}" data-k="town"></label>
         <label class="fld"><span>${esc(t("村"))}</span><input type="text" value="${esc(d.village)}" maxlength="30" data-input="scan-d" data-i="${i}" data-k="village"></label></div>`}
       ${d.lines.map((l, j) => `<div class="sline"><label class="fld"><span>${esc(l.brandText ? t("品种（单据上写的：{x}）", { x: l.brandText }) : t("品种"))}</span>
-          <select data-change="scan-brand" data-i="${i}" data-l="${j}"><option value="">${esc(t("— 选品种（没有的话先到 库存 → 品种与价格 添加）—"))}</option>${l.brandId ? selected(bOpts, l.brandId) : bOpts}</select></label>
+          <select data-change="scan-brand" data-i="${i}" data-l="${j}"><option value="__new" ${l.nb ? "selected" : ""}>${esc(t("＋ 新品种：{n}", { n: l.nb?.name || l.brandText || "—" }))}</option>${l.brandId ? selected(bOpts, l.brandId) : bOpts}</select></label>
+        ${l.nb ? newBrandPanel(l.nb, i, j) : ""}
         <div class="grid2"><label class="fld"><span>${esc(t("数量（斤）"))}</span><input type="number" step="any" min="0" value="${l.qty}" data-input="scan-d" data-i="${i}" data-l="${j}" data-k="qty"></label>
           <label class="fld"><span>${esc(t("单价（¥/斤）"))}</span><input type="number" step="any" min="0" value="${l.price ?? ""}" data-input="scan-d" data-i="${i}" data-l="${j}" data-k="price"></label></div>
-        ${l.note ? `<small>${esc(t("单据上写的：{x}", { x: l.note }))}</small>` : ""}</div>`).join("")}
+        ${l.note === "price:tier" ? `<small>${esc(t("单据没写单价，已按该客户的价格档补上标准价。"))}</small>` : l.note ? `<small>${esc(t("单据上写的：{x}", { x: l.note }))}</small>` : ""}</div>`).join("")}
       <label class="fld"><span>${esc(t("备注"))}</span><input type="text" value="${esc(d.note)}" maxlength="120" data-input="scan-d" data-i="${i}" data-k="note"></label></div>`).join("")}`;
+}
+const supplierOpts = (sel) => sortBy(live("supplier"), x => x.name).map(x => `<option value="${esc(x.id)}" ${x.id === sel ? "selected" : ""}>${esc(x.name)}</option>`).join("");
+const seasonOptsHtml = (sel) => S.settings.seasons.map(x => `<option value="${esc(x.id)}" ${x.id === sel ? "selected" : ""}>${esc(t(x.name))}</option>`).join("");
+const numBox = (v, i, j, k, ph = "") => `<input type="number" step="any" min="0" value="${v ?? ""}" placeholder="${esc(ph)}" data-input="scan-nb" data-i="${i}" data-l="${j}" data-k="${k}">`;
+/** 单据上有、库里没有的品种：直接在这里补全（种子公司、季节、价格），导入时先建好再记销售 */
+function newBrandPanel(nb, i, j){
+  return `<div class="box nbp"><b>${esc(t("＋ 新品种：导入时会先建好品种和价格，再记这笔销售"))}</b>
+    <label class="fld"><span>${esc(t("品种名称"))}</span><input type="text" value="${esc(nb.name)}" maxlength="60" data-input="scan-nb" data-i="${i}" data-l="${j}" data-k="name"></label>
+    <div class="grid2"><label class="fld"><span>${esc(t("季节"))}</span><select data-change="scan-nb-sel" data-i="${i}" data-l="${j}" data-k="seasonId">${seasonOptsHtml(nb.seasonId)}</select></label>
+      <label class="fld"><span>${esc(t("属于哪家种子公司"))}</span><select data-change="scan-nb-sel" data-i="${i}" data-l="${j}" data-k="supplierId"><option value="">${esc(t("＋ 新种子公司（填名称）"))}</option>${supplierOpts(nb.supplierId)}</select></label></div>
+    ${nb.supplierId ? "" : `<label class="fld"><span>${esc(t("新种子公司名称"))}</span><input type="text" value="${esc(nb.supplierName)}" maxlength="40" data-input="scan-nb" data-i="${i}" data-l="${j}" data-k="supplierName"></label>`}
+    <div class="grid3"><label class="fld"><span>${esc(t("进货价（¥/斤）"))}</span>${numBox(nb.buy, i, j, "buy", t("可不填"))}</label>
+      <label class="fld"><span>${esc(t("零售价（¥/斤）"))}</span>${numBox(nb.retail, i, j, "retail")}</label>
+      <label class="fld"><span>${esc(t("批发价（¥/斤）"))}</span>${numBox(nb.wholesale, i, j, "wholesale", t("可不填"))}</label></div></div>`;
+}
+const uniqueNbs = () => [...new Set(sc.drafts.filter(d => d.on).flatMap(d => d.lines.map(l => l.nb)).filter(Boolean))];
+function newBrandBanner(){
+  const n = uniqueNbs().length; if (!n) return "";
+  return `<div class="banner"><span>${esc(t("有 {n} 个新品种：确认它们属于哪家种子公司、季节和价格。导入时会先建好，再记销售。", { n }))}</span>
+    <label class="rf"><span>${esc(t("统一设置种子公司"))}</span><select data-change="scan-nb-all"><option value="">—</option>${supplierOpts("")}</select></label></div>`;
 }
 const reviewFoot = () => { const n = sc.drafts.filter(d => d.on).length;
   return `<button class="btn" data-act="scan-back">${esc(t("返回重新识别"))}</button><button class="btn primary" data-act="scan-import" ${n ? "" : "disabled"}>${esc(t("导入 {n} 笔", { n }))}</button>`; };
@@ -92,7 +116,20 @@ CHG["scan-files"] = async el => {
 };
 CHG["scan-on"] = el => { sc.drafts[+el.dataset.i].on = el.checked; };
 CHG["scan-cust"] = el => { sc.drafts[+el.dataset.i].customerId = el.value; };
-CHG["scan-brand"] = el => { sc.drafts[+el.dataset.i].lines[+el.dataset.l].brandId = el.value; };
+CHG["scan-brand"] = el => {   // 选已有品种，或「＋ 新品种」（同名新品种在各笔里共用一份设置）
+  const d = sc.drafts[+el.dataset.i], l = d.lines[+el.dataset.l];
+  if (el.value === "__new") { l.brandId = ""; l.nb ||= sc.drafts.flatMap(x => x.lines).find(x => x.nb && x.brandText === l.brandText)?.nb || newBrandSpec(l, { seasons: S.settings.seasons, suppliers: live("supplier") }); }
+  else { l.brandId = el.value; l.nb = null; }
+};
+CHG["scan-tier"] = el => {   // 换价格档：之前按档补上的单价跟着换
+  const d = sc.drafts[+el.dataset.i]; d.tier = tierOf(el.value);
+  for (const l of d.lines) if (l.brandId && l.note === "price:tier") l.price = priceOf(priceFor(l.brandId, +d.date.slice(0, 4)), d.tier) || null;
+};
+const nbOf = el => sc.drafts[+el.dataset.i].lines[+el.dataset.l].nb;
+CHG["scan-nb-sel"] = el => { nbOf(el)[el.dataset.k] = el.value; };
+CHG["scan-nb-all"] = el => { if (el.value) for (const nb of uniqueNbs()) { nb.supplierId = el.value; nb.supplierName = ""; } };
+const NB_NUM = new Set(["buy", "retail", "wholesale"]);
+INP["scan-nb"] = el => { const k = el.dataset.k; nbOf(el)[k] = NB_NUM.has(k) ? (el.value === "" ? null : +el.value) : el.value; };
 const NUM = new Set(["paid", "qty", "price"]);
 INP["scan-d"] = el => {   // 输入时只改数据，不重画（免得输入到一半丢焦点）
   const d = sc.drafts[+el.dataset.i], k = el.dataset.k, v = NUM.has(k) ? (el.value === "" ? null : +el.value) : el.value;
@@ -116,7 +153,8 @@ async function recognize(){
     drafts.push(...normalizeAi(json, { today: day }));
   }
   if (!drafts.length) throw new Error(t("没读到销售记录。换一张更清楚的图，或补充文字再试。"));
-  return resolveDrafts(drafts.slice(0, MAX_DRAFTS), { customers: live("customer"), brands: live("brand"), sales: model().sales });
+  return resolveDrafts(drafts.slice(0, MAX_DRAFTS), { customers: live("customer"), brands: live("brand"), sales: model().sales, seasons: S.settings.seasons, suppliers: live("supplier"),
+    priceFor: (id, year, tier) => priceOf(priceFor(id, year), tier) });
 }
 ACT["scan-run"] = async () => {
   if (!canRun()) return;
@@ -128,32 +166,35 @@ ACT["scan-run"] = async () => {
 /* ---------- 导入 ---------- */
 const problem = e => ({
   customer: t("第 {at} 笔：缺客户姓名", e), date: t("第 {at} 笔：日期不对", e), qty: t("第 {at} 笔：数量要大于 0", e), price: t("第 {at} 笔：缺单价", e),
-  paid: t("第 {at} 笔：已收超过了货款", e), brand: t("第 {at} 笔：「{text}」还没选品种（没有的话先到 库存 → 品种与价格 添加）", { at: e.at, text: e.text || "—" })
+  paid: t("第 {at} 笔：已收超过了货款", e), nbName: t("第 {at} 笔：新品种要填名称", e), nbSeason: t("第 {at} 笔：新品种「{text}」还没选季节", e), nbSupplier: t("第 {at} 笔：新品种「{text}」还没选种子公司（选已有的，或填新公司名称）", e), brand: t("第 {at} 笔：「{text}」还没选品种（没有的话先到 库存 → 品种与价格 添加）", { at: e.at, text: e.text || "—" })
 }[e.key]);
 ACT["scan-import"] = async () => {
   const errs = validateDrafts(sc.drafts);
   if (errs.length) { sc.error = problem(errs[0]) + (errs.length > 1 ? " " + t("（还有 {n} 处）", { n: errs.length - 1 }) : ""); return; }
   const picked = sc.drafts.filter(d => d.on); if (!picked.length) { sc.error = t("没有勾选要导入的记录"); return; }
   const counts = {}; for (const s of model().sales) counts[s.year] = (counts[s.year] || 0) + 1;
-  const made = new Map(); let n = 0;
-  for (const d of picked) {
-    let customerId = d.customerId;
-    if (!customerId) {
-      const key = `${d.customer.trim()}|${d.phone}`;
-      if (!made.has(key)) made.set(key, (await save("customer", { name: d.customer.trim(), phone: d.phone, town: d.town, village: d.village })).id);
-      customerId = made.get(key);
+  const plan = planImport(picked, { counts, suppliers: live("supplier") });   // 校验已过：按依赖顺序建，引用用 id / key
+  const supId = new Map(), brId = new Map(), cuId = new Map(), rid = (ref, map) => ref.id || map.get(ref.key);
+  let n = 0;
+  try {
+    for (const x of plan.suppliers) supId.set(x.key, (await save("supplier", { name: x.name })).id);
+    for (const x of plan.brands) {
+      const brand = await save("brand", { name: x.name, seasonId: x.seasonId, supplierId: rid(x.supplier, supId), active: true });
+      brId.set(x.key, brand.id);
+      await save("price", { id: `${brand.id}:${x.year}`, brandId: brand.id, year: x.year, buy: x.buy || 0, retail: x.retail || 0, wholesale: x.wholesale || null });
     }
-    const year = +d.date.slice(0, 4); counts[year] = (counts[year] || 0) + 1;
-    const total = totalOf(d), paid = Math.min(d.paid ?? 0, total);
-    const sale = await save("sale", { no: `${year}-${String(counts[year]).padStart(3, "0")}`, date: d.date, customerId, mode: modeFor(paid, total),
-      lines: d.lines.map(l => ({ brandId: l.brandId, qty: l.qty, price: l.price })), delivery: { type: "pickup" }, note: d.note, source: "scan", status: "active" });
-    if (paid > 0) await save("pay", { saleId: sale.id, date: d.date, amount: paid, method: "cash", note: t("扫描导入") });
-    n++;
-  }
+    for (const x of plan.customers) cuId.set(x.key, (await save("customer", { name: x.name, phone: x.phone, town: x.town, village: x.village, tier: x.tier })).id);
+    for (const x of plan.sales) {
+      const sale = await save("sale", { no: x.no, date: x.date, customerId: rid(x.customer, cuId), mode: x.mode, tier: x.tier, lines: x.lines.map(l => ({ brandId: rid(l.brand, brId), qty: l.qty, price: l.price })),
+        delivery: { type: "pickup" }, note: x.note, source: "scan", status: "active" });
+      if (x.paid > 0) await save("pay", { saleId: sale.id, date: x.date, amount: x.paid, method: "cash", note: t("扫描导入") });
+      n++;
+    }
+  } catch (e) { sc.error = t("导入中断（已导入 {n} 笔）：{e}。已建好的客户、品种会保留，可以重新识别补上剩下的。", { n, e: e.message || e }); return; }
   const years = [...new Set(picked.map(d => +d.date.slice(0, 4)))].sort();
   reset(); closeAll();
   S.filters.year = years[years.length - 1]; S.tab = "sales"; S.sub.sales = "list";   // 跳到销售单，并切到刚导入的那一年
-  toast(t("已导入 {n} 笔销售", { n }));
+  toast(t("已导入 {n} 笔销售（新建：{c} 位客户、{b} 个品种、{s} 家种子公司）", { n, c: plan.customers.length, b: plan.brands.length, s: plan.suppliers.length }));
 };
 
 export { scanPage, sc as _state };
