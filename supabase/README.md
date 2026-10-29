@@ -46,9 +46,6 @@ commit;
 ```
 （会删除账本的所有数据，执行前先在应用里导出备份。）
 
-## 可选：AI 函数
-`functions/ai-advice` 两种方案通用。选 B 时 baby-log 项目里已有别的 Edge Function，建议部署成 `sl-ai-advice`，并把 `config.js` 的 `AI_FUNCTION` 改成同名；密钥 `ANTHROPIC_API_KEY` 是项目级的，和别的函数共用。
-
 ## 验证状态
 - 两套 SQL（含全部 PL/pgSQL 函数体）都用 Postgres 官方解析器（pglast / libpg_query）检查过**语法**，通过。
 - **还没有在真实的 Supabase 上执行过**（本机没有数据库环境）：权限、行级策略、触发器的实际行为未验证。第一次执行后请跑各文件末尾注释里的验证语句，并反馈报错。

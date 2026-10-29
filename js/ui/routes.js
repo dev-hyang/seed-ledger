@@ -7,7 +7,7 @@ import { esc, today, toast } from "../core/util.js";
 import { t, money, qty, dateFmt, locale } from "../core/i18n.js";
 import { compareTrips, routeKm, suggestOrder, splitByDirection } from "../logic/route.js";
 import { r2 } from "../logic/ledger.js";
-import { askAI, aiAvailable } from "../core/sync.js";
+import { askAI, aiAvailable, aiError } from "../core/advice.js";
 import { model, byId, customerName, brandName, sortBy, ro } from "./common.js";
 import { show, back, fld, text, num, date, area, badge, empty, btn, kv, ask } from "./kit.js";
 import { ACT, FORMS, CHG, INP } from "./actions.js";
@@ -64,11 +64,11 @@ ACT["trip-suggest"] = () => { const m = model(), stops = plan.order.map(id => st
 ACT["trip-est"] = () => { const m = model(), stops = plan.order.map(id => stopOf(m.saleM.get(id))); plan.vehicle = r2(routeKm(stops, towns(), opts()) * opts().perKm); };
 ACT["ai-route"] = async el => {
   const out = el.closest(".ai-box").querySelector("[data-ai]"), m = model(), stops = plan.order.map(id => stopOf(m.saleM.get(id)));
-  if (!aiAvailable()) { out.textContent = t("AI 暂不可用（需要登录云端并部署 AI 函数）。上面的建议顺序和里程估算不受影响。"); return; }
+  if (!aiAvailable()) { out.textContent = aiError() + " " + t("上面的建议顺序和里程估算不受影响。"); return; }
   out.textContent = t("思考中…");
   const cmp = compareTrips(stops, towns(), opts());
   const txt = await askAI("route", { towns: towns().map(x => ({ name: x.name, distKm: x.distKm, dir: x.dir })), stops: stops.map(s => ({ town: s.town, village: s.village })), currentOrder: stops.map(s => s.town + s.village), suggested: cmp.ordered.map(s => s.town + s.village), separateKm: cmp.separateKm, combinedKm: cmp.combinedKm, perKm: opts().perKm }, locale());
-  out.textContent = txt || t("AI 暂时不可用。上面的建议顺序和里程估算不受影响。");
+  out.textContent = txt || aiError() + " " + t("上面的建议顺序和里程估算不受影响。");
 };
 ACT["trip-save"] = async () => {
   if (!plan.order.length) { toast(t("请先选要送的单")); return; }

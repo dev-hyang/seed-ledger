@@ -7,7 +7,7 @@ import { esc, today, toast } from "../core/util.js";
 import { t, money, qty, unitPrice, pct, dateFmt, locale } from "../core/i18n.js";
 import { r2, EPS } from "../logic/ledger.js";
 import { profileCustomer, anonymizedSummary } from "../logic/profile.js";
-import { askAI, aiAvailable } from "../core/sync.js";
+import { askAI, aiAvailable, aiError } from "../core/advice.js";
 import { model, byId, brandName, customerName, seasonName, sortBy, yearSelect, ro } from "./common.js";
 import { show, back, fld, text, num, date, area, select, seg, formData, badge, empty, btn, kv, ask } from "./kit.js";
 import { ACT, FORMS, CHG, INP } from "./actions.js";
@@ -197,7 +197,7 @@ function collectForm(id){
       <div data-show="writeoff" hidden>${fld("核销金额（¥）", num("wo", r2(Math.max(s.balance, 0)), { min: 0 }))}</div>
       ${fld("原因 / 备注", area("reason", "", { ph: "例如 客户反映发芽率一般，同意让利" }))}
       <div class="preview" data-preview></div>
-      <div class="ai-box"><button type="button" class="btn sm" data-act="ai-negotiate" data-id="${id}">✨ ${esc(t("AI 议价建议"))}</button><div data-ai class="ai-out"></div><small>${esc(t("AI 只看金额和客户等级（不含姓名电话），不可用也不影响记账；利润已按成本和送货算好。"))}</small></div></form>`,
+      <div class="ai-box"><button type="button" class="btn sm" data-act="ai-negotiate" data-id="${id}">✨ ${esc(t("AI 议价建议"))}</button><div data-ai class="ai-out"></div><small>${esc(t("AI 只看金额和客户等级（不含姓名电话），用你自己的 key；不可用也不影响记账，利润已按成本和送货算好。"))}</small></div></form>`,
     foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("记录"))}</button>` };
 }
 ACT["collect-hint"] = el => { const f = el.closest("form"), s = model().saleM.get(f.dataset.sale); f.elements.type.value = "negotiate"; [...f.elements.type].forEach(r => { r.checked = r.value === "negotiate"; }); f.elements.target.value = hintTotal(s); collectPreview(f); };
@@ -220,11 +220,11 @@ FORMS.collect = async (d, f) => {
 };
 ACT["ai-negotiate"] = async el => {
   const f = el.closest("form"), out = f.querySelector("[data-ai]"), s = model().saleM.get(el.dataset.id);
-  if (!aiAvailable()) { out.textContent = t("AI 暂不可用（需要登录云端并部署 AI 函数）。不影响记账，上面的利润预览已按成本算好。"); return; }
+  if (!aiAvailable()) { out.textContent = aiError() + " " + t("不影响记账，上面的利润预览已按成本算好。"); return; }
   out.textContent = t("思考中…");
   const prof = anonymizedSummary(profileCustomer(model(), s.customerId));
   const txt = await askAI("negotiate", { grossAmount: s.gross, currentReceivable: s.net, paid: s.paid, outstanding: s.balance, costInclDelivery: r2(s.cogs + s.deliveryCost), promisedTotal: s.lines.some(l => l.hint != null) ? hintTotal(s) : null, ageDays: ageDays(s.date), customer: prof }, locale());
-  out.textContent = txt || t("AI 暂时不可用。不影响记账，上面的利润预览已按成本算好。");
+  out.textContent = txt || aiError() + " " + t("不影响记账，上面的利润预览已按成本算好。");
 };
 
 export { renderSales, salePage, saleRow, statusBadge, brandsOf };

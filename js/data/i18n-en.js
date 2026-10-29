@@ -43,10 +43,6 @@ const EN = {
   "类型": "Type", "议价后的应收总额（¥）": "Receivable after negotiation (¥)", "客户讲价后，双方认可的总金额": "The total both sides agreed on after bargaining", "再折（%）": "Extra discount (%)", "在当前欠款上再打折": "Applied on top of the current balance",
   "核销金额（¥）": "Write-off amount (¥)", "原因 / 备注": "Reason / note", "例如 客户反映发芽率一般，同意让利": "e.g. Customer reported mediocre germination; agreed to a concession", "本次让利": "Concession", "调整后应收": "Receivable after", "调整后欠款": "Balance after", "调整后利润": "Profit after",
   "按这个价格这张单会亏本。": "At this price the order loses money.", "让利金额要大于 0": "The concession must be greater than 0", "AI 议价建议": "AI negotiation advice", "思考中…": "Thinking…",
-  "AI 只看金额和客户等级（不含姓名电话），不可用也不影响记账；利润已按成本和送货算好。": "AI sees only amounts and the customer grade (no name or phone). If it's unavailable, bookkeeping is unaffected; profit already accounts for cost and delivery.",
-  "AI 暂不可用（需要登录云端并部署 AI 函数）。不影响记账，上面的利润预览已按成本算好。": "AI is unavailable (needs cloud login and the AI function deployed). Bookkeeping is unaffected; the profit preview above already uses cost.",
-  "AI 暂时不可用。不影响记账，上面的利润预览已按成本算好。": "AI is temporarily unavailable. Bookkeeping is unaffected; the profit preview above already uses cost.",
-
   // delivery routes
   "＋ 安排一趟送货": "+ Plan a delivery trip", "有 {n} 张「我送货」的单还没安排到某一趟。": "{n} “I deliver” orders aren't assigned to a trip yet.", "送货": "Delivery", "{n} 家": "{n} stops", "人工 + 车费": "Labor + vehicle",
   "还没有送货记录。把同一趟顺路的几家合在一起送，可以省车费和人工。": "No trips yet. Combining nearby customers into one trip saves vehicle and labor cost.",
@@ -56,8 +52,7 @@ const EN = {
   "一趟估算里程（含回程）": "Estimated trip distance (round trip)", "各送各的合计": "If delivered separately", "合成一趟大约省": "Combining saves about",
   "这几家分布在 {n} 个方向：{d}。顺路的放一趟，反方向的可以考虑另一趟。": "These stops lie in {n} directions: {d}. Put the ones on the same way in one trip; consider a separate trip for the opposite direction.",
   "用估算 {a}": "Use estimate {a}", "这一趟的人工 + 车费会按数量分摊到每张单，计入各自的成本。": "This trip's labor + vehicle cost is split by quantity across the orders and counted in each one's cost.",
-  "AI 路线建议": "AI route advice", "AI 暂不可用（需要登录云端并部署 AI 函数）。上面的建议顺序和里程估算不受影响。": "AI is unavailable (needs cloud login and the AI function deployed). The suggested order and distance estimate above still work.",
-  "AI 暂时不可用。上面的建议顺序和里程估算不受影响。": "AI is temporarily unavailable. The suggested order and distance estimate above still work.", "请先选要送的单": "Choose the orders to deliver first",
+  "AI 路线建议": "AI route advice", "请先选要送的单": "Choose the orders to deliver first",
   "确认删除这一趟？": "Delete this trip?", "里面的销售单会回到「待安排」，送货成本需要重新填。": "Its orders go back to “unassigned” and you'll need to re-enter the delivery cost.",
 
   // customers
@@ -68,7 +63,6 @@ const EN = {
   "讨账时让利合计占货款 {p}%（议价 {a}，折上折 {b}）": "Concessions during collection total {p}% of goods (negotiated {a}, extra discount {b})", "建议的保障措施": "Recommended safeguards",
   "AI 写成建议": "AI write-up", "以上只是根据交易记录的风险提示，不构成法律意见；重大纠纷请咨询律师，并保留全部单据。": "This is only a risk indication based on transaction records, not legal advice. For serious disputes consult a lawyer and keep all documents.",
   "交易记录": "Transactions", "还没有交易。": "No transactions yet.", "打印对账单": "Print statement", "累计应收": "Total receivable", "合作年数": "Years together", "这位客户已不存在。": "This customer no longer exists.",
-  "AI 暂不可用（需要登录云端并部署 AI 函数）。上面的规则建议不受影响。": "AI is unavailable (needs cloud login and the AI function deployed). The rule-based advice above is unaffected.", "AI 暂时不可用。上面的规则建议不受影响。": "AI is temporarily unavailable. The rule-based advice above is unaffected.",
   "修改客户": "Edit customer", "详细地址": "Address", "只填做生意必要的信息。客户个人信息请妥善保管，导出的文件不要随意转发。": "Only enter what the business needs. Keep customers' personal information safe and don't forward exported files.",
   "这位客户有销售记录，不能删除（账要留着）": "This customer has sales records and can't be deleted (the books must stay)", "确认删除这位客户？": "Delete this customer?",
   "有坏账核销记录": "Has bad-debt write-offs", "{a} 单超过 {b} 天未结清": "{a} order(s) unsettled for over {b} days", "往年欠款比例高": "High share of past-year balances unpaid", "往年有部分欠款没收齐": "Some past-year balances remain unpaid",
@@ -138,6 +132,44 @@ const EN = {
 
   // print
   "销售单": "Sales order", "客户联": "Customer copy", "存根联": "Stub copy", "送货上门": "Delivered to customer", "客户签字：": "Customer signature:", "经办人：": "Handled by:", "本单据为销售单 / 送货单，不是税务发票。": "This is a sales / delivery slip, not a tax invoice.",
-  "客户对账单": "Customer statement", "打印日期": "Printed on", "合计": "Total", "客户确认签字：": "Customer confirmation signature:", "年对账单": "Annual statement", "项目": "Item", "池内余额": "Pool balance", "对方确认：": "Counterparty confirmation:"
+  "客户对账单": "Customer statement", "打印日期": "Printed on", "合计": "Total", "客户确认签字：": "Customer confirmation signature:", "年对账单": "Annual statement", "项目": "Item", "池内余额": "Pool balance", "对方确认：": "Counterparty confirmation:",
+
+  // AI assistant (call layer reused from the sibling apps; their translations are reused here)
+  "AI Studio 有免费额度（每天有次数上限），读图和文字都行；推荐。": "AI Studio has a free tier (daily cap); handles images and text; recommended.",
+  "Haiku 档最便宜，读图准。": "Haiku is the cheapest and reads images well.",
+  "免费档有每日次数上限。": "The free tier has a daily cap.",
+  "填接口地址（到 /v1 为止）、模型名和 key；要能读图才能拍照识字。": "Enter the endpoint (up to /v1), model and key; it must read images for photo capture.",
+  "模型返回的不是 JSON": "The model did not return JSON",
+  "模型超时，稍后再试": "The model timed out; try again later",
+  "{code}：这个服务不接受这个 key。检查 key 是否填对、有没有过期或多了空格，服务商选得对不对。": "{code}: this service rejected the key. Check the key (typos, expiry, extra spaces) and the provider.",
+  "今天的免费次数用完了，或请求太快。过一会儿再试，或换一个服务商。": "Free quota used up, or requests too fast. Try later or switch provider.",
+  "照片太大了，换一张小一点的再试": "The photo is too large; try a smaller one",
+  "服务商那边现在很忙（{code}），等一两分钟再试。": "The provider is busy ({code}); try again in a minute or two.",
+  "接口地址要以 https:// 开头，填到 /v1 为止": "The endpoint must start with https:// and end at /v1",
+  "Google 的安全策略拦下了这次请求，换一张图再试。": "Google's safety filter blocked this request; try another image.",
+  "AI 助手": "AI assistant",
+  "服务商": "Provider",
+  "模型（可空，用默认）": "Model (optional, default is used)",
+  "接口地址（只有“自定义”要填）": "Endpoint (only for “Custom”)",
+  "粘贴你自己的 key": "Paste your own key",
+  "申请 key": "Get a key",
+  "这里用的是你在爱家小助手里填的 key。": "This uses the key you entered in Home Helper.",
+  "测试连接": "Test connection",
+  "测试中…": "Testing…",
+  "连接成功 ✓": "Connected ✓",
+  "已保存": "Saved",
+  "已设置：": "Set: ",
+  "Groq（免费档）": "Groq (free tier)",
+  "还没填 API key，去「更多 → AI 助手」填": "No API key yet — add one under More → AI assistant",
+  "还没设置 AI：到「更多 → AI 助手」填你自己的 key。": "AI isn't set up: add your own key under More → AI assistant.",
+  "AI 暂时不可用。": "AI is temporarily unavailable.",
+  "要发的内容太长了。": "The content to send is too long.",
+  "不影响记账，上面的利润预览已按成本算好。": "Bookkeeping is unaffected; the profit preview above already uses cost.",
+  "上面的规则建议不受影响。": "The rule-based advice above is unaffected.",
+  "上面的建议顺序和里程估算不受影响。": "The suggested order and distance estimate above still work.",
+  "还没设置（可选）：议价、客户建议、送货路线": "Not set up (optional): negotiation, customer advice, delivery routes",
+  "议价建议、客户建议、送货路线需要你自己的 AI key。只存在这台设备的浏览器里，不上传，也不同步给合伙人（各人用各人的）。": "Negotiation, customer and route advice need your own AI key. It is stored only in this device's browser — never uploaded or shared with partners (each person uses their own).",
+  "发出去的只有脱敏后的数字摘要（金额、等级、镇村名），不含客户姓名、电话、详细地址。": "Only de-identified numeric summaries are sent (amounts, grades, town/village names) — never customer names, phones or street addresses.",
+  "AI 只看金额和客户等级（不含姓名电话），用你自己的 key；不可用也不影响记账，利润已按成本和送货算好。": "AI sees only amounts and the customer grade (no name or phone) and uses your own key. If it's unavailable, bookkeeping is unaffected; profit already accounts for cost and delivery."
 };
 export { EN };

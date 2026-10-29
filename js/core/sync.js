@@ -5,7 +5,7 @@
    · 下载：按 updated_at 游标分页拉取（用 >=，重复拉到的记录幂等覆盖）；本机还有没传完的记录则不覆盖。
    · 实时：订阅 records 变化，合伙人那边一录入这边几秒内就更新。
    · 云端没配置（config.js 还是 YOUR-）→ 本机模式，一切照常，只是不同步。 */
-import { AI_FUNCTION, CLOUD_CONFIGURED, DB_PREFIX, LS_PREFIX, SUPABASE_ANON_KEY, SUPABASE_JS, SUPABASE_URL } from "../config.js";
+import { CLOUD_CONFIGURED, DB_PREFIX, LS_PREFIX, SUPABASE_ANON_KEY, SUPABASE_JS, SUPABASE_URL } from "../config.js";
 import * as db from "./db.js";
 import { S, adoptLocal, loadOrg, notify, setKick, settingsFrom } from "./state.js";
 import { debounce, toast } from "./util.js";
@@ -135,14 +135,4 @@ async function cloudAudit(limit = 300){
 async function localAudit(){ return (await db.getAll("audit", S.org)).reverse(); }
 const conflictsList = async () => (await db.listAll("conflicts")).filter(c => c.org === S.org).reverse();
 
-/* ---------- AI（可选）：只发脱敏摘要；函数没部署 / 没网 / 出错都返回 null，调用方照常用规则结果 ---------- */
-async function askAI(task, payload, lang){
-  if (!SB.client || !S.user || !navigator.onLine) return null;
-  try {
-    const { data, error } = await SB.client.functions.invoke(AI_FUNCTION, { body: { task, payload, lang } });
-    return error ? null : data?.text || null;
-  } catch (e) { return null; }
-}
-const aiAvailable = () => !!(SB.client && S.user);
-
-export { initCloud, sync, signIn, signUp, signOut, createOrg, joinOrg, listMembers, setMember, resetInvite, cloudAudit, localAudit, conflictsList, askAI, aiAvailable, settingsFrom };
+export { initCloud, sync, signIn, signUp, signOut, createOrg, joinOrg, listMembers, setMember, resetInvite, cloudAudit, localAudit, conflictsList, settingsFrom };

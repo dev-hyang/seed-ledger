@@ -6,7 +6,7 @@ import { esc, toast } from "../core/util.js";
 import { t, money, pct, dateFmt, locale } from "../core/i18n.js";
 import { profileCustomer, anonymizedSummary } from "../logic/profile.js";
 import { r2, EPS } from "../logic/ledger.js";
-import { askAI, aiAvailable } from "../core/sync.js";
+import { askAI, aiAvailable, aiError } from "../core/advice.js";
 import { model, byId, sortBy, phoneHTML, ro } from "./common.js";
 import { show, back, fld, text, area, formData, badge, empty, btn, kv, ask } from "./kit.js";
 import { ACT, FORMS, INP } from "./actions.js";
@@ -49,10 +49,10 @@ function customerPage(id){
 ACT["customer-view"] = el => show(() => customerPage(el.dataset.id), true);
 ACT["ai-customer"] = async el => {
   const out = el.closest(".ai-box").querySelector("[data-ai]");
-  if (!aiAvailable()) { out.textContent = t("AI 暂不可用（需要登录云端并部署 AI 函数）。上面的规则建议不受影响。"); return; }
+  if (!aiAvailable()) { out.textContent = aiError() + " " + t("上面的规则建议不受影响。"); return; }
   out.textContent = t("思考中…");
   const txt = await askAI("customer", anonymizedSummary(profileCustomer(model(), el.dataset.id)), locale());
-  out.textContent = txt || t("AI 暂时不可用。上面的规则建议不受影响。");
+  out.textContent = txt || aiError() + " " + t("上面的规则建议不受影响。");
 };
 
 function customerForm(c){

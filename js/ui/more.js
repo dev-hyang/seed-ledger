@@ -7,8 +7,9 @@ import * as cloud from "../core/sync.js";
 import * as db from "../core/db.js";
 import { DIRS } from "../logic/route.js";
 import { byId, sortBy, ro } from "./common.js";
-import { show, back, closeAll, fld, text, num, select, formData, badge, empty, btn, kv, ask } from "./kit.js";
-import { ACT, FORMS, CHG } from "./actions.js";
+import { show, back, closeAll, fld, text, num, select, seg, formData, badge, empty, btn, kv, ask } from "./kit.js";
+import { PROVIDERS, providerOf, aiSettings, saveAiSettings, aiReady, testAi } from "../core/ai.js";
+import { ACT, FORMS, CHG, INP } from "./actions.js";
 
 const ROLE = { owner: "创建者", partner: "合伙人（可录入）", viewer: "只读" };
 const KIND_LAB = { sale: "销售单", pay: "收款", adj: "讨账调整", purchase: "进货", sreturn: "退货", spay: "打款入池", sfee: "手续费", customer: "客户", brand: "品种", price: "价格", supplier: "种子公司", trip: "送货", town: "镇", setting: "设置" };
@@ -20,6 +21,7 @@ function renderMore(){
     <section class="card"><h3>${esc(t("账户与同步"))}</h3>${accountBlock()}</section>
     <ul class="list menu">
       <li><button class="row" data-act="open-settings"><span class="row-main"><b>${esc(t("设置"))}</b><small>${esc(t("语言、币种、单位、季节名称、送货参数、镇与距离"))}</small></span><span>›</span></button></li>
+      <li><button class="row" data-act="open-ai"><span class="row-main"><b>${esc(t("AI 助手"))}</b><small>${esc(aiReady() ? t("已设置：") + t(providerOf(aiSettings().provider).name) : t("还没设置（可选）：议价、客户建议、送货路线"))}</small></span><span>›</span></button></li>
       <li><button class="row" data-act="open-audit"><span class="row-main"><b>${esc(t("审计日志"))}</b><small>${esc(t("谁在什么时候新增、修改、删除了什么"))}</small></span><span>›</span></button></li>
       ${mem && S.role === "owner" ? `<li><button class="row" data-act="open-members"><span class="row-main"><b>${esc(t("成员与邀请"))}</b><small>${esc(t("合伙人加入、批准、改权限"))}</small></span><span>›</span></button></li>` : ""}
       <li><button class="row" data-act="open-conflicts"><span class="row-main"><b>${esc(t("同步冲突"))}</b><small>${esc(t("两个人同时改了同一条记录时，被放弃的那份留在这里"))}</small></span><span>›</span></button></li>
@@ -105,6 +107,39 @@ const townForm = x => ({ title: t(x ? "修改镇" : "添加镇"), body: `<form i
 ACT["town-new"] = () => show(() => townForm());
 ACT["town-edit"] = el => show(() => townForm(byId("town", el.dataset.id)));
 FORMS.town = async (d, f) => { const old = f.dataset.id ? byId("town", f.dataset.id) : null; await save("town", { ...(old || {}), id: old?.id, name: d.name, distKm: d.distKm, dir: d.dir }); back(); };
+
+/* ---------- AI 设置（自带 key，只存本机浏览器；和家庭学堂、牧羊人同一套） ---------- */
+const aiHelp = p => esc(t(p.hint)) + (p.signup ? ` <a href="${esc(p.signup)}" target="_blank" rel="noopener">${esc(t("申请 key"))}</a>` : "");
+function aiForm(){
+  const s = aiSettings(), p = providerOf(s.provider);
+  const keyBox = `<input name="key" type="password" value="${esc(s.key)}" autocomplete="off" placeholder="${esc(t("粘贴你自己的 key"))}">`;
+  return { title: t("AI 助手"),
+    body: `<form id="f" data-form="ai" data-input-form="ai">
+      <p class="hint">${esc(t("议价建议、客户建议、送货路线需要你自己的 AI key。只存在这台设备的浏览器里，不上传，也不同步给合伙人（各人用各人的）。"))}</p>
+      ${fld("服务商", seg("provider", PROVIDERS.map(x => [x.id, t(x.name)]), s.provider))}
+      ${fld("API key", keyBox)}
+      ${fld("模型（可空，用默认）", text("model", s.model, { ph: p.model }))}
+      <div data-custom ${p.id === "custom" ? "" : "hidden"}>${fld("接口地址（只有“自定义”要填）", text("base", s.base, { ph: "https://…/v1", max: 200 }))}</div>
+      <p class="hint" data-aihelp>${aiHelp(p)}</p>
+      ${s.borrowed ? `<p class="hint">${esc(t("这里用的是你在爱家小助手里填的 key。"))}</p>` : ""}
+      <p class="hint">${esc(t("发出去的只有脱敏后的数字摘要（金额、等级、镇村名），不含客户姓名、电话、详细地址。"))}</p>
+      <div class="ai-out" data-aitest></div></form>`,
+    foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn" data-act="ai-test">${esc(t("测试连接"))}</button><button class="btn primary" form="f">${esc(t("保存"))}</button>` };
+}
+ACT["open-ai"] = () => show(aiForm);
+INP.ai = (el, f) => {   // 换服务商：更新说明、默认模型提示、自定义地址框
+  const p = providerOf(f.elements.provider.value);
+  f.querySelector("[data-custom]").hidden = p.id !== "custom";
+  f.querySelector("[data-aihelp]").innerHTML = aiHelp(p);
+  f.elements.model.placeholder = p.model;
+};
+const aiValues = f => { const d = formData(f); return { provider: d.provider, key: d.key, model: d.model, base: d.base }; };
+FORMS.ai = async (d, f) => { saveAiSettings(aiValues(f)); toast(t("已保存")); back(); };
+ACT["ai-test"] = async el => {
+  const f = el.closest(".sheet-in").querySelector("form"), out = f.querySelector("[data-aitest]");
+  saveAiSettings(aiValues(f)); out.textContent = t("测试中…");
+  try { await testAi(); out.textContent = t("连接成功 ✓"); } catch (e) { out.textContent = String(e.message || e).slice(0, 200); }
+};
 
 /* ---------- 审计日志 ---------- */
 const brief = r => !r ? "" : r.name || r.no || (r.amount != null ? String(r.amount) : "") || r.reason || "";
