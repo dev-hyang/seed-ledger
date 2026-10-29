@@ -26,7 +26,7 @@ function renderSales(){
   const sub = S.sub.sales || "list";
   const tabs = `<div class="subtabs" role="tablist">${subs.map(([k, l]) => `<button role="tab" aria-selected="${sub === k}" data-act="sales-sub" data-k="${k}">${esc(t(l))}</button>`).join("")}</div>`;
   const body = { list: listView, collect: collectView, trips: renderTrips }[sub]();
-  return `<div class="page-head"><h1>${esc(t("销售"))}</h1><div class="head-tools">${sub === "list" ? yearSelect(yearNow()) : ""}${ro() ? "" : btn("＋ 记一笔销售", "sale-new", { cls: "primary" })}</div></div>${tabs}${body}`;
+  return `<div class="page-head"><h1>${esc(t("销售"))}</h1><div class="head-tools">${sub === "list" ? yearSelect(yearNow()) : ""}${ro() ? "" : btn("📷 扫描 / 导入", "scan-open")}${ro() ? "" : btn("＋ 记一笔销售", "sale-new", { cls: "primary" })}</div></div>${tabs}${body}`;
 }
 ACT["sales-sub"] = el => { S.sub.sales = el.dataset.k; };
 

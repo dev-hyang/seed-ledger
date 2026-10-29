@@ -27,7 +27,7 @@ function renderMore(){
       ${mem && S.role === "owner" ? `<li><button class="row" data-act="open-members"><span class="row-main"><b>${esc(t("成员与邀请"))}</b><small>${esc(t("合伙人加入、批准、改权限"))}</small></span><span>›</span></button></li>` : ""}
       <li><button class="row" data-act="open-conflicts"><span class="row-main"><b>${esc(t("同步冲突"))}</b><small>${esc(t("两个人同时改了同一条记录时，被放弃的那份留在这里"))}</small></span><span>›</span></button></li>
       <li><button class="row" data-act="open-backup"><span class="row-main"><b>${esc(t("备份与恢复"))}</b><small>${esc(t("导出 / 导入全部数据（JSON）"))}</small></span><span>›</span></button></li></ul>
-    <p class="hint center">${esc(t("稻种账本"))} ${esc(APP_VERSION)} · ${esc(t("只提供交易记录和风险提示，不构成法律意见。"))}</p>`;
+    <p class="hint center">${esc(t("稻种账本"))} · ${esc(t("版本"))} v${esc(APP_VERSION)} · ${esc(t("只提供交易记录和风险提示，不构成法律意见。"))}</p>`;
 }
 
 /* ---------- 账户 ---------- */
@@ -107,7 +107,8 @@ function settingsPage(){
     <label class="chk"><input type="checkbox" name="maskPhone" ${st.maskPhone ? "checked" : ""}> ${esc(t("列表里遮挡手机号（中间 4 位）"))}</label>
     <h3 class="grp">${esc(t("镇与距离"))}</h3><p class="hint">${esc(t("填每个镇离门店多少公里、在哪个方向，路线规划用它来估算。"))}</p>
     <ul class="list tight">${towns.map(x => `<li><button type="button" class="row" data-act="town-edit" data-id="${x.id}"><span class="row-main"><b>${esc(x.name)}</b></span><span class="row-side"><small>${esc(x.distKm)} km · ${esc(x.dir ? t(x.dir) : "—")}</small></span></button></li>`).join("")}</ul>
-    <button type="button" class="btn sm" data-act="town-new">${esc(t("＋ 添加镇"))}</button></form>`,
+    <button type="button" class="btn sm" data-act="town-new">${esc(t("＋ 添加镇"))}</button>
+    <p class="hint center">${esc(t("稻种账本"))} · ${esc(t("版本"))} v${esc(APP_VERSION)}</p></form>`,
     foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("保存"))}</button>` };
 }
 ACT["open-settings"] = () => show(settingsPage);

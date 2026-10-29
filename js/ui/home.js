@@ -6,6 +6,7 @@ import { filterFacts, summarize, inventory, supplierStatement, r2, EPS } from ".
 import { model, brandName, customerName, supplierName, sortBy, yearSelect, ro } from "./common.js";
 import { kv, btn, badge, empty } from "./kit.js";
 import { yearNow } from "./stock.js";
+import { APP_VERSION } from "../config.js";
 
 const ageDays = d => Math.max(0, Math.round((Date.now() - new Date(d + "T00:00:00")) / 864e5));
 
@@ -18,7 +19,7 @@ function renderHome(){
   const pools = sortBy(m.D.supplier.map(s => ({ s, st: supplierStatement(m, s.id, y) })), x => x.st.closing);
   const empty0 = !m.D.sale.length && !m.D.purchase.length;
   return `<div class="page-head"><h1>${esc(S.settings.name || t("稻种账本"))}</h1><div class="head-tools">${yearSelect(y)}</div></div>
-    ${ro() ? "" : `<div class="actions">${btn("＋ 记一笔销售", "sale-new", { cls: "primary" })}${btn("＋ 进货", "purchase-new")}${btn("报表", "goto", { data: { tab: "reports" } })}</div>`}
+    ${ro() ? "" : `<div class="actions">${btn("＋ 记一笔销售", "sale-new", { cls: "primary" })}${btn("＋ 进货", "purchase-new")}${btn("📷 扫描 / 导入", "scan-open")}${btn("报表", "goto", { data: { tab: "reports" } })}</div>`}
     ${empty0 ? `<div class="card welcome"><h3>${esc(t("开始用：三步"))}</h3><ol class="bul"><li>${esc(t("在「库存 → 种子公司账」添加种子公司"))}</li><li>${esc(t("在「库存 → 品种与价格」添加品种（早稻 / 一晚 / 二晚）和价格"))}</li><li>${esc(t("在「库存 → 进货 / 退货」记进货，然后就可以记销售了"))}</li></ol></div>` : ""}
     <div class="kpis big">${kv("销售额", money(sum.net))}<div class="kv hero ${sum.profit < 0 ? "neg" : "pos"}"><span>${esc(t("利润"))}</span><b>${esc(money(sum.profit, { sign: true }))}</b><small>${esc(t("利润率 {p}", { p: pct(sum.margin) }))}</small></div>${kv("已收", money(sum.paid))}${kv("未收", money(sum.owing), sum.owing > EPS ? "neg" : "")}</div>
     <section class="card"><div class="card-head"><h3>${esc(t("欠款，年底要讨的账"))}</h3>${late ? badge(t("{n} 单超过半年", { n: late }), "bad") : ""}</div>
@@ -26,7 +27,8 @@ function renderHome(){
     <section class="card"><h3>${esc(t("库存提醒"))}</h3>
       ${over.length ? `<p class="neg">${esc(t("卖超了："))}${esc(over.map(r => brandName(r.brandId)).join("、"))}（${esc(t("检查进货记录"))}）</p>` : ""}
       ${left.length ? `<ul class="list tight">${sortBy(left, r => r.value, -1).slice(0, 6).map(r => `<li><div class="row static"><span class="row-main"><b>${esc(brandName(r.brandId))}</b><small>${esc(supplierName(r.supplierId))}</small></span><span class="row-side"><b>${esc(qty(r.onHand))}</b><small>${esc(money(r.value))}</small></span></div></li>`).join("")}</ul><button class="link" data-act="goto" data-tab="stock">${esc(t("库存详情 ›"))}</button>` : `<p class="hint">${esc(inv.length ? t("没有剩余库存。") : t("还没有进货记录。"))}</p>`}</section>
-    ${pools.length ? `<section class="card"><h3>${esc(t("种子公司的钱池"))}</h3><ul class="list tight">${pools.map(({ s, st }) => `<li><button class="row" data-act="supplier-view" data-id="${s.id}"><span class="row-main"><b>${esc(s.name)}</b></span><span class="row-side"><b class="${st.closing < 0 ? "neg" : ""}">${esc(money(st.closing))}</b>${st.state === "owe" ? badge(t("需补款"), "bad") : st.state === "carry" ? badge(t("结转明年"), "good") : ""}</span></button></li>`).join("")}</ul></section>` : ""}`;
+    ${pools.length ? `<p class="hint center appver-line">${esc(t("稻种账本"))} · ${esc(t("版本"))} v${esc(APP_VERSION)}</p>
+    <section class="card"><h3>${esc(t("种子公司的钱池"))}</h3><ul class="list tight">${pools.map(({ s, st }) => `<li><button class="row" data-act="supplier-view" data-id="${s.id}"><span class="row-main"><b>${esc(s.name)}</b></span><span class="row-side"><b class="${st.closing < 0 ? "neg" : ""}">${esc(money(st.closing))}</b>${st.state === "owe" ? badge(t("需补款"), "bad") : st.state === "carry" ? badge(t("结转明年"), "good") : ""}</span></button></li>`).join("")}</ul></section>` : ""}`;
 }
 
 export { renderHome };

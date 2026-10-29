@@ -4,7 +4,8 @@ import { S, subscribe, canWrite } from "./core/state.js";
 import { initCloud } from "./core/sync.js";
 import { $, esc, toast, saveJSON } from "./core/util.js";
 import { t, LOCALES, locale, setLocale } from "./core/i18n.js";
-import { LS_PREFIX, CLOUD_CONFIGURED } from "./config.js";
+import { LS_PREFIX, CLOUD_CONFIGURED, APP_VERSION } from "./config.js";
+import { MODULES } from "./modules.js";
 import { ACT, FORMS, CHG, INP } from "./ui/actions.js";
 import { show, back, closeAll, refresh, paint, formData, sheetOpen, askYes } from "./ui/kit.js";
 import { renderHome } from "./ui/home.js";
@@ -14,6 +15,7 @@ import { renderStock } from "./ui/stock.js";
 import { renderReports } from "./ui/reports.js";
 import { renderMore, importFile } from "./ui/more.js";
 import "./ui/print.js";
+import "./ui/scan.js";
 
 const ICON = {
   home: '<path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/>', sales: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/>', customers: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-4 3-6 6.5-6s5.900 2 6.500 6M16 5a3.500 3.500 0 010 6.500M18 14c2 .6 3.300 2.400 3.500 6"/>',
@@ -24,7 +26,7 @@ const TABS = [["home", "概览", renderHome], ["sales", "销售", renderSales], 
 function chrome(){
   const lang = `<select id="lang" aria-label="${esc(t("界面语言"))}">${LOCALES.map(([k, l]) => `<option value="${k}" ${k === locale() ? "selected" : ""}>${l}</option>`).join("")}</select>`;
   const pill = { local: "本机", signedout: "未登录", noorg: "未加入账本", pending: "待批准", online: S.pendingOps ? "同步中" : "已同步", offline: "离线" }[S.cloud];
-  $("#top").innerHTML = `<span class="brand">🌾 ${esc(S.settings.name || t("稻种账本"))}</span><span class="top-tools">${lang}<button class="pill ${S.cloud}" data-tab="more" aria-label="${esc(t("同步状态"))}"><i></i>${esc(t(pill))}${S.pendingOps ? ` · ${S.pendingOps}` : ""}</button></span>`;
+  $("#top").innerHTML = `<span class="brand">🌾 ${esc(S.settings.name || t("稻种账本"))} <small class="appver" id="appver">v${esc(APP_VERSION)}</small></span><span class="top-tools">${lang}<button class="pill ${S.cloud}" data-tab="more" aria-label="${esc(t("同步状态"))}"><i></i>${esc(t(pill))}${S.pendingOps ? ` · ${S.pendingOps}` : ""}</button></span>`;
   $("#nav").innerHTML = TABS.map(([k, l]) => `<button data-tab="${k}" ${S.tab === k ? 'aria-current="page"' : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg><span>${esc(t(l))}</span></button>`).join("");
   document.body.classList.toggle("is-offline", S.cloud === "offline");
 }
@@ -91,4 +93,14 @@ new MutationObserver(() => { const f = $("#sheet form[data-input-form]"); if (f 
 if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(() => {});
 window.addEventListener("online", () => render());
 window.addEventListener("offline", () => render());
-initCloud().then(render);
+
+/* 发布后的头几分钟，浏览器可能把新的 index.html 和缓存里的旧模块混在一起：版本不一致就强制重抓所有模块并刷新一次（每个版本只做一次，防循环） */
+async function healStaleModules(){
+  const want = (document.querySelector('meta[name="app-version"]') || {}).content;
+  if (!want || want === APP_VERSION) return false;
+  const key = LS_PREFIX + ".reloaded." + want;
+  try { if (sessionStorage.getItem(key)) return false; sessionStorage.setItem(key, "1"); } catch (e) { return false; }
+  await Promise.all(MODULES.map(u => fetch("js/" + u, { cache: "reload" }).catch(() => null)));
+  location.reload(); return true;
+}
+if (!(await healStaleModules())) initCloud().then(render);

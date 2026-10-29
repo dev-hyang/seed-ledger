@@ -24,9 +24,12 @@ function s2t(s){
   let o = s; for (const [a, b] of TW_PHRASES) if (o.includes(a)) o = o.split(a).join(b);
   o = s2tChars(o); twCache.set(s, o); return o;
 }
+/** 英文模式下查不到译文的中文词（排查漏译用：在控制台 import("/js/core/i18n.js").then(m => m.missingKeys())） */
+const MISSING = new Set();
+const missingKeys = () => [...MISSING];
 function t(key, vars){
   let s = String(key);
-  if (cur === "en") { const v = EN[s]; if (v != null) s = v; } else if (cur === "zh-TW") s = s2t(s);
+  if (cur === "en") { const v = EN[s]; if (v != null) s = v; else if (/[一-鿿]/.test(s)) MISSING.add(s); } else if (cur === "zh-TW") s = s2t(s);
   if (vars) for (const [k, v] of Object.entries(vars)) s = s.split(`{${k}}`).join(String(v));
   return s;
 }
@@ -57,4 +60,4 @@ const pct = n => (+n || 0).toFixed(1).replace(/\.0$/, "") + "%";
 const dateFmt = d => !d ? "" : cur === "en" ? new Date(d + "T00:00:00").toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : d;
 
 applyLang();
-export { LOCALES, t, locale, setLocale, setPrefs, currency, money, moneyNum, qtyNum, qty, unitPrice, unitLabel, pct, dateFmt, UNITS, P as prefs };
+export { missingKeys, LOCALES, t, locale, setLocale, setPrefs, currency, money, moneyNum, qtyNum, qty, unitPrice, unitLabel, pct, dateFmt, UNITS, P as prefs };
