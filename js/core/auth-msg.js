@@ -45,9 +45,19 @@ export { authMessage, signupOutcome, hashError };
    凭邀请码加入的人批准后是只读；只有创建者能把别人设为录入员 / 合伙人 / 创建者。界面只用来决定显示哪些按钮，真正的拦截在数据库函数里。 */
 const perms = role => ({ write: ["owner", "partner", "staff"].includes(role), approve: role === "owner" || role === "partner", manage: role === "owner" });
 
+/** 加入失败的原因：对方看到的话要准确，创建者 / 开发者要能照着去查。认得出的给明确原因，认不出的带上原始错误 */
+function joinError(error){
+  const code = error.code || "", msg = error.message || "";
+  if (code === "anonymous_provider_disabled" || /anonymous.*(disabled|not enabled)/i.test(msg)) return t("免邮箱加入还没有开启（Supabase 里没打开 Allow anonymous sign-ins）：请联系创建者，或改用邮箱登录。");
+  if (/email account required/i.test(msg)) return t("数据库还没升级到支持免邮箱加入（缺 sl_007 / 004 迁移）：请创建者先执行最新的 SQL，或改用邮箱登录。");
+  if (code === "PGRST202" || /could not find the function|schema cache|does not exist/i.test(msg)) return t("数据库还没升级到最新（找不到加入函数）：请创建者执行最新的 SQL。");
+  if (/invalid code/i.test(msg)) return t("邀请码不对，请核对后再试。");
+  const known = authMessage(error);
+  return t("申请失败：") + (known && known !== msg ? known : msg || t("未知错误")) + ` [${code || error.status || "?"}]`;
+}
 /** sl_join_org / join_org 返回的 { status } → { kind, message } */
 function joinOutcome(res, error){
-  if (error) return { kind: "error", message: t("申请失败：") + authMessage(error) };
+  if (error) return { kind: "error", message: joinError(error) };
   switch (res?.status) {
     case "pending": return { kind: "pending", message: t("已申请，等待创建者或合伙人批准。批准前你只能看到申请状态，看不到任何数据。") };
     case "active": return { kind: "active", message: "" };
@@ -65,13 +75,13 @@ function inviteState(info, now = Date.now()){
   const ms = new Date(info.expires_at).getTime() - now;
   return ms > 0 ? { kind: "valid", days: Math.max(1, Math.ceil(ms / 864e5)) } : { kind: "expired" };
 }
-export { perms, joinOutcome, inviteState };
+export { perms, joinOutcome, joinError, inviteState };
 
 /* ============ 登录时顺带填邀请码：整理输入、没填名字时的默认名字、暂存是否还有效（纯函数，有测试） ============ */
-/** 邀请码：去掉空格和连字符（复制时常带进来），转大写（数据库不区分大小写），最长 20 位；不是字母数字就当没填 */
+/** 邀请码：去掉空格和连字符（复制时常带进来），保持原来的大小写（旧版数据库区分大小写；新版不区分），最长 20 位；不是字母数字就当没填 */
 function cleanInvite(s){
-  const c = String(s ?? "").replace(/[\s\-_]/g, "").toUpperCase().slice(0, 20);
-  return /^[A-Z0-9]{4,20}$/.test(c) ? c : "";
+  const c = String(s ?? "").replace(/[\s\-_]/g, "").slice(0, 20);
+  return /^[A-Za-z0-9]{4,20}$/.test(c) ? c : "";
 }
 /** 没填名字时，用邮箱 @ 前面那段给创建者看（最多 20 个字符） */
 const displayFromEmail = email => String(email || "").split("@")[0].slice(0, 20) || "?";

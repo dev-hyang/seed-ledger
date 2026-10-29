@@ -5,6 +5,6 @@ export const MODULES = [
   "app.js", "config.js", "modules.js",
   "core/advice.js", "core/ai.js", "core/auth-msg.js", "core/db.js", "core/file-readers.js", "core/i18n.js", "core/state.js", "core/sync.js", "core/util.js",
   "data/i18n-en.js", "data/s2t.js",
-  "logic/ledger.js", "logic/pricing.js", "logic/profile.js", "logic/route.js", "logic/scan-import.js",
+  "logic/customers.js", "logic/ledger.js", "logic/pricing.js", "logic/profile.js", "logic/route.js", "logic/scan-import.js", "logic/todos.js",
   "ui/actions.js", "ui/charts.js", "ui/common.js", "ui/customers.js", "ui/home.js", "ui/kit.js", "ui/more.js", "ui/print.js", "ui/reports.js", "ui/routes.js", "ui/sales.js", "ui/scan.js", "ui/stock.js"
 ];

@@ -6,6 +6,7 @@
    手抄本历史数据也走这条路：一页上有好几位客户，就会读成好几笔销售草稿。 */
 import { r2 } from "./ledger.js";
 import { priceOf, tierOf } from "./pricing.js";
+import { phoneKey, validPhone } from "./customers.js";
 
 const SYSTEM = [
   "You extract SALES records of a rice-seed dealer from photos, scans, spreadsheets or text of: sales slips / delivery notes / receipts, handwritten ledger notebook pages, customer statements, WeChat / Alipay payment screenshots.",
@@ -72,8 +73,8 @@ function matchBrand(text, brands){
 }
 /** 客户匹配：手机号相同 → 选中；姓名规范化后相同（且唯一）→ 选中；否则当新客户 */
 function matchCustomer(name, phone, customers){
-  const p = digits(phone);
-  if (p.length >= 7) { const hit = customers.find(c => digits(c.phone) === p); if (hit) return hit.id; }
+  const p = phoneKey(phone);
+  if (validPhone(phone)) { const hit = customers.find(c => phoneKey(c.phone) === p); if (hit) return hit.id; }   // 手机号相同 = 同一位客户（格式不同也算）
   const n = norm(name); if (!n) return "";
   const hits = customers.filter(c => norm(c.name) === n);
   return hits.length === 1 ? hits[0].id : "";
@@ -159,7 +160,7 @@ function planImport(drafts, ctx){
     let customer;
     if (d.customerId) customer = { id: d.customerId };
     else {
-      const k = `${norm(d.customer)}|${digits(d.phone)}`;
+      const k = validPhone(d.phone) ? "p:" + phoneKey(d.phone) : "n:" + norm(d.customer);   // 有手机号按手机号去重，没有才按名字
       if (!custKeys.has(k)) { custKeys.set(k, `c:${k}`); customers.push({ key: `c:${k}`, name: d.customer.trim(), phone: d.phone, town: d.town, village: d.village, tier: d.tier }); }
       customer = { key: custKeys.get(k) };
     }

@@ -62,9 +62,9 @@ test("邀请码状态：有效（还剩几天）/ 过期 / 已关闭；关闭优
 });
 
 const { cleanInvite, displayFromEmail, inviteFresh } = await import("../js/core/auth-msg.js");
-test("邀请码整理：去空格 / 连字符、转大写；不合格当没填", () => {
-  assert.equal(cleanInvite(" ab12-cd34 "), "AB12CD34"); assert.equal(cleanInvite("ab12cd34"), "AB12CD34");
-  assert.equal(cleanInvite("ab"), ""); assert.equal(cleanInvite("<script>"), ""); assert.equal(cleanInvite(null), ""); assert.equal(cleanInvite("x".repeat(40)), "X".repeat(20));
+test("邀请码整理：去空格 / 连字符、保持大小写；不合格当没填", () => {
+  assert.equal(cleanInvite(" ab12-cd34 "), "ab12cd34"); assert.equal(cleanInvite("AB12CD34"), "AB12CD34"); assert.equal(cleanInvite("Ab12Cd34"), "Ab12Cd34");   // 保持大小写
+  assert.equal(cleanInvite("ab"), ""); assert.equal(cleanInvite("<script>"), ""); assert.equal(cleanInvite(null), ""); assert.equal(cleanInvite("x".repeat(40)), "x".repeat(20));
 });
 test("默认名字取邮箱前缀；暂存 24 小时内有效、过期或坏数据无效", () => {
   assert.equal(displayFromEmail("zhang.san@example.com"), "zhang.san"); assert.equal(displayFromEmail("a".repeat(40) + "@x.y").length, 20); assert.equal(displayFromEmail(""), "?");
@@ -78,4 +78,14 @@ test("免邮箱账号相关的错误提示：不能当合伙人 / 创建者、�
   assert.match(authMessage({ message: "email account required for this role" }), /只读或录入员/);
   assert.match(authMessage({ message: "email account required" }), /不能创建账本/);
   assert.match(authMessage({ message: "Anonymous sign-ins are disabled" }), /还没有开启/);
+});
+
+const { joinError } = await import("../js/core/auth-msg.js");
+test("加入失败：匿名登录没开 / 数据库没升级 / 找不到函数 / 旧库的邀请码错误，各给准确原因；未知错误带上原始信息", () => {
+  assert.match(joinError({ code: "anonymous_provider_disabled", message: "Anonymous sign-ins are disabled" }), /Allow anonymous sign-ins/);
+  assert.match(joinError({ message: "email account required", code: "42501" }), /sl_007/);   // 不再误报成「不能创建账本」
+  assert.match(joinError({ code: "PGRST202", message: "Could not find the function public.sl_join_org(p_code, p_display) in the schema cache" }), /找不到加入函数/);
+  assert.match(joinError({ message: "invalid code", code: "P0002" }), /邀请码不对/);
+  assert.match(joinError({ message: "boom", code: "XX000" }), /boom.*XX000/);
+  assert.match(joinOutcome(null, { message: "email account required" }).message, /sl_007/);
 });

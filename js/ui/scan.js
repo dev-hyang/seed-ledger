@@ -11,6 +11,7 @@ import { askText, aiReady, aiSettings, providerOf } from "../core/ai.js";
 import { readAnyFile, chunkText, redactSensitive, ACCEPT } from "../core/file-readers.js";
 import { SYSTEM, userPrompt, lenientJson, normalizeAi, resolveDrafts, totalOf, validateDrafts, planImport, newBrandSpec } from "../logic/scan-import.js";
 import { priceOf, tierOf } from "../logic/pricing.js";
+import { customerLabel, validPhone } from "../logic/customers.js";
 import { model, byId, sortBy } from "./common.js";
 import { priceFor } from "./stock.js";
 import { show, back, closeAll, refresh, badge, btn } from "./kit.js";
@@ -47,7 +48,7 @@ function inputBody(){
 const canRun = () => aiReady() && consent() && !sc.busy && !sc.reading && (sc.files.length || sc.text.trim());
 const inputFoot = () => `<button class="btn" data-act="close">${esc(t("取消"))}</button><button class="btn primary" data-act="scan-run" ${canRun() ? "" : "disabled"}>${esc(sc.busy ? t("正在识别…（几十秒）") : t("识别"))}</button>`;
 
-const customerOpts = () => sortBy(live("customer"), c => c.name).map(c => `<option value="${esc(c.id)}">${esc(c.name)}${c.town ? " · " + esc(c.town) : ""}</option>`).join("");
+const customerOpts = () => sortBy(live("customer"), c => c.name).map(c => `<option value="${esc(c.id)}">${esc(customerLabel(c, { mask: S.settings.maskPhone }))}</option>`).join("");
 const brandOpts = () => S.settings.seasons.map(s => { const bs = sortBy(live("brand").filter(b => b.seasonId === s.id && b.active !== false), b => b.name); return bs.length ? `<optgroup label="${esc(t(s.name))}">${bs.map(b => `<option value="${esc(b.id)}">${esc(b.name)}</option>`).join("")}</optgroup>` : ""; }).join("");
 const selected = (html, v) => html.replace(`value="${esc(v)}"`, `value="${esc(v)}" selected`);
 
@@ -59,6 +60,7 @@ function reviewBody(){
     ${sc.drafts.map((d, i) => `<div class="card scan-d ${d.on ? "" : "off"}">
       <div class="card-head"><label class="chk" style="margin:0"><input type="checkbox" data-change="scan-on" data-i="${i}" ${d.on ? "checked" : ""}> <b>${esc(t("第 {n} 笔", { n: i + 1 }))}</b></label><span class="head-tools"><select data-change="scan-tier" data-i="${i}" aria-label="${esc(t("价格档"))}"><option value="retail" ${d.tier !== "wholesale" ? "selected" : ""}>${esc(t("零售价"))}</option><option value="wholesale" ${d.tier === "wholesale" ? "selected" : ""}>${esc(t("批发价"))}</option></select><b data-total="${i}">${esc(money(totalOf(d)))}</b></span></div>
       ${d.dup ? `<p class="hint warn">${esc(t("疑似重复：已有一笔同客户、同一天、同品种数量的销售，所以默认没勾选。"))}</p>` : ""}
+      ${!d.customerId && !validPhone(d.phone) ? `<p class="hint warn">${esc(t("没有读到手机号：同名客户无法区分，建议在下面补上手机号。"))}</p>` : ""}
       ${d.noDate ? `<p class="hint warn">${esc(t("没读到日期，先用了今天，请改成单据上的日期。"))}</p>` : ""}
       ${d.flags.filter(f => f.startsWith("unit:")).map(f => `<p class="hint warn">${esc(t("不认识的单位「{u}」，数量先按斤算，请核对。", { u: f.slice(5) }))}</p>`).join("")}
       <div class="grid2"><label class="fld"><span>${esc(t("日期"))}</span><input type="date" value="${esc(d.date)}" data-input="scan-d" data-i="${i}" data-k="date"></label>

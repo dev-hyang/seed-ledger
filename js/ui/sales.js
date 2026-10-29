@@ -2,7 +2,8 @@
    一张销售单 + 若干笔收款 + 若干笔讨账调整，三种售卖方式共用同一个模型：
      当场结清 = 一笔收款等于应收；付定金 = 收款少于应收；纯赊账 = 没有收款。
    价格：「单价」是记在单据上的取货价；「私下价」是当时可能实际给的价，只有自己看得到，不会打印到客户那份上。 */
-import { S, save, remove } from "../core/state.js";
+import { S, save, remove, live } from "../core/state.js";
+import { customerLabel, findByPhone, validPhone } from "../logic/customers.js";
 import { esc, today, toast } from "../core/util.js";
 import { t, money, qty, unitPrice, pct, dateFmt, locale } from "../core/i18n.js";
 import { r2, EPS } from "../logic/ledger.js";
@@ -70,14 +71,14 @@ function lineRow(l = {}){
     <small class="stk"></small><small class="lamt"></small></div>`;
 }
 function saleForm(s){
-  const d = s?.date || today(), cust = sortBy(Object.values(Object.fromEntries([...S.data.customer].filter(([, c]) => !c._del))), c => c.name).map(c => [c.id, `${c.name}${c.town ? " · " + c.town : ""}`]);
+  const d = s?.date || today(), cust = sortBy(Object.values(Object.fromEntries([...S.data.customer].filter(([, c]) => !c._del))), c => c.name).map(c => [c.id, customerLabel(c, { mask: S.settings.maskPhone })]);
   const edit = !!s, firstLines = s?.lines?.length ? s.lines : [{}];
   const tier = tierOf(s?.tier ?? byId("customer", s?.customerId)?.tier);
   return { title: t(edit ? "修改销售单" : "记一笔销售"),
     body: `<form id="f" data-form="sale" data-id="${s?.id || ""}" data-input-form="sale" data-tier="${tier}">
       ${fld("客户", select("customerId", cust, s?.customerId, { blank: t("— 选客户，或在下面新建 —"), change: "sale-customer" }))}
       <details class="newcust" ${cust.length ? "" : "open"}><summary>${esc(t("＋ 新客户"))}</summary>
-        <div class="grid2">${fld("姓名", text("newName"))}${fld("电话", text("newPhone", "", { type: "tel", mode: "tel" }))}${fld("镇", text("newTown"))}${fld("村", text("newVillage"))}</div></details>
+        <div class="grid2">${fld("姓名", text("newName"))}${fld("手机号（必填）", text("newPhone", "", { type: "tel", mode: "tel" }))}${fld("镇", text("newTown"))}${fld("村", text("newVillage"))}</div></details>
       ${fld("日期", date("date", d))}
       ${fld("价格档", seg("tier", [["retail", t("零售价")], ["wholesale", t("批发价")]], tier))}
       ${edit ? "" : fld("售卖方式", seg("mode", MODES.map(([k, l]) => [k, t(l)]), s?.mode || "cash"))}
@@ -150,7 +151,10 @@ FORMS.sale = async (d, f) => {
   let customerId = d.customerId;
   if (!customerId) {
     if (!d.newName) { toast(t("请选客户，或填新客户的姓名")); return; }
-    customerId = (await save("customer", { name: d.newName, phone: d.newPhone, town: d.newTown, village: d.newVillage })).id;
+    if (!validPhone(d.newPhone)) { toast(t("新客户请填手机号（7–15 位数字）：手机号用来区分同名客户")); return; }
+    const same = findByPhone(live("customer"), d.newPhone);
+    if (same) { customerId = same.id; toast(t("这个手机号已经是客户「{n}」，直接用他。", { n: same.name })); }   // 手机号相同 = 同一位客户
+    else customerId = (await save("customer", { name: d.newName, phone: d.newPhone, town: d.newTown, village: d.newVillage })).id;
   }
   const old = f.dataset.id ? model().saleM.get(f.dataset.id) : null, year = +d.date.slice(0, 4);
   const no = old?.no || `${year}-${String(model().sales.filter(s => s.year === year).length + 1).padStart(3, "0")}`;

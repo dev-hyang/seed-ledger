@@ -10,6 +10,7 @@ import { askAI, aiAvailable, aiError } from "../core/advice.js";
 import { model, byId, sortBy, phoneHTML, ro } from "./common.js";
 import { show, back, fld, text, area, seg, formData, badge, empty, btn, kv, ask } from "./kit.js";
 import { tierOf } from "../logic/pricing.js";
+import { customerLabel, findByPhone, maskPhone, placeOf, sameNameCount, validPhone } from "../logic/customers.js";
 import { ACT, FORMS, INP } from "./actions.js";
 import { saleRow } from "./sales.js";
 
@@ -23,7 +24,7 @@ function renderCustomers(){
   rows = sortBy(rows, r => -r.p.stats.owing || r.c.name);
   return `<div class="page-head"><h1>${esc(t("客户"))}</h1><div class="head-tools">${ro() ? "" : btn("＋ 新客户", "customer-new", { cls: "primary" })}</div></div>
     <div class="filters"><input type="search" data-input="custQ" value="${esc(S.filters.custQ || "")}" placeholder="${esc(t("搜姓名、镇、村、电话"))}" aria-label="${esc(t("搜索"))}"></div>
-    ${rows.length ? `<ul class="list">${rows.map(({ c, p }) => `<li><button class="row" data-act="customer-view" data-id="${c.id}"><span class="row-main"><b>${esc(c.name)}</b><small>${esc([c.town, c.village].filter(Boolean).join(" · "))}${c.phone ? " · " + esc(maskedPhone(c.phone)) : ""}</small></span>
+    ${rows.length ? `<ul class="list">${rows.map(({ c, p }) => `<li><button class="row" data-act="customer-view" data-id="${c.id}"><span class="row-main"><b>${esc(c.name)}</b>${sameNameCount(live("customer"), c) ? ` <span class="badge">${esc(t("同名"))}</span>` : ""}<small>${esc([placeOf(c), c.phone ? (S.settings.maskPhone ? maskPhone(c.phone) : c.phone) : t("未填手机号，请补上")].filter(Boolean).join(" · "))}</small></span>
       <span class="row-side">${p.stats.owing > EPS ? `<b class="neg">${esc(t("欠"))} ${esc(money(p.stats.owing))}</b>` : `<small>${esc(money(p.stats.net))}</small>`}${badge(t(GRADE[p.grade][0]), GRADE[p.grade][1])}</span></button></li>`).join("")}</ul>` : empty("还没有客户。记第一笔销售时可以直接新建客户。", ro() ? "" : btn("＋ 新客户", "customer-new", { cls: "primary" }))}`;
 }
 INP.custQ = el => { S.filters.custQ = el.value; };
@@ -59,7 +60,7 @@ ACT["ai-customer"] = async el => {
 function customerForm(c){
   return { title: t(c ? "修改客户" : "新客户"),
     body: `<form id="f" data-form="customer" data-id="${c?.id || ""}">
-      ${fld("姓名", text("name", c?.name, { req: true }))}${fld("电话", text("phone", c?.phone, { type: "tel", mode: "tel" }))}
+      ${fld("姓名", text("name", c?.name, { req: true }))}${fld("手机号", text("phone", c?.phone, { type: "tel", mode: "tel", req: !c }), t("手机号用来区分同名客户，不能重复"))}
       <div class="grid2">${fld("镇", text("town", c?.town))}${fld("村", text("village", c?.village))}</div>
       ${fld("默认价格档", seg("tier", [["retail", t("零售价")], ["wholesale", t("批发价")]], tierOf(c?.tier)), t("记销售单时按这个档预选单价，随时可改"))}
       ${fld("详细地址", text("address", c?.address, { max: 120 }))}${fld("备注", area("note", c?.note))}
@@ -68,7 +69,14 @@ function customerForm(c){
 }
 ACT["customer-new"] = () => show(() => customerForm());
 ACT["customer-edit"] = el => show(() => customerForm(byId("customer", el.dataset.id)));
-FORMS.customer = async (d, f) => { const old = f.dataset.id ? byId("customer", f.dataset.id) : null; await save("customer", { ...(old || {}), id: old?.id, name: d.name, phone: d.phone, town: d.town, village: d.village, address: d.address, tier: d.tier, note: d.note }); back(); };
+FORMS.customer = async (d, f) => {
+  const old = f.dataset.id ? byId("customer", f.dataset.id) : null;
+  if (!old || d.phone) {   // 新建必须填手机号；老客户没填的可以先不填，填了就要合法且不重复
+    if (!validPhone(d.phone)) { toast(t("请填手机号（7–15 位数字）：手机号用来区分同名客户")); return; }
+    const dup = findByPhone(live("customer"), d.phone, old?.id);
+    if (dup) { toast(t("这个手机号已经是客户「{n}」了，不能重复建。", { n: customerLabel(dup) })); return; }
+  }
+  await save("customer", { ...(old || {}), id: old?.id, name: d.name, phone: d.phone, town: d.town, village: d.village, address: d.address, tier: d.tier, note: d.note }); back(); };
 ACT["customer-del"] = el => {
   if (model().sales.some(s => s.customerId === el.dataset.id)) { toast(t("这位客户有销售记录，不能删除（账要留着）")); return; }
   ask(t("确认删除这位客户？"), t("记录会保留在审计日志里。"), async () => { await remove("customer", el.dataset.id); back(); back(); }, "删除");
