@@ -25,14 +25,16 @@ npm test                        # 账务逻辑的单元测试（Node 18+）
 `config.js` 里云端没配置时自动进入本机模式：功能完整，数据只在这台设备（IndexedDB），不同步。
 
 ## 打开云端同步（多人、多设备）
-**必须新建一个独立的 Supabase 项目**，不要用家庭应用那个——这里有客户个人信息和账务，合伙人也不该进到家庭数据里。
-1. supabase.com 新建项目（建议选离用户近的区域）。
-2. SQL Editor 粘贴并运行 `supabase/001_schema.sql`（可重复执行）。
-3. Authentication → 打开 Email 登录；URL Configuration 里填站点地址。
-4. 把 Project URL 和 **anon / publishable key** 填进 `js/config.js`（**绝不要**填 service_role / secret key）。
-5. 网站部署后：创建者注册 → 「更多 → 创建经销商账本」；合伙人注册后用邀请码申请，创建者在「成员与邀请」批准。
-6. 角色：创建者（管成员）/ 合伙人（可录入）/ 只读。
-7. （可选）AI：`supabase functions deploy ai-advice`，`supabase secrets set ANTHROPIC_API_KEY=…`。密钥只放服务端。不部署也不影响其它功能。
+数据库有**两种部署方式，二选一**（Supabase 免费版同时只能有两个项目），详见 [supabase/README.md](supabase/README.md)：
+- **A. 新建独立项目**：执行 `supabase/001_schema.sql`，`config.js` 的 `DB_PREFIX` 保持 `""`。隔离最好。
+- **B. 并入 baby-log 现有数据库**：按顺序执行 `supabase/shared-db/sl_001 … sl_004`，`DB_PREFIX` 改成 `"sl_"`，URL 和 key 填 baby-log 项目的。不占项目名额；表和权限独立，但共用项目和配额。
+
+通用步骤：
+1. 执行对应的 SQL。Authentication 里打开 Email 登录，URL Configuration 填站点地址。
+2. 把 Project URL 和 **anon / publishable key** 填进 `js/config.js`（**绝不要**填 service_role / secret key）。
+3. 网站部署后：创建者注册 → 「更多 → 创建经销商账本」；合伙人注册后用邀请码申请，创建者在「成员与邀请」批准。
+4. 角色：创建者（管成员）/ 合伙人（可录入）/ 只读。
+5. （可选）AI：`supabase functions deploy ai-advice`，`supabase secrets set ANTHROPIC_API_KEY=…`。密钥只放服务端。不部署也不影响其它功能。
 
 同步机制：本机优先，录入先存 IndexedDB，联网后逐条上传；上传带上次的时间戳做冲突检测，别人先改过就采用对方版本，自己的那份保存在「更多 → 同步冲突」，不静默覆盖。
 
@@ -47,12 +49,12 @@ npm test                        # 账务逻辑的单元测试（Node 18+）
 js/logic/     账务、客户画像、路线（纯函数，有测试）
 js/core/      本机数据库、同步、状态、多语言
 js/ui/        各页面
-supabase/     表结构 + 可选的 AI 函数
+supabase/     001_schema.sql（独立项目）· shared-db/sl_*.sql（并入 baby-log）· 可选的 AI 函数
 tests/        node --test
 ```
 
 ## 已知限制
-- 云端同步 / 登录 / 成员管理的代码已写好，但**还没有对着真实的 Supabase 项目跑过**（本机模式和账务逻辑已测）。第一次接上后请按上面步骤走一遍并反馈。
+- 云端同步 / 登录 / 成员管理的代码和两套 SQL 已写好（SQL 语法已用 Postgres 解析器检查），但**还没有对着真实的 Supabase 项目跑过**（本机模式和账务逻辑已测）。第一次接上后请按上面步骤走一遍并反馈。
 - 历史数据（手抄本）暂无导入工具：先用「补录」方式在销售里选过去的日期录入；以后可以按你们的表格格式加 CSV 导入。
 - 路线里程是按「镇离门店多少公里、哪个方向」估算，不是地图导航。
 - 汇率手动设置，不自动更新。

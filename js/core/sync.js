@@ -5,12 +5,14 @@
    · 下载：按 updated_at 游标分页拉取（用 >=，重复拉到的记录幂等覆盖）；本机还有没传完的记录则不覆盖。
    · 实时：订阅 records 变化，合伙人那边一录入这边几秒内就更新。
    · 云端没配置（config.js 还是 YOUR-）→ 本机模式，一切照常，只是不同步。 */
-import { AI_FUNCTION, CLOUD_CONFIGURED, SUPABASE_ANON_KEY, SUPABASE_JS, SUPABASE_URL } from "../config.js";
+import { AI_FUNCTION, CLOUD_CONFIGURED, DB_PREFIX, LS_PREFIX, SUPABASE_ANON_KEY, SUPABASE_JS, SUPABASE_URL } from "../config.js";
 import * as db from "./db.js";
 import { S, adoptLocal, loadOrg, notify, setKick, settingsFrom } from "./state.js";
 import { debounce, toast } from "./util.js";
 import { t } from "./i18n.js";
 
+const T = { orgs: DB_PREFIX + "orgs", members: DB_PREFIX + "org_members", records: DB_PREFIX + "records", audit: DB_PREFIX + "audit_log" };   // 表名（见 config.js 的 DB_PREFIX）
+const fn = name => DB_PREFIX + name;   // 函数名
 const SB = { client: null, channel: null, timer: null, running: false, again: false };
 const isNet = e => !e || /fetch|network|Failed|load/i.test(e.message || "") || e.name === "TypeError";
 
@@ -21,8 +23,8 @@ async function initCloud(){
   try {
     await new Promise((res, rej) => { const s = document.createElement("script"); s.src = SUPABASE_JS; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
   } catch (e) { S.cloud = "offline"; toast(t("云端组件加载失败，已切到本机模式")); notify(); return; }
-  SB.client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
-  SB.client.auth.onAuthStateChange((_e, session) => { S.user = session?.user || null; setTimeout(afterAuth, 0); });
+  SB.client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: LS_PREFIX + ".auth" } });
+  SB.client.auth.onAuthStateChange((_e, session) => { S.user = session?.user && !session.user.is_anonymous ? session.user : null; setTimeout(afterAuth, 0); });
   window.addEventListener("online", () => kick());
   window.addEventListener("offline", () => { S.cloud = "offline"; notify(); });
   clearInterval(SB.timer); SB.timer = setInterval(() => kick(), 60e3);
@@ -31,7 +33,7 @@ async function initCloud(){
 async function afterAuth(){
   teardown();
   if (!S.user) { S.cloud = "signedout"; S.role = "owner"; await loadOrg("local"); return; }
-  const { data, error } = await SB.client.from("org_members").select("org_id, role, status, orgs(id, name)").eq("user_id", S.user.id);
+  const { data, error } = await SB.client.from(T.members).select(`org_id, role, status, orgs:${T.orgs}(id, name)`).eq("user_id", S.user.id);
   if (error) { S.cloud = "offline"; notify(); return; }
   const rows = data || [], active = rows.find(r => r.status === "active" && r.orgs);
   if (active) return enterOrg(active.orgs.id, active.orgs.name, active.role);
@@ -41,7 +43,7 @@ async function enterOrg(orgId, name, role){
   S.orgName = name; S.role = role; await loadOrg(orgId);
   S.cloud = navigator.onLine ? "online" : "offline"; notify();
   SB.channel = SB.client.channel("rec-" + orgId)
-    .on("postgres_changes", { event: "*", schema: "public", table: "records", filter: `org_id=eq.${orgId}` }, debounce(() => kick(), 800)).subscribe();
+    .on("postgres_changes", { event: "*", schema: "public", table: T.records, filter: `org_id=eq.${orgId}` }, debounce(() => kick(), 800)).subscribe();
   kick();
 }
 function teardown(){ if (SB.channel) { SB.client.removeChannel(SB.channel); SB.channel = null; } }
@@ -69,7 +71,7 @@ async function push(){
   for (const op of await db.getAll("outbox", S.org)) {
     const key = [op.org, op.kind, op.id], rec = await db.get("records", key);
     if (!rec) { await db.del("outbox", key); continue; }
-    const { data, error } = await SB.client.rpc("put_record", { p_org: S.org, p_kind: op.kind, p_id: op.id, p_data: rec.data, p_deleted: rec.deleted, p_base: rec.ts });
+    const { data, error } = await SB.client.rpc(fn("put_record"), { p_org: S.org, p_kind: op.kind, p_id: op.id, p_data: rec.data, p_deleted: rec.deleted, p_base: rec.ts });
     if (error) {
       if (error.code === "42501") { toast(t("没有权限修改（只读成员）")); await db.del("outbox", key); continue; }
       throw error;
@@ -91,7 +93,7 @@ async function pull(){
   let cursor = await db.getMeta("cursor:" + S.org) || "1970-01-01T00:00:00Z", more = true;
   const dirty = new Set((await db.getAll("outbox", S.org)).map(o => o.kind + "|" + o.id));
   while (more) {
-    const { data, error } = await SB.client.from("records").select("kind, id, data, deleted, updated_at").eq("org_id", S.org).gte("updated_at", cursor).order("updated_at").limit(500);
+    const { data, error } = await SB.client.from(T.records).select("kind, id, data, deleted, updated_at").eq("org_id", S.org).gte("updated_at", cursor).order("updated_at").limit(500);
     if (error) throw error;
     for (const row of data) { if (!dirty.has(row.kind + "|" + row.id)) await applyRow(row); cursor = row.updated_at; }
     more = data.length === 500 && data[data.length - 1].updated_at !== data[0].updated_at;
@@ -110,24 +112,24 @@ const signIn = (email, password) => auth().signInWithPassword({ email, password 
 const signUp = (email, password) => auth().signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
 const signOut = () => auth().signOut();
 async function createOrg(name, display, adopt){
-  const { data, error } = await SB.client.rpc("create_org", { p_name: name, p_display: display });
+  const { data, error } = await SB.client.rpc(fn("create_org"), { p_name: name, p_display: display });
   if (error) throw error;
   if (adopt) await adoptLocal(data.id);
   await afterAuth();
 }
 async function joinOrg(code, display){
-  const { error } = await SB.client.rpc("join_org", { p_code: code, p_display: display });
+  const { error } = await SB.client.rpc(fn("join_org"), { p_code: code, p_display: display });
   if (error) throw error;
   await afterAuth();
 }
 async function listMembers(){
-  const [m, o] = await Promise.all([SB.client.from("org_members").select("user_id, role, status, name").eq("org_id", S.org), SB.client.from("orgs").select("invite_code").eq("id", S.org).single()]);
+  const [m, o] = await Promise.all([SB.client.from(T.members).select("user_id, role, status, name").eq("org_id", S.org), SB.client.from(T.orgs).select("invite_code").eq("id", S.org).single()]);
   return { members: m.data || [], code: o.data?.invite_code || "" };
 }
-const setMember = (user, role, status = "active") => SB.client.rpc("set_member", { p_org: S.org, p_user: user, p_role: role, p_status: status });
-const resetInvite = async () => (await SB.client.rpc("reset_invite", { p_org: S.org })).data;
+const setMember = (user, role, status = "active") => SB.client.rpc(fn("set_member"), { p_org: S.org, p_user: user, p_role: role, p_status: status });
+const resetInvite = async () => (await SB.client.rpc(fn("reset_invite"), { p_org: S.org })).data;
 async function cloudAudit(limit = 300){
-  const { data } = await SB.client.from("audit_log").select("seq, kind, rec_id, action, before, after, by_user, at").eq("org_id", S.org).order("seq", { ascending: false }).limit(limit);
+  const { data } = await SB.client.from(T.audit).select("seq, kind, rec_id, action, before, after, by_user, at").eq("org_id", S.org).order("seq", { ascending: false }).limit(limit);
   return data || [];
 }
 async function localAudit(){ return (await db.getAll("audit", S.org)).reverse(); }
