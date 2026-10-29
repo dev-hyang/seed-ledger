@@ -35,6 +35,9 @@ a{color:var(--brand)}
 .nav button[aria-current=page]{color:var(--brand);font-weight:700}
 .main{max-width:860px;margin:0 auto;padding:14px 16px 24px}
 .loading{text-align:center;color:var(--muted)}
+.nav[hidden]{display:none}
+.pending{text-align:center;max-width:520px;margin:40px auto}
+.pending h1{margin-bottom:12px}
 .banner{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:14px}
 .banner.warn{border-color:var(--warn)}
 @media (min-width:900px){

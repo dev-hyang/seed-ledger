@@ -35,7 +35,7 @@
 
 ## 同步与权限
 - 本机优先（IndexedDB + 上传队列）；`put_record` 带 base 时间戳做冲突检测，冲突时采用服务器版本并保留本机版本。
-- 角色 owner / partner / viewer；加入要凭邀请码申请、owner 批准；所有写入走服务端函数校验角色。
+- 角色 owner 创建者 / partner 合伙人 / viewer 只读。只有 owner 能改角色（提升为合伙人 / 创建者）和移出成员；owner 或 partner 批准加入申请，批准后是 viewer。待批准的人只能看到申请状态。邀请码 7 天有效、过期自动换新、猜码限速。所有写入走服务端函数校验角色。
 - 审计日志由触发器写入，无 insert / update / delete 策略，客户端改不了。
 
 ## 需要后续确认

@@ -38,8 +38,17 @@ function banner(){
   if (S.role === "viewer") return `<div class="banner"><span>${esc(t("你是只读成员，只能查看。"))}</span></div>`;
   return "";
 }
+/** 待批准：只显示申请状态（数据库本来也只让他读到自己那一行），不渲染任何业务页面，也不显示导航 */
+function pendingScreen(){
+  return `<div class="card pending" role="status"><h1>⏳ ${esc(t("等待批准"))}</h1>
+    <p class="lead">${esc(t("你已提交加入申请。创建者或合伙人批准后，这里会自动进入账本（每隔几秒自动检查一次）。"))}</p>
+    <p class="hint">${esc(t("批准前你只能看到这个状态，看不到账本里的任何信息。批准后是「只读成员」，要录入请联系创建者提升为合伙人。"))}</p>
+    <div class="actions"><button class="btn primary" data-act="pending-check">${esc(t("立即检查"))}</button><button class="btn ghost-danger" data-act="sign-out">${esc(t("退出登录"))}</button></div></div>`;
+}
 function render(){
   if (!S.ready) return;
+  if (S.cloud === "pending") { chrome(); $("#nav").hidden = true; $("#main").innerHTML = pendingScreen(); return; }
+  $("#nav").hidden = false;
   const main = $("#main"), active = document.activeElement, keep = active?.dataset?.input ? { k: active.dataset.input, s: active.selectionStart } : null, y = window.scrollY;
   chrome();
   main.innerHTML = banner() + (TABS.find(x => x[0] === S.tab) || TABS[0])[2]();

@@ -31,6 +31,7 @@ async function initCloud(){
   window.addEventListener("online", () => kick());
   window.addEventListener("offline", () => { S.cloud = "offline"; notify(); });
   clearInterval(SB.timer); SB.timer = setInterval(() => kick(), 60e3);
+  clearInterval(SB.pendTimer); SB.pendTimer = setInterval(() => { if (S.cloud === "pending" && S.user && navigator.onLine) afterAuth(); }, 15e3);   // 等批准的人：批准后几秒内自动进入
 }
 
 async function afterAuth(){
@@ -122,17 +123,23 @@ async function createOrg(name, display, adopt){
   if (adopt) await adoptLocal(data.id);
   await afterAuth();
 }
+/** 凭邀请码申请加入。返回 { data: { status }, error }：status = pending / active / invalid / expired / throttled / full（见 auth-msg.js 的 joinOutcome）；成功申请后立刻刷新，进入「等待批准」 */
 async function joinOrg(code, display){
-  const { error } = await SB.client.rpc(fn("join_org"), { p_code: code, p_display: display });
-  if (error) throw error;
-  await afterAuth();
+  const res = await SB.client.rpc(fn("join_org"), { p_code: code, p_display: display });
+  if (!res.error && ["pending", "active"].includes(res.data?.status)) await afterAuth();
+  return res;
 }
+/** 成员列表（创建者 / 合伙人能看到全部；只读成员只看到自己）+ 邀请码。邀请码只有创建者 / 合伙人读得到，过期了会由数据库自动换新（创建者主动关闭的除外） */
 async function listMembers(){
-  const [m, o] = await Promise.all([SB.client.from(T.members).select("user_id, role, status, name").eq("org_id", S.org), SB.client.from(T.orgs).select("invite_code").eq("id", S.org).single()]);
-  return { members: m.data || [], code: o.data?.invite_code || "" };
+  const m = await SB.client.from(T.members).select("user_id, role, status, name, created_at").eq("org_id", S.org).order("created_at");
+  const info = S.role === "owner" || S.role === "partner" ? (await SB.client.rpc(fn("invite_info"), { p_org: S.org })).data : null;
+  return { members: m.data || [], invite: info };
 }
-const setMember = (user, role, status = "active") => SB.client.rpc(fn("set_member"), { p_org: S.org, p_user: user, p_role: role, p_status: status });
-const resetInvite = async () => (await SB.client.rpc(fn("reset_invite"), { p_org: S.org })).data;
+const setMember = (user, role) => SB.client.rpc(fn("set_member"), { p_org: S.org, p_user: user, p_role: role });   // 只有创建者能调：owner / partner / viewer / remove
+const approveMember = user => SB.client.rpc(fn("approve_member"), { p_org: S.org, p_user: user });               // 创建者或合伙人；批准后是只读
+const rejectMember = user => SB.client.rpc(fn("reject_member"), { p_org: S.org, p_user: user });
+const resetInvite = async (days = 7) => (await SB.client.rpc(fn("reset_invite"), { p_org: S.org, p_days: days })).data;   // 创建者
+const closeInvite = () => SB.client.rpc(fn("close_invite"), { p_org: S.org });                                    // 创建者
 async function cloudAudit(limit = 300){
   const { data } = await SB.client.from(T.audit).select("seq, kind, rec_id, action, before, after, by_user, at").eq("org_id", S.org).order("seq", { ascending: false }).limit(limit);
   return data || [];
@@ -140,4 +147,5 @@ async function cloudAudit(limit = 300){
 async function localAudit(){ return (await db.getAll("audit", S.org)).reverse(); }
 const conflictsList = async () => (await db.listAll("conflicts")).filter(c => c.org === S.org).reverse();
 
-export { initCloud, sync, signIn, signUp, resendConfirm, signOut, createOrg, joinOrg, listMembers, setMember, resetInvite, cloudAudit, localAudit, conflictsList, settingsFrom };
+const recheck = () => afterAuth();   // 等批准的人点「立即检查」
+export { recheck, initCloud, sync, signIn, signUp, resendConfirm, signOut, createOrg, joinOrg, listMembers, setMember, approveMember, rejectMember, resetInvite, closeInvite, cloudAudit, localAudit, conflictsList, settingsFrom };

@@ -36,3 +36,30 @@ function hashError(hash){
 }
 
 export { authMessage, signupOutcome, hashError };
+
+/* ============ 角色权限、加入结果、邀请码状态（纯函数，有测试） ============
+   角色：owner 创建者（管成员：提升 / 降级 / 移出、重新生成 / 关闭邀请码）· partner 合伙人（录入 + 批准 / 拒绝加入申请）· viewer 只读。
+   凭邀请码加入的人批准后是只读；只有创建者能把别人提升为合伙人 / 创建者。界面只用来决定显示哪些按钮，真正的拦截在数据库函数里。 */
+const perms = role => ({ write: role === "owner" || role === "partner", approve: role === "owner" || role === "partner", manage: role === "owner" });
+
+/** sl_join_org / join_org 返回的 { status } → { kind, message } */
+function joinOutcome(res, error){
+  if (error) return { kind: "error", message: t("申请失败：") + authMessage(error) };
+  switch (res?.status) {
+    case "pending": return { kind: "pending", message: t("已申请，等待创建者或合伙人批准。批准前你只能看到申请状态，看不到任何数据。") };
+    case "active": return { kind: "active", message: "" };
+    case "invalid": return { kind: "error", message: t("邀请码不对，请核对后再试。") };
+    case "expired": return { kind: "error", message: t("邀请码已失效（过期或被关闭），请联系创建者重新发一个。") };
+    case "throttled": return { kind: "error", message: t("猜错次数太多了，{n} 分钟后再试。", { n: res.retry_minutes || 15 }) };
+    case "full": return { kind: "error", message: t("等待批准的人太多了，请先联系创建者处理。") };
+    default: return { kind: "error", message: t("申请失败，请稍后再试。") };
+  }
+}
+/** 邀请码当前状态：valid（还有 n 天）/ expired / closed / none */
+function inviteState(info, now = Date.now()){
+  if (!info) return { kind: "none" };
+  if (info.closed) return { kind: "closed" };
+  const ms = new Date(info.expires_at).getTime() - now;
+  return ms > 0 ? { kind: "valid", days: Math.max(1, Math.ceil(ms / 864e5)) } : { kind: "expired" };
+}
+export { perms, joinOutcome, inviteState };

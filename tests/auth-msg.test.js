@@ -35,3 +35,27 @@ test("邮件链接过期跳回来：地址里的错误转成提示；没有错�
   assert.match(hashError("#error_code=other&error_description=Boom"), /Boom/);
   assert.equal(hashError("#access_token=abc"), ""); assert.equal(hashError(""), "");
 });
+
+const { perms, joinOutcome, inviteState } = await import("../js/core/auth-msg.js");
+
+test("权限：创建者管成员，合伙人能录入和批准，只读只能看", () => {
+  assert.deepEqual(perms("owner"), { write: true, approve: true, manage: true });
+  assert.deepEqual(perms("partner"), { write: true, approve: true, manage: false });
+  assert.deepEqual(perms("viewer"), { write: false, approve: false, manage: false });
+  assert.deepEqual(perms(undefined), { write: false, approve: false, manage: false });
+});
+test("加入结果：待批准 / 无效 / 已失效 / 限流 / 太多人在等，各有提示；出错走通用提示", () => {
+  assert.equal(joinOutcome({ status: "pending" }).kind, "pending"); assert.match(joinOutcome({ status: "pending" }).message, /看不到任何数据/);
+  assert.equal(joinOutcome({ status: "active" }).kind, "active");
+  assert.match(joinOutcome({ status: "invalid" }).message, /不对/); assert.match(joinOutcome({ status: "expired" }).message, /失效/);
+  assert.match(joinOutcome({ status: "throttled", retry_minutes: 15 }).message, /15 分钟/); assert.match(joinOutcome({ status: "full" }).message, /太多/);
+  assert.equal(joinOutcome({ status: "???" }).kind, "error"); assert.match(joinOutcome(null, { status: 429, message: "x" }).message, /限流/);
+});
+test("邀请码状态：有效（还剩几天）/ 过期 / 已关闭；关闭优先于过期", () => {
+  const now = Date.parse("2026-10-29T00:00:00Z");
+  assert.deepEqual(inviteState({ expires_at: "2026-11-03T00:00:00Z" }, now), { kind: "valid", days: 5 });
+  assert.deepEqual(inviteState({ expires_at: "2026-10-29T06:00:00Z" }, now), { kind: "valid", days: 1 });   // 不足一天算 1 天
+  assert.equal(inviteState({ expires_at: "2026-10-28T00:00:00Z" }, now).kind, "expired");
+  assert.equal(inviteState({ expires_at: "2026-10-28T00:00:00Z", closed: true }, now).kind, "closed");
+  assert.equal(inviteState(null, now).kind, "none");
+});
