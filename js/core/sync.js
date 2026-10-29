@@ -12,7 +12,7 @@ import { debounce, toast } from "./util.js";
 import { t } from "./i18n.js";
 import { hashError, joinOutcome, cleanInvite, inviteFresh, displayFromEmail } from "./auth-msg.js";
 
-const T = { orgs: DB_PREFIX + "orgs", members: DB_PREFIX + "org_members", records: DB_PREFIX + "records", audit: DB_PREFIX + "audit_log" };   // 表名（见 config.js 的 DB_PREFIX）
+const T = { orgs: DB_PREFIX + "orgs", members: DB_PREFIX + "org_members", records: DB_PREFIX + "records", audit: DB_PREFIX + "audit_log", requests: DB_PREFIX + "member_requests", votes: DB_PREFIX + "request_votes" };   // 表名（见 config.js 的 DB_PREFIX）
 const fn = name => DB_PREFIX + name;   // 函数名
 const SB = { client: null, channel: null, timer: null, running: false, again: false };
 /* 暂存邀请码（24 小时）：登录页填了邀请码、或点了邀请链接，登录成功后自动提交申请；注册要先去邮箱确认，所以不能只靠当场提交 */
@@ -84,6 +84,7 @@ async function sync(){
   SB.running = true; S.syncing = true; notify();
   try {
     do { SB.again = false; await push(); await pull(); } while (SB.again);
+    await refreshTeam();   // 概览的「待处理」要用：待批准、待表决
     S.cloud = "online"; S.lastSync = new Date();
   } catch (e) {
     S.cloud = isNet(e) ? "offline" : "online";
@@ -164,6 +165,28 @@ async function joinAnonymous(code, display){
   if (res.error || !["pending", "active"].includes(res.data?.status)) await SB.client.auth.signOut();
   return res;
 }
+/** 团队数据（给成员页和概览「待处理」用）：创建者 / 合伙人能读到全部成员、待批准、申请和投票；其他人只读得到自己那一行和自己的申请。读不到（数据库还没升级、没网）就返回 null，不影响别的功能 */
+async function refreshTeam(){
+  if (!SB.client || !S.user || S.org === "local" || !["online", "offline"].includes(S.cloud)) { S.team = null; return null; }
+  try {
+    const [m, r, v] = await Promise.all([
+      SB.client.from(T.members).select("user_id, role, status, name, contact, created_at").eq("org_id", S.org).order("created_at"),
+      SB.client.from(T.requests).select("id, kind, target_user, requested_by, status, created_at").eq("org_id", S.org),
+      SB.client.from(T.votes).select("request_id, voter, approve")]);
+    if (m.error) { S.team = null; return null; }
+    const members = m.data || [], ids = new Set((r.data || []).map(x => x.id));
+    S.team = { members, pending: members.filter(x => x.status === "pending"), names: Object.fromEntries(members.map(x => [x.user_id, x.name])),
+      approvers: members.filter(x => x.status === "active" && (x.role === "owner" || x.role === "partner")).map(x => x.user_id),
+      requests: r.error ? [] : r.data || [], votes: (v.error ? [] : v.data || []).filter(x => ids.has(x.request_id)) };
+  } catch (e) { S.team = null; }
+  notify(); return S.team;
+}
+const getInvite = async () => (await SB.client.rpc(fn("invite_info"), { p_org: S.org })).data;
+const requestPartner = () => SB.client.rpc(fn("request_partner"), { p_org: S.org, p_ack: true });   // 调用前界面已让本人勾选「知晓权益」
+const requestRemove = user => SB.client.rpc(fn("request_remove"), { p_org: S.org, p_user: user });
+const voteRequest = (id, approve) => SB.client.rpc(fn("vote_request"), { p_req: id, p_approve: approve });
+const cancelRequest = id => SB.client.rpc(fn("cancel_request"), { p_req: id });
+const setContact = contact => SB.client.rpc(fn("set_contact"), { p_org: S.org, p_contact: contact });
 async function listMembers(){
   const m = await SB.client.from(T.members).select("user_id, role, status, name, created_at").eq("org_id", S.org).order("created_at");
   const info = S.role === "owner" || S.role === "partner" ? (await SB.client.rpc(fn("invite_info"), { p_org: S.org })).data : null;
@@ -182,5 +205,5 @@ async function localAudit(){ return (await db.getAll("audit", S.org)).reverse();
 const conflictsList = async () => (await db.listAll("conflicts")).filter(c => c.org === S.org).reverse();
 
 const recheck = () => afterAuth();
-export { rememberInvite, peekInvite, joinAnonymous };   // 等批准的人点「立即检查」
+export { rememberInvite, peekInvite, joinAnonymous, refreshTeam, getInvite, requestPartner, requestRemove, voteRequest, cancelRequest, setContact };   // 等批准的人点「立即检查」
 export { recheck, initCloud, sync, signIn, signUp, resendConfirm, signOut, createOrg, joinOrg, listMembers, setMember, approveMember, rejectMember, resetInvite, closeInvite, cloudAudit, localAudit, conflictsList, settingsFrom };

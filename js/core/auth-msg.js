@@ -75,7 +75,21 @@ function inviteState(info, now = Date.now()){
   const ms = new Date(info.expires_at).getTime() - now;
   return ms > 0 ? { kind: "valid", days: Math.max(1, Math.ceil(ms / 864e5)) } : { kind: "expired" };
 }
-export { perms, joinOutcome, joinError, inviteState };
+/** 联系方式：邮箱，或 7–15 位数字的电话（允许 + 和分隔符） */
+const validContact = s => { const v = String(s || "").trim(); return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) || /^\d{7,15}$/.test(v.replace(/\D/g, "")) && /^[+\d\s\-()]+$/.test(v); };
+/** 申请合伙人 / 移出 / 表决失败的提示 */
+function partnerError(error){
+  const msg = error?.message || "";
+  if (/contact required/i.test(msg)) return t("免邮箱账号要先留下邮箱或电话。");
+  if (/must acknowledge/i.test(msg)) return t("请先勾选「我已知晓以上权益和责任」");
+  if (/already partner or owner/i.test(msg)) return t("你已经是合伙人或创建者了。");
+  if (/not a voter/i.test(msg)) return t("你没有这条申请的表决权。");
+  if (/request closed/i.test(msg)) return t("这条申请已经结束了。");
+  if (/last owner/i.test(msg)) return t("不能移出最后一位创建者。");
+  if (/Could not find the function|PGRST202|schema cache/i.test(msg)) return t("数据库还没升级到最新（缺 sl_008 / 005 迁移）：请创建者执行最新的 SQL。");
+  return authMessage(error) || msg;
+}
+export { perms, joinOutcome, joinError, inviteState, validContact, partnerError };
 
 /* ============ 登录时顺带填邀请码：整理输入、没填名字时的默认名字、暂存是否还有效（纯函数，有测试） ============ */
 /** 邀请码：去掉空格和连字符（复制时常带进来），保持原来的大小写（旧版数据库区分大小写；新版不区分），最长 20 位；不是字母数字就当没填 */
@@ -88,4 +102,10 @@ const displayFromEmail = email => String(email || "").split("@")[0].slice(0, 20)
 /** 暂存的邀请码 24 小时内有效（注册要先去邮箱确认，可能隔一阵才回来登录） */
 const INVITE_TTL = 24 * 3600e3;
 const inviteFresh = (stash, now = Date.now()) => !!stash && !!cleanInvite(stash.code) && now - (+stash.at || 0) < INVITE_TTL;
-export { cleanInvite, displayFromEmail, inviteFresh, INVITE_TTL };
+/** 输入框里可能是邀请码，也可能是整条邀请链接（…?invite=码）：都取出码；认不出返回空 */
+function extractInvite(input){
+  const s = String(input ?? "").trim(), m = /[?&#]invite=([^&#\s]+)/i.exec(s);
+  if (m) { try { return cleanInvite(decodeURIComponent(m[1])); } catch (e) { return cleanInvite(m[1]); } }
+  return cleanInvite(s);
+}
+export { cleanInvite, extractInvite, displayFromEmail, inviteFresh, INVITE_TTL };

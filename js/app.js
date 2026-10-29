@@ -45,8 +45,17 @@ function pendingScreen(){
     <p class="hint">${esc(t("批准前你只能看到这个状态，看不到账本里的任何信息。批准后是「只读成员」，要录入请联系创建者设为录入员或合伙人。"))}</p>
     <div class="actions"><button class="btn primary" data-act="pending-check">${esc(t("立即检查"))}</button><button class="btn ghost-danger" data-act="sign-out">${esc(t("退出登录"))}</button></div></div>`;
 }
+/** 已登录但还没有店：二选一——创建自己的店，或用邀请码加入别人的店（免邮箱账号只能加入，不能创建） */
+function noorgScreen(){
+  const anon = !!S.user?.is_anonymous;
+  return `<div class="card pending" role="status"><h1>${esc(t("你想怎么开始？"))}</h1>${S.joinMsg ? `<p class="neg" role="alert">${esc(S.joinMsg)}</p>` : ""}
+    <div class="choices">${anon ? "" : `<button type="button" class="choice" data-act="open-createorg"><b>${esc(t("创建我自己的店"))}</b><small>${esc(t("你是创建者：可以邀请别人、管理成员"))}</small></button>`}
+      <button type="button" class="choice" data-act="open-joinorg"><b>${esc(t("用邀请码加入别人的店"))}</b><small>${esc(t("向店的创建者要邀请码或邀请链接；批准后才能进入"))}</small></button></div>
+    <div class="actions" style="justify-content:center"><button class="btn ghost-danger" data-act="sign-out">${esc(t("退出登录"))}</button></div></div>`;
+}
 function render(){
   if (!S.ready) return;
+  if (S.cloud === "noorg") { chrome(); $("#nav").hidden = true; $("#main").innerHTML = noorgScreen(); return; }
   if (S.cloud === "pending") { chrome(); $("#nav").hidden = true; $("#main").innerHTML = pendingScreen(); return; }
   $("#nav").hidden = false;
   const main = $("#main"), active = document.activeElement, keep = active?.dataset?.input ? { k: active.dataset.input, s: active.selectionStart } : null, y = window.scrollY;

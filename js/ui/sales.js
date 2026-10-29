@@ -88,9 +88,11 @@ function saleForm(s){
       <fieldset class="box"><legend>${esc(t("取货 / 送货"))}</legend>
         ${seg("dtype", [["pickup", t("客户上门取货")], ["deliver", t("我送货")]], s?.delivery?.type || "pickup")}
         <div class="grid2 dcost">${fld("人工（¥）", num("labor", s?.delivery?.labor, { min: 0 }))}${fld("车费（¥）", num("vehicle", s?.delivery?.vehicle, { min: 0 }))}</div>
+        <div class="dcost">${fld("送货日期（可不填）", date("deliverOn", s?.delivery?.on || "", { req: false }), t("填了就会按日期进概览的送货提醒"))}</div>
         <small>${esc(t("送货成本会计入这张单的成本。同一趟送多家，可在「送货路线」里合并，成本自动按数量分摊。"))}</small></fieldset>
       ${edit ? "" : `<fieldset class="box pay"><legend>${esc(t("本次收款"))}</legend>
         <div class="grid2">${fld("收款金额（¥）", num("payAmount", "", { min: 0 }))}${fld("方式", select("method", METHODS.map(([k, l]) => [k, t(l)]), "cash", { blank: false }))}</div></fieldset>`}
+      ${fld("约定收款日（赊账时可填）", date("dueOn", s?.dueOn || "", { req: false }), t("到期前 3 天起进概览的催账提醒"))}
       ${fld("备注", area("note", s?.note))}</form>`,
     foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("保存"))}</button>` };
 }
@@ -124,7 +126,7 @@ function saleTotals(f){
     if (mode === "cash" && !pay.dataset.touched) pay.value = total ? r2(total) : "";
     if (mode === "credit") { pay.value = ""; pay.disabled = true; } else pay.disabled = false;
   }
-  f.querySelector(".dcost").hidden = f.elements.dtype.value !== "deliver";
+  for (const el of f.querySelectorAll(".dcost")) el.hidden = f.elements.dtype.value !== "deliver";
   f._total = r2(total);
 }
 const editQty = (saleId, brandId) => { const s = model().saleM.get(saleId); return s ? s.lines.filter(l => l.brandId === brandId).reduce((a, l) => a + l.qty, 0) : 0; };
@@ -159,8 +161,8 @@ FORMS.sale = async (d, f) => {
   const old = f.dataset.id ? model().saleM.get(f.dataset.id) : null, year = +d.date.slice(0, 4);
   const no = old?.no || `${year}-${String(model().sales.filter(s => s.year === year).length + 1).padStart(3, "0")}`;
   const raw = old ? { ...byId("sale", old.id) } : {};
-  const delivery = { type: d.dtype, labor: d.dtype === "deliver" ? d.labor || 0 : 0, vehicle: d.dtype === "deliver" ? d.vehicle || 0 : 0, tripId: d.dtype === "deliver" ? old?.delivery?.tripId : undefined };
-  const sale = await save("sale", { ...raw, id: old?.id, no, date: d.date, customerId, mode: old?.mode || d.mode, lines, delivery, tier: d.tier, note: d.note, status: old?.status || "active" });
+  const delivery = { type: d.dtype, labor: d.dtype === "deliver" ? d.labor || 0 : 0, vehicle: d.dtype === "deliver" ? d.vehicle || 0 : 0, tripId: d.dtype === "deliver" ? old?.delivery?.tripId : undefined, on: d.dtype === "deliver" && d.deliverOn ? d.deliverOn : undefined, done: d.dtype === "deliver" ? old?.delivery?.done : undefined };
+  const sale = await save("sale", { ...raw, id: old?.id, no, date: d.date, customerId, mode: old?.mode || d.mode, lines, delivery, tier: d.tier, dueOn: d.dueOn || undefined, note: d.note, status: old?.status || "active" });
   if (!old && d.payAmount > 0) await save("pay", { saleId: sale.id, date: d.date, amount: d.payAmount, method: d.method });
   back();
   if (!old) show(() => salePage(sale.id), true);
@@ -173,7 +175,7 @@ function salePage(id){
   const void_ = s.status === "void", hasHint = s.lines.some(l => l.hint != null);
   const adjLab = { negotiate: "议价", discount: "折上折", writeoff: "核销坏账" };
   const body = `<div class="detail-head"><button class="link" data-act="customer-view" data-id="${s.customerId}"><b>${esc(customerName(s.customerId))}</b></button><span>${statusBadge(s)}</span></div>
-    <p class="meta">${esc(s.no || "")} · ${esc(dateFmt(s.date))} · ${esc(t(tierOf(s.tier) === "wholesale" ? "批发价" : "零售价"))}${s.note ? " · " + esc(s.note) : ""}${void_ ? ` · <b class="neg">${esc(t("作废原因："))}${esc(s.voidReason || "")}</b>` : ""}</p>
+    <p class="meta">${esc(s.no || "")} · ${esc(dateFmt(s.date))} · ${esc(t(tierOf(s.tier) === "wholesale" ? "批发价" : "零售价"))}${s.delivery?.type === "deliver" && s.delivery.on ? ` · 🚚 ${esc(dateFmt(s.delivery.on))}${s.delivery.done ? " ✓" : ""}` : ""}${s.dueOn && s.balance > EPS ? ` · ${esc(t("约定收款"))} ${esc(dateFmt(s.dueOn))}` : ""}${s.note ? " · " + esc(s.note) : ""}${void_ ? ` · <b class="neg">${esc(t("作废原因："))}${esc(s.voidReason || "")}</b>` : ""}</p>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>${esc(t("品种"))}</th><th class="n">${esc(t("数量"))}</th><th class="n">${esc(t("单价"))}</th><th class="n">${esc(t("金额"))}</th></tr></thead><tbody>
       ${s.lines.map(l => `<tr><td><b>${esc(brandName(l.brandId))}</b><small>${esc(seasonName((byId("brand", l.brandId) || {}).seasonId))}</small>${l.hint != null ? `<small class="priv">🔒 ${esc(t("当时可能给了"))} ${esc(unitPrice(l.hint))}（${esc(t("仅自己可见"))}）</small>` : ""}</td><td class="n">${esc(qty(l.qty))}</td><td class="n">${esc(unitPrice(l.price))}</td><td class="n">${esc(money(l.amount))}</td></tr>`).join("")}</tbody></table></div>
     <div class="stmt">${kv("货款", money(s.gross))}
@@ -184,11 +186,12 @@ function salePage(id){
     ${hasHint && s.balance > EPS && !void_ && hintTotal(s) < s.net - EPS ? `<p class="hint priv">🔒 ${esc(t("按私下价结算的话，应收约 {a}（比现在少 {b}）。", { a: money(hintTotal(s)), b: money(Math.max(s.net - hintTotal(s), 0)) }))}</p>` : ""}
     <div class="stmt"><h4>${esc(t("这张单的成本与利润（应收口径）"))}</h4>${kv("进货成本", money(s.cogs))}${kv(s.delivery?.type === "deliver" ? "送货成本" : "取货方式", s.delivery?.type === "deliver" ? money(s.deliveryCost) : t("客户上门取货"))}
       <div class="kv total"><span>${esc(t("利润"))}</span><b class="${s.profit < 0 ? "neg" : "pos"}">${esc(money(s.profit, { sign: true }))}</b></div></div>`;
-  const foot = ro() || void_ ? btn("打印单据", "print-sale", { data: { id } }) : `${btn("＋ 收款", "pay-new", { cls: "primary", data: { id } })}${btn("讨账 / 议价", "collect-new", { data: { id } })}${btn("打印单据", "print-sale", { data: { id } })}${btn("修改", "sale-edit", { data: { id } })}${btn("作废", "sale-void", { cls: "ghost-danger", data: { id } })}`;
+  const foot = ro() || void_ ? btn("打印单据", "print-sale", { data: { id } }) : `${s.delivery?.type === "deliver" && !s.delivery.done ? btn("已送达", "delivered", { data: { id } }) : ""}${btn("＋ 收款", "pay-new", { cls: "primary", data: { id } })}${btn("讨账 / 议价", "collect-new", { data: { id } })}${btn("打印单据", "print-sale", { data: { id } })}${btn("修改", "sale-edit", { data: { id } })}${btn("作废", "sale-void", { cls: "ghost-danger", data: { id } })}`;
   return { title: t("销售单"), body, foot };
 }
 const hintTotal = s => r2(s.lines.reduce((a, l) => a + l.qty * (l.hint ?? l.price), 0));
 ACT["sale-view"] = el => show(() => salePage(el.dataset.id), true);
+ACT.delivered = async el => { const s = byId("sale", el.dataset.id); if (!s) return; await save("sale", { ...s, delivery: { ...s.delivery, done: today() } }); toast(t("已记为送达")); };
 ACT["pay-del"] = el => ask(t("撤销这笔收款？"), t("记录会保留在审计日志里。"), () => remove("pay", el.dataset.id), "撤销");
 ACT["adj-del"] = el => ask(t("撤销这条调整？"), t("应收会恢复。记录会保留在审计日志里。"), () => remove("adj", el.dataset.id), "撤销");
 ACT["sale-void"] = el => show(() => ({ title: t("作废销售单"), body: `<p class="lead">${esc(t("作废的单不计入销售、库存和利润，但记录和原因永久保留，可供查账。"))}</p><form id="f" data-form="void" data-id="${el.dataset.id}">${fld("作废原因", text("reason", "", { req: true, max: 120 }))}</form>`,

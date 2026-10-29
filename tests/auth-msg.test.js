@@ -89,3 +89,23 @@ test("加入失败：匿名登录没开 / 数据库没升级 / 找不到函数 /
   assert.match(joinError({ message: "boom", code: "XX000" }), /boom.*XX000/);
   assert.match(joinOutcome(null, { message: "email account required" }).message, /sl_007/);
 });
+
+const { validContact, partnerError } = await import("../js/core/auth-msg.js");
+test("联系方式校验：邮箱，或 7–15 位数字的电话（允许 + 和分隔符）；乱写的不行", () => {
+  for (const ok of ["a@b.co", "zhang.san@example.com", "18900192299", "+86 189-0019-2299", "(0755) 8888 6666"]) assert.equal(validContact(ok), true, ok);
+  for (const bad of ["", "abc", "123", "a@b", "18900abc2299", "x".repeat(30), null]) assert.equal(validContact(bad), false, String(bad));
+});
+test("合伙人申请 / 表决失败的提示：缺联系方式、没勾知晓、已是合伙人、没有表决权、数据库没升级", () => {
+  assert.match(partnerError({ message: "contact required" }), /留下邮箱或电话/); assert.match(partnerError({ message: "must acknowledge" }), /已知晓/);
+  assert.match(partnerError({ message: "already partner or owner" }), /已经是合伙人/); assert.match(partnerError({ message: "not a voter" }), /没有这条申请的表决权/);
+  assert.match(partnerError({ code: "PGRST202", message: "Could not find the function" }), /sl_008/); assert.match(partnerError({ message: "last owner" }), /最后一位创建者/);
+});
+
+const { extractInvite } = await import("../js/core/auth-msg.js");
+test("邀请码或邀请链接：两种都能取出码；带参数 / 锚点 / 前后文字的链接也行；认不出的返回空", () => {
+  assert.equal(extractInvite("AB12CD34"), "AB12CD34"); assert.equal(extractInvite(" ab12-cd34 "), "ab12cd34");
+  assert.equal(extractInvite("https://dev-hyang.github.io/seed-ledger/?invite=AB12CD34"), "AB12CD34");
+  assert.equal(extractInvite("https://x.test/seed-ledger/?a=1&invite=Ab12Cd34&b=2#top"), "Ab12Cd34");
+  assert.equal(extractInvite("请加入：https://x.test/?invite=AB12CD34 谢谢"), "AB12CD34");
+  assert.equal(extractInvite("https://x.test/seed-ledger/"), ""); assert.equal(extractInvite(""), ""); assert.equal(extractInvite("hi"), "");
+});

@@ -19,6 +19,7 @@ function paint(){
 const show = (fn, live = false) => { stack.push({ fn, live }); paint(); };
 const back = () => { stack.pop(); paint(); };
 const closeAll = () => { stack.length = 0; paint(); };
+const replace = fn => { stack[stack.length - 1] = { fn, live: false }; paint(); };   // 当前这一层换成新内容（向导的下一步 / 上一步用，不关闭再打开，不闪）
 const refresh = () => { const top = stack[stack.length - 1]; if (top && top.live && dlg().open) paint(); };
 const sheetOpen = () => dlg().open;
 
@@ -55,7 +56,7 @@ const empty = (msg, action = "") => `<div class="empty"><p>${esc(t(msg))}</p>${a
 const btn = (label, act, o = {}) => `<button type="button" class="btn ${o.cls || ""}" data-act="${act}" ${Object.entries(o.data || {}).map(([k, v]) => `data-${k}="${esc(v)}"`).join(" ")} ${o.disabled ? "disabled" : ""}>${o.raw ? label : esc(t(label))}</button>`;
 const kv = (k, v, cls = "") => `<div class="kv ${cls}"><span>${esc(t(k))}</span><b>${v}</b></div>`;
 
-export { show, back, closeAll, refresh, sheetOpen, paint, fld, text, num, date, area, select, seg, formData, badge, empty, btn, kv };
+export { show, replace, back, closeAll, refresh, sheetOpen, paint, fld, text, num, date, area, select, seg, formData, badge, empty, btn, kv };
 
 /* ---------- 二次确认（删除、作废） ---------- */
 let yes = null;

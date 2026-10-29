@@ -239,3 +239,25 @@ dialog[open]~.toast{z-index:1000}
 .nbp>b{display:block;font-size:13.5px;margin-bottom:6px}
 .scan-d .card-head .head-tools{gap:8px}
 .scan-d .card-head select{min-height:36px;width:auto;padding:0 8px}
+
+/* 概览「待处理」：一条一张小卡片；左边色条 = 紧急程度；手机上按钮换行 */
+.todo-card{padding:12px}
+.todos{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.todo-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-left:5px solid var(--brand);border-radius:12px;background:var(--surface)}
+.todo-item.tone-bad{border-left-color:var(--bad)}.todo-item.tone-warn{border-left-color:var(--warn)}
+.todo-ic{font-size:24px;line-height:1;flex:none}
+.todo-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.todo-main b{overflow-wrap:anywhere}
+.todo-acts{display:flex;gap:6px;flex:none}
+.todo-empty{margin:4px 0 0;color:var(--good)}
+@media (max-width:520px){.todo-item{flex-wrap:wrap}.todo-acts{width:100%;padding-left:36px}}
+
+/* 登录向导：选择卡片、步骤进度点 */
+.choices{display:grid;gap:10px;margin:8px 0}
+.choice{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-align:left;cursor:pointer;min-height:72px}
+.choice b{font-size:17px}.choice:hover,.choice:focus-visible{border-color:var(--brand)}
+.wz-prog{display:flex;align-items:center;gap:6px;margin:0 0 12px}
+.wz-prog i{width:28px;height:6px;border-radius:3px;background:var(--line);display:inline-block}
+.wz-prog i.on{background:var(--brand)}.wz-prog i.done{background:var(--brand);opacity:.45}
+
+.row-main .badge{align-self:flex-start;margin:2px 0}   /* 同名等小标签不要被拉成整行 */

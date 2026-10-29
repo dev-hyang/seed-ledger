@@ -4,7 +4,7 @@ Supabase 免费套餐同时只能有两个项目，所以账本提供两种部�
 
 | | A. 独立项目 | B. 并入 baby-log 数据库 |
 |---|---|---|
-| 脚本 | `001_schema.sql` → `002_roles_and_invites.sql` → `003_staff_role.sql` → `004_anonymous_join.sql`（按顺序） | `shared-db/sl_001 … sl_007`（按顺序，每个可重复执行） |
+| 脚本 | `001_schema.sql` → `002_roles_and_invites.sql` → `003_staff_role.sql` → `004_anonymous_join.sql` → `005_member_votes.sql`（按顺序） | `shared-db/sl_001 … sl_008`（按顺序，每个可重复执行） |
 | 对象名 | `orgs` `records` `put_record` … | 全部 `sl_` 前缀：`sl_orgs` `sl_records` `sl_put_record` … |
 | `DB_PREFIX` | `""` | `"sl_"` |
 | URL / anon key | 新项目的 | baby-log 那个项目的 |
@@ -19,6 +19,7 @@ Supabase 免费套餐同时只能有两个项目，所以账本提供两种部�
 5. `shared-db/sl_005_roles_and_invites.sql`：角色分级、邀请码 7 天有效并自动换新、猜码限速、批准流程（见下）
 6. `shared-db/sl_006_staff_role.sql`：新增「录入员」角色
 7. `shared-db/sl_007_anonymous_join.sql`：免邮箱加入（见下）
+8. `shared-db/sl_008_member_votes.sql`：合伙人申请与成员移出的全体表决（见下）
 
 然后 `js/config.js`：`DB_PREFIX = "sl_"`，URL 和 anon key 填 baby-log 项目的。
 
@@ -45,6 +46,13 @@ Supabase 免费套餐同时只能有两个项目，所以账本提供两种部�
 - 需要先打开 Authentication → Sign In / Providers → **Allow anonymous sign-ins**（baby-log 项目已经开着；独立项目要自己开）。
 - 也可以发**邀请链接**（成员页「复制邀请链接」）：对方打开后登录，会自动申请加入；用邮箱登录 / 注册时填了邀请码，登录后同样自动申请。
 - 独立项目版的 `002` 里额外补了 `require_email_user()` 和只认邮箱账号的 `create_org`（共用库的 `sl_003` 里本来就有）。
+
+## 合伙人申请与移出：全体同意（005 / sl_008）
+- **申请成为合伙人**：只读成员 / 录入员本人申请，要先勾选「已知晓合伙人的权益和责任」；创建者和**所有现任合伙人全部同意**才生效，任何一人拒绝就否决。免邮箱账号申请前必须先留联系方式（邮箱或电话）。
+- **移出成员**：创建者或合伙人发起，创建者和所有合伙人（被移出的人除外）**全部同意**才生效；发起人自动算同意；只有创建者一个人时发起即生效。不能移出自己，不能移出最后一位创建者。
+- 不再允许一个人直接把别人设为合伙人、或一个人直接移出成员（`set_member` 里拦掉）；设为 录入员 / 只读 / 创建者 仍然只有创建者能做。
+- 结果写进审计日志（partner_approved / member_removed）；联系方式只有创建者、合伙人和本人看得到。
+- 已部署过前面迁移的：只需再执行 005 / sl_008。
 
 ## B 和 A 的区别（为什么不能直接把 A 改个名）
 - **拒绝匿名用户**：baby-log 开了「匿名登录」（邀请码免注册加入），库里有大量匿名用户。账本的建账本、申请加入、写记录都要求邮箱账号（判断方式同 baby-log 迁移 009）。
