@@ -10,6 +10,7 @@ import * as db from "./db.js";
 import { S, adoptLocal, loadOrg, notify, setKick, settingsFrom } from "./state.js";
 import { debounce, toast } from "./util.js";
 import { t } from "./i18n.js";
+import { hashError } from "./auth-msg.js";
 
 const T = { orgs: DB_PREFIX + "orgs", members: DB_PREFIX + "org_members", records: DB_PREFIX + "records", audit: DB_PREFIX + "audit_log" };   // 表名（见 config.js 的 DB_PREFIX）
 const fn = name => DB_PREFIX + name;   // 函数名
@@ -20,6 +21,8 @@ async function initCloud(){
   if (!CLOUD_CONFIGURED) { S.cloud = "local"; await loadOrg("local"); return; }
   await loadOrg("local");   // 先让页面有东西可看，再等登录结果
   S.cloud = "signedout"; notify();
+  const linkErr = hashError(location.hash);   // 点了过期 / 用过的确认链接跳回来：说清楚，并清掉地址里的错误参数
+  if (linkErr) { setTimeout(() => toast(linkErr), 400); history.replaceState(null, "", location.pathname + location.search); }
   try {
     await new Promise((res, rej) => { const s = document.createElement("script"); s.src = SUPABASE_JS; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
   } catch (e) { S.cloud = "offline"; toast(t("云端组件加载失败，已切到本机模式")); notify(); return; }
@@ -109,7 +112,9 @@ async function applyRow(row){
 /* ---------- 登录 / 组织 / 成员（界面调用） ---------- */
 const auth = () => SB.client.auth;
 const signIn = (email, password) => auth().signInWithPassword({ email, password });
-const signUp = (email, password) => auth().signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
+const redirectTo = () => location.origin + location.pathname;   // 邮件里的确认链接跳回这里（要在 Supabase 的 Redirect URLs 里放行）
+const signUp = (email, password) => auth().signUp({ email, password, options: { emailRedirectTo: redirectTo() } });
+const resendConfirm = email => auth().resend({ type: "signup", email, options: { emailRedirectTo: redirectTo() } });
 const signOut = () => auth().signOut();
 async function createOrg(name, display, adopt){
   const { data, error } = await SB.client.rpc(fn("create_org"), { p_name: name, p_display: display });
@@ -135,4 +140,4 @@ async function cloudAudit(limit = 300){
 async function localAudit(){ return (await db.getAll("audit", S.org)).reverse(); }
 const conflictsList = async () => (await db.listAll("conflicts")).filter(c => c.org === S.org).reverse();
 
-export { initCloud, sync, signIn, signUp, signOut, createOrg, joinOrg, listMembers, setMember, resetInvite, cloudAudit, localAudit, conflictsList, settingsFrom };
+export { initCloud, sync, signIn, signUp, resendConfirm, signOut, createOrg, joinOrg, listMembers, setMember, resetInvite, cloudAudit, localAudit, conflictsList, settingsFrom };

@@ -4,6 +4,7 @@ import { esc, toast, newId, downloadText } from "../core/util.js";
 import { t, LOCALES, locale, setLocale, UNITS, currency } from "../core/i18n.js";
 import { CLOUD_CONFIGURED, APP_VERSION } from "../config.js";
 import * as cloud from "../core/sync.js";
+import { authMessage, signupOutcome } from "../core/auth-msg.js";
 import * as db from "../core/db.js";
 import { DIRS } from "../logic/route.js";
 import { byId, sortBy, ro } from "./common.js";
@@ -45,14 +46,29 @@ function accountBlock(){
   return st.join("") + (acts.length ? `<div class="actions">${acts.join("")}</div>` : "");
 }
 ACT["open-login"] = () => show(() => ({ title: t("登录 / 注册"), body: `<form id="f" data-form="login">${fld("邮箱", text("email", "", { type: "email", req: true, max: 120 }))}${fld("密码", `<input name="password" type="password" minlength="8" required autocomplete="current-password">`, t("至少 8 位"))}
-  <p class="hint">${esc(t("合伙人各用自己的账号；注册后凭邀请码加入同一个账本。"))}</p></form>`,
-  foot: `<button class="btn primary" form="f">${esc(t("登录"))}</button><button class="btn" data-act="signup">${esc(t("注册"))}</button>` }));
-FORMS.login = async d => { const { error } = await cloud.signIn(d.email, d.password); if (error) toast(t("登录失败：") + error.message); else closeAll(); };
+  <p class="hint">${esc(t("合伙人各用自己的账号；注册后凭邀请码加入同一个账本。小月亮等姊妹应用的账号可以直接登录，不用重新注册。"))}</p>
+  <p class="hint ai-out" data-authmsg role="status"></p></form>`,
+  foot: `<button class="btn primary" form="f">${esc(t("登录"))}</button><button class="btn" data-act="signup">${esc(t("注册"))}</button><button class="btn" data-act="resend-confirm">${esc(t("重发确认邮件"))}</button>` }));
+const authForm = el => el.closest(".sheet-in").querySelector("form");
+const authSay = (f, msg) => { f.querySelector("[data-authmsg]").textContent = msg; };   // 消息留在弹层里，不会 3 秒就消失
+FORMS.login = async (d, f) => {
+  const { error } = await cloud.signIn(d.email, d.password);
+  if (error) authSay(f, t("登录失败：") + authMessage(error)); else closeAll();
+};
 ACT.signup = async el => {
-  const f = el.closest(".sheet-in").querySelector("form"), d = formData(f);
-  if (!d.email || !d.password || d.password.length < 8) { toast(t("请填邮箱和至少 8 位的密码")); return; }
+  const f = authForm(el), d = formData(f);
+  if (!d.email || !d.password || d.password.length < 8) { authSay(f, t("请填邮箱和至少 8 位的密码")); return; }
+  authSay(f, t("提交中…"));
   const { data, error } = await cloud.signUp(d.email, d.password);
-  if (error) toast(t("注册失败：") + error.message); else { toast(data.session ? t("注册成功") : t("请到邮箱点确认链接，然后回来登录")); if (data.session) closeAll(); }
+  const out = signupOutcome(data, error, d.email);
+  authSay(f, out.message);
+  if (out.kind === "signed-in") closeAll();
+};
+ACT["resend-confirm"] = async el => {
+  const f = authForm(el), d = formData(f);
+  if (!d.email) { authSay(f, t("先填邮箱")); return; }
+  const { error } = await cloud.resendConfirm(d.email);
+  authSay(f, error ? authMessage(error) : t("已重发确认邮件到 {email}，几分钟内没收到请看垃圾邮件箱。", { email: d.email }));
 };
 ACT["sign-out"] = async () => { await cloud.signOut(); };
 ACT["sync-now"] = () => cloud.sync();

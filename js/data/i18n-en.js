@@ -110,7 +110,7 @@ const EN = {
   "等待创建者批准加入": "Waiting for the owner to approve", "离线（恢复网络后自动同步）": "Offline (syncs automatically when back online)", "同步中…": "Syncing…", "{n} 条记录等待上传（已安全存在本机）": "{n} records waiting to upload (safely stored on this device)", "上次同步": "Last sync",
   "云端还没配置：现在是本机模式，功能完整但不同步。配置步骤见 README。": "Cloud isn't configured: running in local mode — fully functional but not synced. See the README for setup.",
   "登录 / 注册": "Sign in / Sign up", "创建经销商账本": "Create dealer ledger", "用邀请码加入": "Join with invite code", "立即同步": "Sync now", "退出登录": "Sign out", "邮箱": "Email", "密码": "Password", "至少 8 位": "At least 8 characters",
-  "合伙人各用自己的账号；注册后凭邀请码加入同一个账本。": "Each partner uses their own account; after signing up, join the same ledger with an invite code.", "登录": "Sign in", "注册": "Sign up", "登录失败：": "Sign-in failed: ", "请填邮箱和至少 8 位的密码": "Enter an email and a password of at least 8 characters",
+  "登录": "Sign in", "注册": "Sign up", "登录失败：": "Sign-in failed: ", "请填邮箱和至少 8 位的密码": "Enter an email and a password of at least 8 characters",
   "注册失败：": "Sign-up failed: ", "注册成功": "Signed up", "请到邮箱点确认链接，然后回来登录": "Click the confirmation link in your email, then come back and sign in", "店名 / 账本名称": "Shop / ledger name", "邀请码": "Invite code",
   "你的名字（合伙人看得到）": "Your name (visible to partners)", "你将成为创建者，可以邀请合伙人、批准加入、设置权限。": "You'll be the owner: you can invite partners, approve requests and set permissions.", "创建者会在「更多 → 成员与邀请」里看到你的申请并批准，批准前你看不到任何数据。": "The owner will see your request under More → Members & invites and approve it; until then you can't see any data.",
   "把这台设备上已经录入的数据一起放进新账本": "Also move the data already entered on this device into the new ledger", "创建失败：": "Create failed: ", "已申请，等待创建者批准": "Requested — waiting for the owner to approve", "邀请码不对，或已申请过": "Invalid invite code, or already requested",
@@ -170,6 +170,23 @@ const EN = {
   "还没设置（可选）：议价、客户建议、送货路线": "Not set up (optional): negotiation, customer advice, delivery routes",
   "议价建议、客户建议、送货路线需要你自己的 AI key。只存在这台设备的浏览器里，不上传，也不同步给合伙人（各人用各人的）。": "Negotiation, customer and route advice need your own AI key. It is stored only in this device's browser — never uploaded or shared with partners (each person uses their own).",
   "发出去的只有脱敏后的数字摘要（金额、等级、镇村名），不含客户姓名、电话、详细地址。": "Only de-identified numeric summaries are sent (amounts, grades, town/village names) — never customer names, phones or street addresses.",
-  "AI 只看金额和客户等级（不含姓名电话），用你自己的 key；不可用也不影响记账，利润已按成本和送货算好。": "AI sees only amounts and the customer grade (no name or phone) and uses your own key. If it's unavailable, bookkeeping is unaffected; profit already accounts for cost and delivery."
+  "AI 只看金额和客户等级（不含姓名电话），用你自己的 key；不可用也不影响记账，利润已按成本和送货算好。": "AI sees only amounts and the customer grade (no name or phone) and uses your own key. If it's unavailable, bookkeeping is unaffected; profit already accounts for cost and delivery.",
+
+  // sign-in / sign-up messages
+  "发邮件太频繁，被限流了。过一会儿再试；如果你已经在小月亮等姊妹应用注册过，直接用同一个邮箱和密码登录即可。": "Too many emails sent — rate limited. Try again in a while; if you already registered in Little Moon or another sister app, just sign in with the same email and password.",
+  "这个邮箱已经注册过了（姊妹应用共用同一个账号），请直接登录。": "This email is already registered (sister apps share one account). Please sign in.",
+  "这个邮箱还没确认：请点确认邮件里的链接，或点「重发确认邮件」。": "This email isn't confirmed yet: click the link in the confirmation email, or tap “Resend confirmation email”.",
+  "邮箱或密码不对。（小月亮等姊妹应用的账号也可以直接在这里登录）": "Wrong email or password. (Accounts from Little Moon and the other sister apps work here too.)",
+  "密码太简单，请换一个更长、更复杂的。": "That password is too weak — use a longer, more complex one.",
+  "这个邮箱已经注册过了，所以没有发新邮件。请直接用它登录（小月亮等姊妹应用共用同一个账号）；忘记密码的话先在小月亮里重置。": "This email is already registered, so no new email was sent. Sign in with it directly (Little Moon and the sister apps share one account); if you forgot the password, reset it in Little Moon first.",
+  "注册成功": "Signed up",
+  "确认邮件已发到 {email}。收不到的话：先看垃圾邮件箱；如果你在小月亮等应用注册过，直接用同一个邮箱和密码登录；还是没有，点「重发确认邮件」（太频繁会被限流，隔几分钟再试）。": "A confirmation email was sent to {email}. If it doesn't arrive: check your spam folder; if you registered in Little Moon or another app, sign in with the same email and password; otherwise tap “Resend confirmation email” (too frequent requests get rate limited — wait a few minutes).",
+  "确认链接已失效：请直接用邮箱和密码登录试试，不行点「重发确认邮件」": "The confirmation link has expired: try signing in with your email and password, or tap “Resend confirmation email”.",
+  "登录链接有问题：": "Problem with the link: ",
+  "合伙人各用自己的账号；注册后凭邀请码加入同一个账本。小月亮等姊妹应用的账号可以直接登录，不用重新注册。": "Each partner uses their own account; after signing up, join the same ledger with an invite code. Accounts from Little Moon and the sister apps can sign in directly — no need to register again.",
+  "重发确认邮件": "Resend confirmation email",
+  "提交中…": "Submitting…",
+  "先填邮箱": "Enter your email first",
+  "已重发确认邮件到 {email}，几分钟内没收到请看垃圾邮件箱。": "Confirmation email resent to {email}. If it doesn't arrive in a few minutes, check your spam folder."
 };
 export { EN };
