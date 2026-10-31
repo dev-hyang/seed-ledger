@@ -340,13 +340,13 @@ async function audLoad(more){
 }
 function auditPage(){
   const f = AUD.f, opt = lab => Object.entries(lab).map(([k, v]) => [k, t(v)]);
-  const filters = `<div class="filters audit-f">
-    ${select("action", opt(ACTION_LAB), f.action, { blank: t("全部操作"), change: "audit-f" })}
-    ${select("kind", opt(KIND_LAB), f.kind, { blank: t("全部类型"), change: "audit-f" })}
-    ${AUD.online ? select("user", AUD.members.map(m => [m.user_id, m.name || t("合伙人")]), f.user, { blank: t("全部成员"), change: "audit-f" }) : ""}
-    <label class="audit-d"><span>${esc(t("从"))}</span><input type="date" name="from" value="${esc(f.from || "")}" data-change="audit-f"></label>
-    <label class="audit-d"><span>${esc(t("到"))}</span><input type="date" name="to" value="${esc(f.to || "")}" data-change="audit-f"></label>
-    ${Object.values(f).some(Boolean) ? btn("清除筛选", "audit-clear", { cls: "sm" }) : ""}</div>`;
+  const any = Object.values(f).some(Boolean), q = audQuick();
+  const cell = (lab, html) => `<label class="af-cell"><span>${esc(t(lab))}</span>${html}</label>`;
+  const filters = `<div class="audit-f">
+    <div class="af-row">${cell("操作", select("action", opt(ACTION_LAB), f.action, { blank: t("全部"), change: "audit-f" }))}${cell("类型", select("kind", opt(KIND_LAB), f.kind, { blank: t("全部"), change: "audit-f" }))}${AUD.online ? cell("成员", select("user", AUD.members.map(m => [m.user_id, m.name || t("合伙人")]), f.user, { blank: t("全部"), change: "audit-f" })) : ""}</div>
+    <div class="af-range" role="group" aria-label="${esc(t("日期范围"))}"><span class="af-lab">${esc(t("日期范围"))}</span>
+      <div class="af-dates"><input type="date" name="from" value="${esc(f.from || "")}" max="${esc(f.to || "")}" data-change="audit-f" aria-label="${esc(t("开始日期"))}"><span aria-hidden="true">—</span><input type="date" name="to" value="${esc(f.to || "")}" min="${esc(f.from || "")}" data-change="audit-f" aria-label="${esc(t("结束日期"))}"></div>
+      <div class="af-quick">${[["7", "近 7 天"], ["30", "近 30 天"], ["month", "本月"]].map(([k, l]) => `<button type="button" class="chip${q === k ? " on" : ""}" aria-pressed="${q === k}" data-act="audit-quick" data-k="${k}">${esc(t(l))}</button>`).join("")}${any ? `<button type="button" class="link af-clear" data-act="audit-clear">${esc(t("清除筛选"))}</button>` : ""}</div></div></div>`;
   const list = AUD.rows.length ? `<ul class="list tight audit">${AUD.rows.map(r => `<li><div class="row static"><span class="row-main"><b>${esc(t(ACTION_LAB[r.action] || r.action))} · ${esc(t(KIND_LAB[r.kind] || r.kind))} ${esc(brief(r.after))}</b><small>${esc(diffText(r.before, r.after))}</small></span><span class="row-side"><small>${esc(new Date(r.at).toLocaleString())}</small><small>${esc(r.who)}</small></span></div></li>`).join("")}</ul>`
     : AUD.loading ? "" : empty(Object.values(f).some(Boolean) ? "没有符合条件的记录。" : "还没有记录。");
   const more = AUD.hasNext ? `<div class="actions" style="justify-content:center">${btn(AUD.loading ? "加载中…" : "加载更多", "audit-more", { disabled: AUD.loading })}</div>` : "";
@@ -360,6 +360,11 @@ ACT["open-audit"] = async () => {
 };
 CHG["audit-f"] = async el => { AUD.f[el.name] = el.value || undefined; await audLoad(false); };
 ACT["audit-clear"] = async () => { AUD.f = {}; await audLoad(false); };
+/* 快捷日期：近 7 天 / 近 30 天 / 本月（都到今天为止）；当前范围正好是哪个就高亮哪个 */
+const audDay = (n = 0) => { const d = new Date(); d.setDate(d.getDate() - n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+const audRange = k => k === "month" ? [audDay().slice(0, 8) + "01", audDay()] : [audDay(+k - 1), audDay()];
+function audQuick(){ const f = AUD.f; return ["7", "30", "month"].find(k => { const [a, b] = audRange(k); return f.from === a && f.to === b; }) || ""; }
+ACT["audit-quick"] = async el => { const [from, to] = audRange(el.dataset.k); AUD.f.from = from; AUD.f.to = to; await audLoad(false); };
 ACT["audit-more"] = async () => { await audLoad(true); };
 ACT["open-conflicts"] = async () => {
   const list = await cloud.conflictsList();

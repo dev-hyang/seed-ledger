@@ -281,12 +281,24 @@ dialog[open]~.toast{z-index:1000}
 .batchbar b{margin-right:auto}
 .todo-sum{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 8px;font-size:14px}
 
-/* 审计日志筛选：手机两列，宽屏一行 */
-.audit-f select,.audit-f input[type=date]{min-height:40px;border:1px solid var(--line);border-radius:10px;padding:0 8px;background:var(--surface);color:inherit;font:inherit}
-.audit-f select{flex:1 1 140px}
-.audit-d{display:flex;align-items:center;gap:6px;flex:1 1 160px}
-.audit-d span{font-size:13px;color:var(--muted)}
-.audit-d input{flex:1}
+/* 审计日志筛选：上面一行下拉（宽屏三列，手机两列），下面日期范围——开始 — 结束 并排，快捷按钮另起一行 */
+.audit-f{display:grid;gap:10px;margin-bottom:12px;padding:12px;background:var(--soft);border:1px solid var(--line);border-radius:12px}
+.af-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.af-cell{display:flex;flex-direction:column;gap:4px;margin:0;min-width:0}
+.af-cell>span,.af-lab{font-size:12.5px;color:var(--muted);font-weight:600}
+.audit-f select,.audit-f input[type=date]{width:100%;min-width:0;min-height:42px;border:1px solid var(--line);border-radius:10px;padding:0 10px;background:var(--surface);color:inherit;font:inherit;font-size:15px}
+.af-range{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.af-lab{flex:0 0 100%}
+.af-dates{flex:1 1 330px;max-width:440px;display:grid;grid-template-columns:minmax(140px,1fr) auto minmax(140px,1fr);align-items:center;gap:8px}
+.af-dates>span{color:var(--muted)}
+.af-quick{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.af-quick .chip{min-height:34px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:inherit;font:inherit;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.af-quick .chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.af-quick .af-clear{margin-left:4px;font-size:13.5px}
+@media (max-width:640px){
+  .af-row{grid-template-columns:1fr 1fr}
+  .af-dates{flex-basis:100%;max-width:none;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
+}
 
 /* 按单价议价：品种 | 单价输入框（和文字同一行）| 金额靠右；手机上品种占一行，输入框和金额在下一行 */
 .ulines{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:4px 0 12px}
