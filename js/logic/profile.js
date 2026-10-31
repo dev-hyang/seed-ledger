@@ -15,7 +15,7 @@ const RULES = {
 const daysBetween = (a, b) => Math.max(0, Math.round((new Date(b) - new Date(a)) / 864e5));
 
 function profileCustomer(m, customerId, today = new Date().toISOString().slice(0, 10)){
-  const mine = m.sales.filter(s => s.customerId === customerId && s.status !== "void");
+  const mine = (m.salesByCustomer.get(customerId) || []).filter(s => s.status !== "void");
   const years = [...new Set(mine.map(s => s.year))].sort();
   const gross = r2(mine.reduce((a, s) => a + s.gross, 0)), net = r2(mine.reduce((a, s) => a + s.net, 0));
   const paid = r2(mine.reduce((a, s) => a + s.paid, 0)), owing = r2(mine.reduce((a, s) => a + Math.max(s.balance, 0), 0));

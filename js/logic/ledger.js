@@ -55,6 +55,15 @@ function buildModel(D){
     return { ...s, year, lines, gross, qty, adjs, pays, adjTotal, paid, net, balance, cogs, deliveryCost: delivery, profit: r2(net - cogs - delivery), status, lastPay };
   });
   const saleM = new Map(sales.map(s => [s.id, s]));
+  const salesByCustomer = group(sales, "customerId");   // 客户列表要给每位客户算画像：先归拢一次，不用每位客户扫一遍全部销售
+
+  // 库存聚合：key = 品种|年 → { purchased, returned, sold }；库存页和销售单的「库存还剩」都查这张表，不再「每个品种 × 全部销售」地扫
+  const stock = new Map(), stockOf = k => { let a = stock.get(k); if (!a) stock.set(k, a = { purchased: 0, returned: 0, sold: 0 }); return a; };
+  for (const p of D.purchase) stockOf(p.brandId + "|" + p.year).purchased += +p.qty;
+  for (const p of D.sreturn) stockOf(p.brandId + "|" + p.year).returned += +p.qty;
+  for (const s of sales) if (s.status !== "void") for (const l of s.lines) stockOf(l.brandId + "|" + s.year).sold += +l.qty;
+  const NO_STOCK = { purchased: 0, returned: 0, sold: 0 };
+  const stockAt = (brandId, year) => stock.get(brandId + "|" + year) || NO_STOCK;
 
   // 手续费按「当年该供应商进货额」摊到它的品种上；该供应商当年没有进货就留在公司层（brandId 为空）
   const purchAmt = new Map();
@@ -79,7 +88,7 @@ function buildModel(D){
         qty: +l.qty, gross: l.amount, net, paid: r2(s.paid * sh), cost: l.cost, delivery: deliv, profit: r2(net - l.cost - deliv), status: s.status });
     }
   }
-  return { D, brandM, supplierM, customerM, tripM, sales, saleM, fees, facts, avgCost, tripTotal };
+  return { D, brandM, supplierM, customerM, tripM, sales, saleM, salesByCustomer, stockAt, fees, facts, avgCost, tripTotal };
 }
 
 /* ---------- 筛选 / 汇总 ---------- */
@@ -108,11 +117,8 @@ function groupBy({ facts, fees }, by){
 
 /* ---------- 库存 ---------- */
 function inventory(m, year){
-  const { D } = m;
-  return D.brand.map(b => {
-    const P = D.purchase.filter(p => p.brandId === b.id && p.year === year), R = D.sreturn.filter(p => p.brandId === b.id && p.year === year);
-    const purchased = sum(P, p => +p.qty), returned = sum(R, p => +p.qty);
-    const sold = sum(m.sales.filter(s => s.status !== "void" && s.year === year), s => sum(s.lines.filter(l => l.brandId === b.id), l => +l.qty));
+  return m.D.brand.map(b => {
+    const a = m.stockAt(b.id, year), purchased = r2(a.purchased), returned = r2(a.returned), sold = r2(a.sold);
     const onHand = r2(purchased - returned - sold), avg = m.avgCost(b.id, year);
     return { brandId: b.id, seasonId: b.seasonId, supplierId: b.supplierId, purchased, returned, sold, onHand, avgCost: r2(avg), value: r2(Math.max(onHand, 0) * avg), oversold: onHand < -EPS };
   });

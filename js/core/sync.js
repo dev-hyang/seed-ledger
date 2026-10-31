@@ -14,7 +14,7 @@ import { hashError, linkLanding, joinOutcome, cleanInvite, inviteFresh, displayF
 
 const T = { orgs: DB_PREFIX + "orgs", members: DB_PREFIX + "org_members", records: DB_PREFIX + "records", audit: DB_PREFIX + "audit_log", requests: DB_PREFIX + "member_requests", votes: DB_PREFIX + "request_votes" };   // 表名（见 config.js 的 DB_PREFIX）
 const fn = name => DB_PREFIX + name;   // 函数名
-const SB = { client: null, channel: null, timer: null, running: false, again: false };
+const SB = { client: null, channel: null, timer: null, running: false, again: false, changed: false };   // changed：本轮同步有没有写进本机的新数据（决定要不要重新 loadOrg）
 /* 暂存邀请码（24 小时）：登录页填了邀请码、或点了邀请链接，登录成功后自动提交申请；注册要先去邮箱确认，所以不能只靠当场提交 */
 const INVITE_KEY = LS_PREFIX + ".invite";
 const peekInvite = () => { try { const v = JSON.parse(localStorage.getItem(INVITE_KEY) || "null"); return inviteFresh(v) ? v : null; } catch (e) { return null; } };
@@ -119,25 +119,42 @@ async function push(){
 async function resolveConflict(mine, row){
   if (JSON.stringify(row.data) === JSON.stringify(mine.data) && row.deleted === mine.deleted) { await applyRow(row); return; }
   await db.add("conflicts", { org: S.org, at: new Date().toISOString(), kind: mine.kind, id: mine.id, mine: mine.data, mineDeleted: mine.deleted, theirs: row.data });
-  await applyRow(row);
+  await applyRow(row); SB.changed = true;   // 本机内存里还是自己那份，pull 结束时要重新载入
   toast(t("有一条记录被合伙人先改过，已采用对方的版本；你的版本留在「设置 → 同步冲突」里"));
 }
 
+/* 每页 500 条（低于 PostgREST 的 max-rows 1000，不会被静默截断）。
+   一整页都是同一个 updated_at（批量导入可能这样）时，原来的 gte 游标会原地打转或漏行：这时改按 kind、id 把这一刻分页取完，再从下一刻（gt）继续。
+   没有任何记录真的变了（只拉回游标那一条、或是自己刚传上去的），就不重新 loadOrg，免得整个账务模型白算一遍。 */
+const PULL_PAGE = 500;
 async function pull(){
-  let cursor = await db.getMeta("cursor:" + S.org) || "1970-01-01T00:00:00Z", more = true;
+  let cursor = await db.getMeta("cursor:" + S.org) || "1970-01-01T00:00:00Z", past = false;
   const dirty = new Set((await db.getAll("outbox", S.org)).map(o => o.kind + "|" + o.id));
-  while (more) {
-    const { data, error } = await SB.client.from(T.records).select("kind, id, data, deleted, updated_at").eq("org_id", S.org).gte("updated_at", cursor).order("updated_at").limit(500);
+  const sel = () => SB.client.from(T.records).select("kind, id, data, deleted, updated_at").eq("org_id", S.org);
+  const take = async rows => { for (const row of rows) if (!dirty.has(row.kind + "|" + row.id) && await applyRow(row)) SB.changed = true; };
+  for (;;) {
+    const { data, error } = await (past ? sel().gt("updated_at", cursor) : sel().gte("updated_at", cursor)).order("updated_at").limit(PULL_PAGE);
     if (error) throw error;
-    for (const row of data) { if (!dirty.has(row.kind + "|" + row.id)) await applyRow(row); cursor = row.updated_at; }
-    more = data.length === 500 && data[data.length - 1].updated_at !== data[0].updated_at;
+    await take(data);
+    if (data.length) cursor = data[data.length - 1].updated_at;
+    if (data.length < PULL_PAGE) break;
+    past = data[0].updated_at === cursor;
+    if (past) for (let from = 0; ; from += PULL_PAGE) {   // 整页同一时刻：把这一刻的行按 kind、id 分页取完
+      const r = await sel().eq("updated_at", cursor).order("kind").order("id").range(from, from + PULL_PAGE - 1);
+      if (r.error) throw r.error;
+      await take(r.data);
+      if (r.data.length < PULL_PAGE) break;
+    }
   }
   await db.setMeta("cursor:" + S.org, cursor);
-  await loadOrg(S.org);
+  if (SB.changed) { SB.changed = false; await loadOrg(S.org); }
 }
+/** 把服务器的一行写进本机；和本机已有的版本一样（同一个 updated_at、同样的删除状态）就跳过，返回 false */
 async function applyRow(row){
   const key = [S.org, row.kind, row.id], old = await db.get("records", key);
+  if (old && old.ts === row.updated_at && old.deleted === row.deleted) return false;
   await db.put("records", { org: S.org, kind: row.kind, id: row.id, data: row.data, deleted: row.deleted, ts: row.updated_at, rev: old?.rev || 0 });
+  return true;
 }
 
 /* ---------- 登录 / 组织 / 成员（界面调用） ---------- */
@@ -174,12 +191,13 @@ async function joinAnonymous(code, display){
 async function refreshTeam(){
   if (!SB.client || !S.user || S.org === "local" || !["online", "offline"].includes(S.cloud)) { S.team = null; return null; }
   try {
-    const [m, r, v] = await Promise.all([
+    // 只取进行中的申请和它们的投票：界面只用 status = open 的；历史申请 / 投票会越积越多，全取迟早超过 PostgREST 的 1000 行上限被静默截断
+    const [m, r] = await Promise.all([
       SB.client.from(T.members).select("user_id, role, status, name, contact, created_at").eq("org_id", S.org).order("created_at"),
-      SB.client.from(T.requests).select("id, kind, target_user, requested_by, status, created_at").eq("org_id", S.org),
-      SB.client.from(T.votes).select("request_id, voter, approve")]);
+      SB.client.from(T.requests).select("id, kind, target_user, requested_by, status, created_at").eq("org_id", S.org).eq("status", "open")]);
     if (m.error) { S.team = null; return null; }
     const members = m.data || [], ids = new Set((r.data || []).map(x => x.id));
+    const v = ids.size ? await SB.client.from(T.votes).select("request_id, voter, approve").in("request_id", [...ids]) : { data: [] };
     S.team = { members, pending: members.filter(x => x.status === "pending"), names: Object.fromEntries(members.map(x => [x.user_id, x.name])),
       approvers: members.filter(x => x.status === "active" && (x.role === "owner" || x.role === "partner")).map(x => x.user_id),
       requests: r.error ? [] : r.data || [], votes: (v.error ? [] : v.data || []).filter(x => ids.has(x.request_id)) };

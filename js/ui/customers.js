@@ -10,8 +10,9 @@ import { askAI, aiAvailable, aiError } from "../core/advice.js";
 import { model, byId, sortBy, phoneHTML, ro } from "./common.js";
 import { show, back, fld, text, area, seg, formData, badge, empty, btn, kv, ask } from "./kit.js";
 import { tierOf } from "../logic/pricing.js";
-import { customerLabel, findByPhone, maskPhone, placeOf, sameNameCount, validPhone } from "../logic/customers.js";
+import { customerLabel, findByPhone, maskPhone, placeOf, nameCounts, validPhone } from "../logic/customers.js";
 import { ACT, FORMS, INP } from "./actions.js";
+import { paged, resetPage } from "./pager.js";
 import { customerLifecycle } from "../logic/lifecycle.js";
 import { lifeBlock } from "./lifecycle.js";
 
@@ -19,22 +20,23 @@ const GRADE = { A: ["A 优", "good"], B: ["B 一般", "warn"], C: ["C 谨慎", "
 const RENEW = { yes: "建议明年继续合作", careful: "可以继续，但要收紧条件", no: "不建议明年继续赊账 / 签约", new: "新客户：先小额、现款或高定金" };
 
 function renderCustomers(){
-  const m = model(), q = (S.filters.custQ || "").trim().toLowerCase();
-  let rows = live("customer").map(c => ({ c, p: profileCustomer(m, c.id) }));
-  if (q) rows = rows.filter(({ c }) => `${c.name}${c.town || ""}${c.village || ""}${c.phone || ""}`.toLowerCase().includes(q));
-  rows = sortBy(rows, r => -r.p.stats.owing || r.c.name);
+  const m = model(), q = (S.filters.custQ || "").trim().toLowerCase(), all = live("customer"), names = nameCounts(all);
+  let rows = all;
+  if (q) rows = rows.filter(c => `${c.name}${c.town || ""}${c.village || ""}${c.phone || ""}`.toLowerCase().includes(q));
+  rows = sortBy(rows.map(c => ({ c, p: profileCustomer(m, c.id) })), r => -r.p.stats.owing || r.c.name);
+  const pg = paged("customers", rows);
   return `<div class="page-head"><h1>${esc(t("客户"))}</h1><div class="head-tools">${ro() ? "" : btn("＋ 新客户", "customer-new", { cls: "primary" })}</div></div>
     <div class="filters"><input type="search" data-input="custQ" value="${esc(S.filters.custQ || "")}" placeholder="${esc(t("搜姓名、镇、村、电话"))}" aria-label="${esc(t("搜索"))}"></div>
-    ${rows.length ? `<ul class="list">${rows.map(({ c, p }) => `<li><button class="row" data-act="customer-view" data-id="${c.id}"><span class="row-main"><b>${esc(c.name)}</b>${sameNameCount(live("customer"), c) ? ` <span class="badge">${esc(t("同名"))}</span>` : ""}<small>${esc([placeOf(c), c.phone ? (S.settings.maskPhone ? maskPhone(c.phone) : c.phone) : t("未填手机号，请补上")].filter(Boolean).join(" · "))}</small></span>
-      <span class="row-side">${p.stats.owing > EPS ? `<b class="neg">${esc(t("欠"))} ${esc(money(p.stats.owing))}</b>` : `<small>${esc(money(p.stats.net))}</small>`}${badge(t(GRADE[p.grade][0]), GRADE[p.grade][1])}</span></button></li>`).join("")}</ul>` : empty("还没有客户。记第一笔销售时可以直接新建客户。", ro() ? "" : btn("＋ 新客户", "customer-new", { cls: "primary" }))}`;
+    ${rows.length ? `<ul class="list">${pg.rows.map(({ c, p }) => `<li><button class="row" data-act="customer-view" data-id="${c.id}"><span class="row-main"><b>${esc(c.name)}</b>${names.get(String(c.name).trim()) > 1 ? ` <span class="badge">${esc(t("同名"))}</span>` : ""}<small>${esc([placeOf(c), c.phone ? (S.settings.maskPhone ? maskPhone(c.phone) : c.phone) : t("未填手机号，请补上")].filter(Boolean).join(" · "))}</small></span>
+      <span class="row-side">${p.stats.owing > EPS ? `<b class="neg">${esc(t("欠"))} ${esc(money(p.stats.owing))}</b>` : `<small>${esc(money(p.stats.net))}</small>`}${badge(t(GRADE[p.grade][0]), GRADE[p.grade][1])}</span></button></li>`).join("")}</ul>${pg.btn}` : empty("还没有客户。记第一笔销售时可以直接新建客户。", ro() ? "" : btn("＋ 新客户", "customer-new", { cls: "primary" }))}`;
 }
-INP.custQ = el => { S.filters.custQ = el.value; };
+INP.custQ = el => { S.filters.custQ = el.value; resetPage("customers"); };
 const maskedPhone = p => S.settings.maskPhone ? String(p).replace(/^(.{3}).*(.{4})$/, "$1****$2") : p;
 
 function customerPage(id){
   const c = byId("customer", id), m = model();
   if (!c) return { title: t("客户"), body: empty("这位客户已不存在。") };
-  const p = profileCustomer(m, id), s = p.stats, sales = sortBy(m.sales.filter(x => x.customerId === id), x => x.date, -1);
+  const p = profileCustomer(m, id), s = p.stats, sales = sortBy(m.salesByCustomer.get(id) || [], x => x.date, -1);
   const body = `<div class="detail-head"><div><b class="big">${esc(c.name)}</b><p class="meta">${esc([c.town, c.village, c.address].filter(Boolean).join(" · "))}</p>${c.phone ? `<p class="meta">${phoneHTML(c.phone)}</p>` : ""}${c.note ? `<p class="meta">${esc(c.note)}</p>` : ""}</div>${badge(t(GRADE[p.grade][0]), GRADE[p.grade][1])}</div>
     <div class="kpis">${kv("累计应收", money(s.net))}${kv("已收", money(s.paid))}${kv("欠款", money(s.owing), s.owing > EPS ? "neg" : "")}${kv("合作年数", String(s.years.length))}</div>
     <div class="card profile"><h3>${esc(t("客户画像"))} <small>${esc(t("规则打分 {n}/100", { n: p.score }))}${p.grade === "N" ? "" : ""}</small></h3>
@@ -46,10 +48,10 @@ function customerPage(id){
       ${p.guard.length ? `<h4>${esc(t("建议的保障措施"))}</h4><ul class="bul">${p.guard.map(g => `<li>${esc(t(g))}</li>`).join("")}</ul>` : ""}
       <div class="ai-box"><button class="btn sm" data-act="ai-customer" data-id="${id}">✨ ${esc(t("AI 写成建议"))}</button><div data-ai class="ai-out"></div></div>
       <small class="disc">${esc(t("以上只是根据交易记录的风险提示，不构成法律意见；重大纠纷请咨询律师，并保留全部单据。"))}</small></div>
-    <h3 class="grp">${esc(t("销售历史"))}</h3>${sales.length ? lifeBlock(customerLifecycle(sales), { viewKey: "custLife", showSale: true, emptyMsg: "还没有交易。" }) : empty("还没有交易。")}`;
+    <h3 class="grp">${esc(t("销售历史"))}</h3>${sales.length ? lifeBlock(customerLifecycle(sales), { viewKey: "custLife", showSale: true, emptyMsg: "还没有交易。", pageKey: "custLife" }) : empty("还没有交易。")}`;
   return { title: c.name, body, foot: `${btn("打印对账单", "print-customer", { cls: "primary", data: { id } })}${ro() ? "" : btn("修改", "customer-edit", { data: { id } })}` };
 }
-ACT["customer-view"] = el => show(() => customerPage(el.dataset.id), true);
+ACT["customer-view"] = el => { resetPage("custLife"); show(() => customerPage(el.dataset.id), true); };
 ACT["ai-customer"] = async el => {
   const out = el.closest(".ai-box").querySelector("[data-ai]");
   if (!aiAvailable()) { out.textContent = aiError() + " " + t("上面的规则建议不受影响。"); return; }

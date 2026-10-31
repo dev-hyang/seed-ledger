@@ -11,17 +11,18 @@ import { askAI, aiAvailable, aiError } from "../core/advice.js";
 import { model, byId, customerName, brandName, sortBy, ro } from "./common.js";
 import { show, back, fld, text, num, date, area, badge, empty, btn, kv, ask } from "./kit.js";
 import { ACT, FORMS, CHG, INP } from "./actions.js";
+import { paged } from "./pager.js";
 
 let plan = null;   // 正在编辑的一趟：{ id, date, name, vehicle, labor, order: [saleId…] }（order 里的就是被选中的，顺序即送货顺序）
 
 function renderTrips(){
   const trips = sortBy(live("trip"), x => x.date, -1), m = model();
   const head = ro() ? "" : `<div class="actions">${btn("＋ 安排一趟送货", "trip-new", { cls: "primary" })}</div>`;
-  const pending = m.sales.filter(s => s.status !== "void" && s.delivery?.type === "deliver" && !s.delivery.tripId);
+  const pending = m.sales.filter(s => s.status !== "void" && s.delivery?.type === "deliver" && !s.delivery.tripId), pg = paged("trips", trips);
   return head + (pending.length ? `<p class="hint">${esc(t("有 {n} 张「我送货」的单还没安排到某一趟。", { n: pending.length }))}</p>` : "")
-    + (trips.length ? `<ul class="list">${trips.map(x => { const ids = (x.saleIds || []).filter(id => m.saleM.has(id));
+    + (trips.length ? `<ul class="list">${pg.rows.map(x => { const ids = (x.saleIds || []).filter(id => m.saleM.has(id));
       return `<li><button class="row" data-act="trip-edit" data-id="${x.id}"><span class="row-main"><b>${esc(x.name || t("送货"))} · ${esc(dateFmt(x.date))}</b><small>${esc(t("{n} 家", { n: ids.length }))} · ${esc(ids.map(id => stopOf(m.saleM.get(id)).village || stopOf(m.saleM.get(id)).town).filter(Boolean).join(" → "))}</small></span>
-      <span class="row-side"><b>${esc(money(m.tripTotal(x)))}</b><small>${esc(t("人工 + 车费"))}</small></span></button></li>`; }).join("")}</ul>` : empty("还没有送货记录。把同一趟顺路的几家合在一起送，可以省车费和人工。"));
+      <span class="row-side"><b>${esc(money(m.tripTotal(x)))}</b><small>${esc(t("人工 + 车费"))}</small></span></button></li>`; }).join("")}</ul>${pg.btn}` : empty("还没有送货记录。把同一趟顺路的几家合在一起送，可以省车费和人工。"));
 }
 const stopOf = s => { const c = byId("customer", s.customerId) || {}; return { town: c.town || "", village: c.village || "", customerId: s.customerId, saleId: s.id }; };
 const towns = () => live("town");

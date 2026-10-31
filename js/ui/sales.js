@@ -17,6 +17,7 @@ import { priceFor, brandOpts, yearNow } from "./stock.js";
 import { priceOf, tierOf } from "../logic/pricing.js";
 import { renderTrips } from "./routes.js";
 import { lifeBlock } from "./lifecycle.js";
+import { paged, resetPage } from "./pager.js";
 
 const subs = [["list", "销售单"], ["collect", "催账"], ["trips", "送货路线"]];
 const STATUS = { settled: ["已结清", "good"], partial: ["部分已付", "warn"], unpaid: ["未付款 / 赊账", "bad"], void: ["已作废", ""] };
@@ -32,7 +33,7 @@ function renderSales(){
   const body = { list: listView, collect: collectView, trips: renderTrips }[sub]();
   return `<div class="page-head"><h1>${esc(t("销售"))}</h1><div class="head-tools">${sub === "list" ? yearSelect(yearNow()) : ""}${ro() ? "" : btn("📷 扫描 / 导入", "scan-open")}${ro() ? "" : btn("＋ 记一笔销售", "sale-new", { cls: "primary" })}</div></div>${tabs}${body}`;
 }
-ACT["sales-sub"] = el => { S.sub.sales = el.dataset.k; };
+ACT["sales-sub"] = el => { S.sub.sales = el.dataset.k; resetPage("sales", "collect", "trips"); };
 
 /* ---------- 销售单列表 ---------- */
 function saleRow(s){
@@ -56,7 +57,7 @@ function pickRow(s){
     <span class="row-side"><b>${esc(money(s.net))}</b>${chaseable(s) ? `<small class="neg">${esc(t("欠"))} ${esc(money(s.balance))}</small>` : ""}${s.chase && chaseable(s) ? badge(t("待催账"), "bad") : ""}</span></label></li>`;
 }
 function listView(){
-  const st = S.filters.saleStatus || "", q = (S.filters.saleQ || "").trim(), rows = visibleSales();
+  const st = S.filters.saleStatus || "", q = (S.filters.saleQ || "").trim(), rows = visibleSales(), pg = paged("sales", rows);   // 合计、全选都按完整的 rows，只渲染前几页
   const chips = [["", "全部"], ["owing", "有欠款"], ["chase", "待催账"], ["settled", "已结清"]].map(([k, l]) => `<button class="chip" aria-pressed="${st === k}" data-act="sale-filter" data-k="${k}">${esc(t(l))}</button>`).join("");
   const live_ = rows.filter(s => s.status !== "void"), sum = r2(live_.reduce((a, s) => a + s.net, 0)), owe = r2(live_.reduce((a, s) => a + Math.max(s.balance, 0), 0)), marked = live_.filter(s => s.chase && chaseable(s)).length;
   const bar = ro() || !rows.length ? "" : selMode
@@ -67,7 +68,7 @@ function listView(){
   return `<div class="filters"><input type="search" data-input="saleQ" value="${esc(q)}" placeholder="${esc(t("搜客户、品种、单号"))}" aria-label="${esc(t("搜索"))}">${chips}</div>
     <div class="kpis">${kv("销售额", money(sum))}${kv("未收", money(owe), owe > EPS ? "neg" : "")}${kv("待催账", String(marked), marked ? "neg" : "")}${kv("单数", String(live_.length))}</div>
     ${bar}
-    ${rows.length ? `<ul class="list">${rows.map(selMode && !ro() ? pickRow : saleRow).join("")}</ul>` : empty("这一年还没有销售单。", ro() ? "" : btn("＋ 记一笔销售", "sale-new", { cls: "primary" }))}`;
+    ${rows.length ? `<ul class="list">${pg.rows.map(selMode && !ro() ? pickRow : saleRow).join("")}</ul>${pg.btn}` : empty("这一年还没有销售单。", ro() ? "" : btn("＋ 记一笔销售", "sale-new", { cls: "primary" }))}`;
 }
 ACT["sales-select"] = () => { selMode = true; sel.clear(); };
 ACT["sales-select-done"] = () => { selMode = false; sel.clear(); };
@@ -90,8 +91,8 @@ ACT["chase-toggle"] = async el => {
   if (s.chase) { await save("sale", withoutChase(s)); toast(t("已取消催账标记")); }
   else { await save("sale", { ...s, chase: true, chaseAt: today() }); toast(t("已标记待催账，概览里会提醒")); }
 };
-ACT["sale-filter"] = el => { S.filters.saleStatus = el.dataset.k; };
-INP.saleQ = el => { S.filters.saleQ = el.value; };
+ACT["sale-filter"] = el => { S.filters.saleStatus = el.dataset.k; resetPage("sales"); };
+INP.saleQ = el => { S.filters.saleQ = el.value; resetPage("sales"); };
 
 /* ---------- 催账：所有没收齐的单，按客户归拢，欠得多的在前 ---------- */
 function collectView(){
@@ -99,9 +100,9 @@ function collectView(){
   if (!owing.length) return empty("没有欠款，账都收齐了。");
   const by = new Map(); for (const s of owing) { if (!by.has(s.customerId)) by.set(s.customerId, []); by.get(s.customerId).push(s); }
   const groups = sortBy([...by].map(([id, list]) => ({ id, list: sortBy(list, s => s.date), total: r2(list.reduce((a, s) => a + s.balance, 0)), marked: list.some(s => s.chase) })), g => (g.marked ? 1e12 : 0) + g.total, -1);   // 标了待催账的客户排在前面
-  const total = r2(groups.reduce((a, g) => a + g.total, 0)), late = owing.filter(s => ageDays(s.date) > 180).length;
+  const total = r2(groups.reduce((a, g) => a + g.total, 0)), late = owing.filter(s => ageDays(s.date) > 180).length, pg = paged("collect", groups);   // 按客户分页
   return `<div class="kpis">${kv("欠款合计", money(total), "neg")}${kv("欠款客户", String(groups.length))}${kv("待催账的客户", String(groups.filter(g => g.marked).length), groups.some(g => g.marked) ? "neg" : "")}${kv("超过半年未结", String(late), late ? "neg" : "")}</div>
-    ${groups.map(g => `<div class="card"><div class="card-head"><button class="link" data-act="customer-view" data-id="${g.id}"><b>${esc(customerName(g.id))}</b></button>${g.marked ? badge(t("待催账"), "bad") : ""}<b class="neg">${esc(money(g.total))}</b></div><ul class="list tight">${g.list.map(s => `<li><button class="row" data-act="sale-view" data-id="${s.id}"><span class="row-main"><b>${esc(brandsOf(s))}</b><small>${esc(dateFmt(s.date))} · ${esc(t("{n} 天", { n: ageDays(s.date) }))}${s.lines.some(l => l.hint) ? " · 🔒" : ""}</small></span><span class="row-side"><b class="neg">${esc(money(s.balance))}</b>${s.chase ? badge(t("待催账"), "bad") : ""}${ageDays(s.date) > 180 ? badge(t("逾期"), "bad") : ""}</span></button></li>`).join("")}</ul></div>`).join("")}`;
+    ${pg.rows.map(g => `<div class="card"><div class="card-head"><button class="link" data-act="customer-view" data-id="${g.id}"><b>${esc(customerName(g.id))}</b></button>${g.marked ? badge(t("待催账"), "bad") : ""}<b class="neg">${esc(money(g.total))}</b></div><ul class="list tight">${g.list.map(s => `<li><button class="row" data-act="sale-view" data-id="${s.id}"><span class="row-main"><b>${esc(brandsOf(s))}</b><small>${esc(dateFmt(s.date))} · ${esc(t("{n} 天", { n: ageDays(s.date) }))}${s.lines.some(l => l.hint) ? " · 🔒" : ""}</small></span><span class="row-side"><b class="neg">${esc(money(s.balance))}</b>${s.chase ? badge(t("待催账"), "bad") : ""}${ageDays(s.date) > 180 ? badge(t("逾期"), "bad") : ""}</span></button></li>`).join("")}</ul></div>`).join("")}${pg.btn}`;
 }
 
 /* ---------- 新建 / 修改销售单 ---------- */
@@ -171,7 +172,7 @@ function saleTotals(f){
   f._total = r2(total);
 }
 const editQty = (saleId, brandId) => { const s = model().saleM.get(saleId); return s ? s.lines.filter(l => l.brandId === brandId).reduce((a, l) => a + l.qty, 0) : 0; };
-const inventoryOf = (brandId, year) => { const m = model(); let p = 0, r = 0, sold = 0; for (const x of m.D.purchase) if (x.brandId === brandId && x.year === year) p += +x.qty; for (const x of m.D.sreturn) if (x.brandId === brandId && x.year === year) r += +x.qty; for (const s of m.sales) if (s.status !== "void" && s.year === year) for (const l of s.lines) if (l.brandId === brandId) sold += l.qty; return p - r - sold; };
+const inventoryOf = (brandId, year) => { const a = model().stockAt(brandId, year); return a.purchased - a.returned - a.sold; };   // 聚合在 buildModel 里算好一次
 /** 换价格档：单价为空，或还等于上一档的标准价（说明没手改过）的行，换成新档的标准价 */
 function retier(f){
   const tier = f.elements.tier.value, prev = f.dataset.tier || "retail", yr = +(f.elements.date.value || today()).slice(0, 4);

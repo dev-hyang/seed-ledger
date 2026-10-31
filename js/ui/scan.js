@@ -16,6 +16,7 @@ import { model, byId, sortBy } from "./common.js";
 import { priceFor } from "./stock.js";
 import { show, back, closeAll, refresh, badge, btn } from "./kit.js";
 import { ACT, CHG, INP } from "./actions.js";
+import { resetPage } from "./pager.js";
 
 const CONSENT = LS_PREFIX + ".scan-ok", MAX_FILES = 8, MAX_IMAGES = 6, MAX_CHUNKS = 8, MAX_DRAFTS = 200;
 const sc = { files: [], text: "", busy: false, reading: 0, error: "", drafts: null };
@@ -199,7 +200,7 @@ ACT["scan-import"] = async () => {
   } catch (e) { sc.error = t("导入中断（已导入 {n} 笔）：{e}。已建好的客户、品种会保留，可以重新识别补上剩下的。", { n, e: e.message || e }); return; }
   const years = [...new Set(picked.map(d => +d.date.slice(0, 4)))].sort();
   reset(); closeAll();
-  S.filters.year = years[years.length - 1]; S.tab = "sales"; S.sub.sales = "list";   // 跳到销售单，并切到刚导入的那一年
+  S.filters.year = years[years.length - 1]; S.tab = "sales"; S.sub.sales = "list"; resetPage();   // 跳到销售单，并切到刚导入的那一年
   toast(t("已导入 {n} 笔销售（新建：{c} 位客户、{b} 个品种、{s} 家种子公司）", { n, c: plan.customers.length, b: plan.brands.length, s: plan.suppliers.length }));
 };
 

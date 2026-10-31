@@ -28,5 +28,10 @@ function customerLabel(c, { mask = true, noPhone = "未填手机号" } = {}){
 }
 /** 同名客户（用来在名字后面补一个「同名」提示） */
 const sameNameCount = (customers, c) => customers.filter(x => x.id !== c.id && String(x.name).trim() === String(c.name).trim()).length;
+/** 列表用：一次数好每个名字有几位客户（名字 → 人数），每行查表，不用每行再扫一遍全部客户 */
+function nameCounts(customers){
+  const m = new Map(); for (const c of customers) { const k = String(c.name).trim(); m.set(k, (m.get(k) || 0) + 1); }
+  return m;
+}
 
-export { phoneKey, validPhone, findByPhone, maskPhone, placeOf, customerLabel, sameNameCount };
+export { phoneKey, validPhone, findByPhone, maskPhone, placeOf, customerLabel, sameNameCount, nameCounts };

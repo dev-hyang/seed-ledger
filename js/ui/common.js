@@ -1,14 +1,14 @@
 /* 各页面共用：账务模型（数据没变就复用）、名称查找、年份、手机号遮挡 */
-import { S, live, subscribe, canWrite } from "../core/state.js";
+import { S, live, canWrite } from "../core/state.js";
 import { buildModel, yearOf } from "../logic/ledger.js";
 import { t } from "../core/i18n.js";
 import { esc } from "../core/util.js";
 
-let cache = null;
-subscribe(() => { cache = null; });
+/* 只在数据版本（S.ver，loadOrg / save / remove 时 +1）变了才重算；同步状态、搜索输入、切页等界面刷新都复用同一个模型 */
+let cache = null, cacheVer = -1;
 const KEYS = ["sale", "pay", "adj", "purchase", "sreturn", "spay", "sfee", "brand", "supplier", "customer", "trip", "town"];
 function model(){
-  if (!cache) cache = buildModel(Object.fromEntries(KEYS.map(k => [k, live(k)])));
+  if (!cache || cacheVer !== S.ver) { cache = buildModel(Object.fromEntries(KEYS.map(k => [k, live(k)]))); cacheVer = S.ver; }
   return cache;
 }
 const byId = (kind, id) => S.data[kind].get(id) && !S.data[kind].get(id)._del ? S.data[kind].get(id) : null;

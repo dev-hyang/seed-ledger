@@ -6,6 +6,7 @@ import { inventory, supplierStatement, suggestReturnFee, r2 } from "../logic/led
 import { model, byId, brandName, supplierName, seasonName, seasonOpts, sortBy, yearSelect, ro } from "./common.js";
 import { show, back, fld, text, num, date, area, select, formData, badge, empty, btn, kv, ask } from "./kit.js";
 import { ACT, FORMS, CHG } from "./actions.js";
+import { paged, resetPage } from "./pager.js";
 
 import { normalizePrice } from "../logic/pricing.js";
 
@@ -47,8 +48,9 @@ function flowView(){
   const rows = sortBy([...m.D.purchase.filter(p => p.year === y).map(p => ({ ...p, type: "purchase" })), ...m.D.sreturn.filter(p => p.year === y).map(p => ({ ...p, type: "return" }))], r => r.date, -1);
   const head = ro() ? "" : `<div class="actions">${btn("＋ 进货", "purchase-new", { cls: "primary" })}${btn("＋ 退货给种子公司", "return-new")}</div>`;
   if (!rows.length) return head + empty("这一年还没有进货记录。");
-  return head + `<ul class="list">${rows.map(r => `<li><button class="row" data-act="${r.type}-edit" data-id="${r.id}"><span class="row-main"><b>${esc(brandName(r.brandId))}</b><small>${esc(supplierName(r.supplierId))} · ${esc(dateFmt(r.date))}</small></span>
-    <span class="row-side"><b>${esc(qty(r.qty))}</b><small>${esc(money(r.qty * r.unitCost))}</small>${badge(t(r.type === "purchase" ? "进货" : "退货"), r.type === "purchase" ? "" : "warn")}</span></button></li>`).join("")}</ul>`;
+  const pg = paged("flow", rows);
+  return head + `<ul class="list">${pg.rows.map(r => `<li><button class="row" data-act="${r.type}-edit" data-id="${r.id}"><span class="row-main"><b>${esc(brandName(r.brandId))}</b><small>${esc(supplierName(r.supplierId))} · ${esc(dateFmt(r.date))}</small></span>
+    <span class="row-side"><b>${esc(qty(r.qty))}</b><small>${esc(money(r.qty * r.unitCost))}</small>${badge(t(r.type === "purchase" ? "进货" : "退货"), r.type === "purchase" ? "" : "warn")}</span></button></li>`).join("")}</ul>${pg.btn}`;
 }
 const brandOpts = () => {
   const groups = S.settings.seasons.map(s => ({ group: t(s.name), items: sortBy(live("brand").filter(b => b.seasonId === s.id && b.active !== false), b => b.name).map(b => [b.id, `${b.name} · ${supplierName(b.supplierId)}`]) })).filter(g => g.items.length);
@@ -134,7 +136,7 @@ function poolView(){
 function statementPage(id){
   const s = byId("supplier", id), y = yearNow(), m = model();
   if (!s) return { title: "", body: "" };
-  const st = supplierStatement(m, id, y), fee = suggestReturnFee(m, id, y);
+  const st = supplierStatement(m, id, y), fee = suggestReturnFee(m, id, y), pg = paged("stmt", st.entries);   // 池内余额已按全部往来算好，只截取显示
   const line = (k, v, cls) => kv(k, esc(money(v, { sign: cls === "sign" })), cls === "sign" ? "" : cls);
   const typeLab = { pay: "打款入池", purchase: "进货", return: "退货抵扣", fee: "手续费" };
   return { title: s.name,
@@ -143,10 +145,10 @@ function statementPage(id){
       <div class="kv total"><span>${esc(t("期末余额"))}</span><b class="${st.closing < 0 ? "neg" : ""}">${esc(money(st.closing))}</b></div>
       <p class="hint">${esc(st.state === "carry" ? t("余额作为明年的进货款，自动结转。") : st.state === "owe" ? t("拖欠种子公司，需要补款：{a}", { a: money(-st.closing) }) : t("账已平。"))}</p>
       ${s.rule ? `<p class="hint">${esc(t("手续费规则：退货比例 ≥ {r}% 时，按退货金额的 {f}% 估算。", { r: s.rule.minRatioPct || 0, f: s.rule.feePct || 0 }))}${fee > 0 ? " " + esc(t("当前建议：{a}", { a: money(fee) })) : ""}</p>` : ""}</div>
-      <h3 class="grp">${esc(t("明细"))}</h3>${st.entries.length ? `<ul class="list">${st.entries.map(e => `<li><div class="row static"><span class="row-main"><b>${esc(t(typeLab[e.type]))}${e.ref.brandId ? " · " + esc(brandName(e.ref.brandId)) : ""}</b><small>${esc(dateFmt(e.date))}${e.ref.note ? " · " + esc(e.ref.note) : ""}</small></span><span class="row-side"><b class="${e.amount < 0 ? "neg" : "pos"}">${esc(money(e.amount, { sign: true }))}</b><small>${esc(t("池内"))} ${esc(money(e.balance))}</small></span></div></li>`).join("")}</ul>` : empty("这一年没有往来。")}`,
+      <h3 class="grp">${esc(t("明细"))}</h3>${st.entries.length ? `<ul class="list">${pg.rows.map(e => `<li><div class="row static"><span class="row-main"><b>${esc(t(typeLab[e.type]))}${e.ref.brandId ? " · " + esc(brandName(e.ref.brandId)) : ""}</b><small>${esc(dateFmt(e.date))}${e.ref.note ? " · " + esc(e.ref.note) : ""}</small></span><span class="row-side"><b class="${e.amount < 0 ? "neg" : "pos"}">${esc(money(e.amount, { sign: true }))}</b><small>${esc(t("池内"))} ${esc(money(e.balance))}</small></span></div></li>`).join("")}</ul>${pg.btn}` : empty("这一年没有往来。")}`,
     foot: ro() ? btn("打印对账单", "print-supplier", { data: { id } }) : `${btn("＋ 打款入池", "pool-pay", { cls: "primary", data: { id } })}${btn("＋ 手续费", "fee-new", { data: { id } })}${btn("打印对账单", "print-supplier", { data: { id } })}${btn("编辑", "supplier-edit", { data: { id } })}` };
 }
-ACT["supplier-view"] = el => show(() => statementPage(el.dataset.id), true);
+ACT["supplier-view"] = el => { resetPage("stmt"); show(() => statementPage(el.dataset.id), true); };
 function supplierForm(s){
   return { title: t(s ? "修改种子公司" : "添加种子公司"),
     body: `<form id="f" data-form="supplier" data-id="${s?.id || ""}">
@@ -180,7 +182,7 @@ FORMS.sfee = async (d, f) => { await save("sfee", { date: d.date, year: Math.rou
 
 /* ---------- 通用删除（软删除，留痕） ---------- */
 ACT.del = el => ask(t("确认删除"), t("删除后不会出现在列表里，但「审计日志」仍保留这条记录和删除动作。"), async () => { await remove(el.dataset.kind, el.dataset.id); back(); }, "删除");
-ACT["stock-sub"] = el => { S.sub.stock = el.dataset.k; };
-CHG.year = el => { S.filters.year = +el.value; };
+ACT["stock-sub"] = el => { S.sub.stock = el.dataset.k; resetPage("flow"); };
+CHG.year = el => { S.filters.year = +el.value; resetPage("sales", "flow", "stmt"); };   // 年份是销售、库存、对账单共用的
 
 export { renderStock, priceFor, yearNow, brandOpts };

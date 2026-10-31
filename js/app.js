@@ -2,7 +2,7 @@
    页面模块只负责「返回 HTML」和「往 ACT / FORMS / CHG / INP 登记处理函数」；这里用事件委托统一分发，不给每个按钮单独绑事件。 */
 import { S, subscribe, canWrite } from "./core/state.js";
 import { initCloud } from "./core/sync.js";
-import { $, esc, toast, saveJSON } from "./core/util.js";
+import { $, esc, toast, saveJSON, debounce } from "./core/util.js";
 import { t, LOCALES, locale, setLocale } from "./core/i18n.js";
 import { LS_PREFIX, CLOUD_CONFIGURED, APP_VERSION } from "./config.js";
 import { MODULES } from "./modules.js";
@@ -14,6 +14,7 @@ import { renderCustomers } from "./ui/customers.js";
 import { renderStock } from "./ui/stock.js";
 import { renderReports } from "./ui/reports.js";
 import { renderMore, importFile } from "./ui/more.js";
+import { resetPage } from "./ui/pager.js";
 import "./ui/print.js";
 import "./ui/scan.js";
 
@@ -67,7 +68,7 @@ function render(){
 }
 subscribe(() => { render(); refresh(); });
 
-function goto(tab, sub){ S.tab = tab; if (sub) S.sub[tab] = sub; saveJSON(LS_PREFIX + ".tab", tab); closeAll(); render(); window.scrollTo(0, 0); }
+function goto(tab, sub){ S.tab = tab; if (sub) S.sub[tab] = sub; resetPage(); saveJSON(LS_PREFIX + ".tab", tab); closeAll(); render(); window.scrollTo(0, 0); }
 ACT.goto = el => goto(el.dataset.tab, el.dataset.sub);
 ACT.back = () => back();
 ACT.close = () => closeAll();
@@ -101,8 +102,9 @@ document.addEventListener("change", e => {
 document.addEventListener("input", e => {
   const el = e.target, f = el.closest("form[data-input-form]");
   if (f && INP[f.dataset.inputForm]) { INP[f.dataset.inputForm](el, f); return; }
-  if (el.dataset.input && INP[el.dataset.input]) { INP[el.dataset.input](el, el.form); if (!el.closest("dialog")) render(); }
+  if (el.dataset.input && INP[el.dataset.input]) { INP[el.dataset.input](el, el.form); if (!el.closest("dialog")) renderSoon(); }
 });
+const renderSoon = debounce(render, 200);   // 搜索框：停手 200ms 再重画整页，不是每敲一个字都重画
 $("#sheet").addEventListener("click", e => { if (e.target === e.currentTarget) closeAll(); });   // 点遮罩关闭
 $("#sheet").addEventListener("close", () => { if (sheetOpen()) return; });
 // 表单弹层打开后，跑一次该表单的「输入」处理（销售单的合计、催账的预览）

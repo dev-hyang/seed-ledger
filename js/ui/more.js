@@ -11,6 +11,7 @@ import { byId, sortBy, ro } from "./common.js";
 import { show, replace, back, closeAll, fld, text, num, select, seg, formData, badge, empty, btn, kv, ask } from "./kit.js";
 import { PROVIDERS, providerOf, aiSettings, saveAiSettings, aiReady, testAi } from "../core/ai.js";
 import { ACT, FORMS, CHG, INP } from "./actions.js";
+import { PAGE_SIZES, pageSize, setPageSize } from "./pager.js";
 
 const ROLE = { owner: "创建者", partner: "合伙人（录入 + 批准申请）", staff: "录入员（可录入，不能管成员）", viewer: "只读成员" };
 const KIND_LAB = { sale: "销售单", pay: "收款", adj: "催账调整", purchase: "进货", sreturn: "退货", spay: "打款入池", sfee: "手续费", customer: "客户", brand: "品种", price: "价格", supplier: "种子公司", trip: "送货", town: "镇", setting: "设置", member: "成员" };
@@ -260,6 +261,7 @@ function settingsPage(){
       <div class="srow"><input name="newSeason" maxlength="12" placeholder="${esc(t("新增一个季节，例如 中稻"))}"></div><small>${esc(t("可以改名或新增；已有记录不受影响。"))}</small></fieldset>
     <fieldset class="box"><legend>${esc(t("送货参数（用于路线估算）"))}</legend><div class="grid3">${fld("车费（¥/公里）", num("perKm", st.perKm, { min: 0 }))}${fld("换村里程（公里）", num("villageHopKm", st.villageHopKm, { min: 0 }))}${fld("每趟人工（¥）", num("laborPerTrip", st.laborPerTrip, { min: 0 }))}</div></fieldset>
     <label class="chk"><input type="checkbox" name="maskPhone" ${st.maskPhone ? "checked" : ""}> ${esc(t("列表里遮挡手机号（中间 4 位）"))}</label>
+    ${fld("列表每页显示", select("pageSize", PAGE_SIZES.map(n => [n, t("{n} 条", { n })]), pageSize(), { blank: false }), esc(t("只对这台设备生效；没设过时手机 10 条、电脑 20 条。更多的点「继续加载」。")))}
     <h3 class="grp">${esc(t("镇与距离"))}</h3><p class="hint">${esc(t("填每个镇离门店多少公里、在哪个方向，路线规划用它来估算。"))}</p>
     <ul class="list tight">${towns.map(x => `<li><button type="button" class="row" data-act="town-edit" data-id="${x.id}"><span class="row-main"><b>${esc(x.name)}</b></span><span class="row-side"><small>${esc(x.distKm)} km · ${esc(x.dir ? t(x.dir) : "—")}</small></span></button></li>`).join("")}</ul>
     <button type="button" class="btn sm" data-act="town-new">${esc(t("＋ 添加镇"))}</button>
@@ -270,6 +272,7 @@ ACT["open-settings"] = () => show(settingsPage);
 FORMS.settings = async d => {
   const seasons = S.settings.seasons.map(s => { const v = (d["season_" + s.id] || "").trim(); const orig = t(s.name); return { id: s.id, name: v && v !== orig ? v : s.name }; });
   if (d.newSeason) seasons.push({ id: newId(), name: d.newSeason });
+  setPageSize(d.pageSize);   // 每页条数是本机偏好，存 localStorage，不进同步的设置（先存，只读成员存不了共享设置也不影响它）
   await saveSettings({ name: d.name, currency: d.currency, fx: d.fx > 0 ? d.fx : 0.14, unit: d.unit, seasons, perKm: d.perKm ?? 1.2, villageHopKm: d.villageHopKm ?? 2, laborPerTrip: d.laborPerTrip ?? 0, maskPhone: !!d.maskPhone });
   if (d.lang !== locale()) setLocale(d.lang);
   back(); notify();
@@ -320,14 +323,13 @@ function diffText(before, after){
   for (const k of Object.keys(after || {})) if (JSON.stringify(before[k]) !== JSON.stringify(after[k]) && typeof after[k] !== "object") out.push(`${k}: ${before[k] ?? "∅"} → ${after[k] ?? "∅"}`);
   return out.slice(0, 4).join("；");
 }
-/* 每次只取 20 条（由近及远），有更多才显示「加载更多」；筛选：操作、类型、成员（云端）、日期范围。筛选一变就从第一页重新取。 */
-const AUD_PAGE = 20;
+/* 每次只取一页（条数跟「设置 → 列表每页显示」，由近及远），有更多才显示「加载更多」；筛选：操作、类型、成员（云端）、日期范围。筛选一变就从第一页重新取。 */
 const AUD = { f: {}, rows: [], hasNext: false, loading: false, members: [], online: false, err: "" };
 const audLocalDay = (d, plus = 0) => { if (!d) return undefined; const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + plus); return x.toISOString(); };   // 按本机时区的整天
 async function audLoad(more){
   if (AUD.loading) return;
   AUD.loading = true; AUD.err = "";
-  const f = AUD.f, q = { limit: AUD_PAGE, kind: f.kind, action: f.action, from: audLocalDay(f.from), to: audLocalDay(f.to, 1) };
+  const f = AUD.f, q = { limit: pageSize(), kind: f.kind, action: f.action, from: audLocalDay(f.from), to: audLocalDay(f.to, 1) };
   try {
     const who = id => AUD.members.find(m => m.user_id === id)?.name || (id ? t("合伙人") : t("本机"));
     const res = AUD.online

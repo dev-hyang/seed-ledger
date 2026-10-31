@@ -14,6 +14,7 @@ const S = {
   org: "local", role: "owner", user: null, ready: false,
   cloud: "local",   // local 本机模式 | signedout | noorg | pending | online | offline
   syncing: false, pendingOps: 0, lastSync: null, orgName: "",
+  ver: 0,   // 数据版本：业务记录一变（loadOrg / save / remove）就 +1；账务模型只在它变了时重算，同步状态、搜索、切页都不重算
   tab: loadJSON(LS_PREFIX + ".tab", "home"), sub: {}, filters: {},
   data: Object.fromEntries(KINDS.map(k => [k, new Map()])), settings: { ...DEFAULT_SETTINGS }
 };
@@ -40,7 +41,7 @@ async function loadOrg(org){
     if (S.data[r.kind]) S.data[r.kind].set(r.id, { ...r.data, id: r.id, _del: r.deleted, _ts: r.ts });
   }
   S.pendingOps = (await db.getAll("outbox", org)).length;
-  S.ready = true; notify();
+  S.ver++; S.ready = true; notify();
 }
 
 /* 新增 / 修改：obj 带 id 就是改，不带就是新增。返回保存后的记录 */
@@ -55,7 +56,7 @@ async function save(kind, obj){
   await db.add("audit", { org: S.org, at: new Date().toISOString(), kind, id, action: old ? (old.deleted ? "restore" : "update") : "create", before: old?.data ?? null, after: data });
   if (kind === "setting") S.settings = settingsFrom(data);
   else S.data[kind].set(id, { ...data, id, _ts: rec.ts });
-  S.pendingOps++; notify(); kick();
+  S.ver++; S.pendingOps++; notify(); kick();
   return { ...data, id };
 }
 async function saveSettings(patch){ return save("setting", { id: "main", ...S.settings, ...patch }); }
@@ -68,7 +69,7 @@ async function remove(kind, id){
   await db.put("outbox", { org: S.org, kind, id, rev: rec.rev });
   await db.add("audit", { org: S.org, at: new Date().toISOString(), kind, id, action: "delete", before: old.data, after: old.data });
   const cur = S.data[kind].get(id); if (cur) cur._del = true;
-  S.pendingOps++; notify(); kick();
+  S.ver++; S.pendingOps++; notify(); kick();
 }
 
 /* 同步层挂钩：由 sync.js 注册，避免循环依赖 */
