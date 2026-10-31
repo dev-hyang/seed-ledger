@@ -35,12 +35,14 @@ function eventAmt(e){
 }
 const toneOf = e => e.kind === "void" || e.kind === "writeoff" ? "neg" : e.closes ? "pos" : e.kind === "chase" || e.kind === "due" ? "warn" : "";
 
-/** pageKey：给了就分页（客户的销售历史会越来越长）；欠款滚动余额在 events 里已按完整列表算好，这里只截取要显示的部分 */
-function lifeBlock(events, { viewKey, showSale = false, emptyMsg = "还没有记录。", pageKey = "" } = {}){
+/** pageKey：给了就分页（客户的销售历史会越来越长）；欠款滚动余额在 events 里已按完整列表算好，这里只截取要显示的部分。
+    newestFirst：倒过来显示（最新的在第一页），余额仍是按时间正序算出来的那一刻的值 */
+function lifeBlock(events, { viewKey, showSale = false, emptyMsg = "还没有记录。", pageKey = "", newestFirst = false } = {}){
   const view = S.filters[viewKey] || "rows";
   const tabs = `<div class="subtabs" role="tablist">${[["rows", "行记录"], ["time", "时间线"]].map(([k, l]) => `<button type="button" role="tab" aria-selected="${view === k}" data-act="life-view" data-k="${k}" data-filter="${viewKey}" data-page="${esc(pageKey)}">${esc(t(l))}</button>`).join("")}</div>`;
   if (!events.length) return `${tabs}<div class="empty"><p>${esc(t(emptyMsg))}</p></div>`;
-  const pg = pageKey ? paged(pageKey, events) : { rows: events, btn: "" };
+  const list = newestFirst ? [...events].reverse() : events;
+  const pg = pageKey ? paged(pageKey, list) : { rows: list, btn: "" };
   return tabs + (view === "time" ? timeView(pg.rows, showSale) : rowView(pg.rows, showSale)) + pg.btn;
 }
 ACT["life-view"] = el => { S.filters[el.dataset.filter] = el.dataset.k; if (el.dataset.page) resetPage(el.dataset.page); };

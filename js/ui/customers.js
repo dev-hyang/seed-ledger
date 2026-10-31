@@ -48,7 +48,7 @@ function customerPage(id){
       ${p.guard.length ? `<h4>${esc(t("建议的保障措施"))}</h4><ul class="bul">${p.guard.map(g => `<li>${esc(t(g))}</li>`).join("")}</ul>` : ""}
       <div class="ai-box"><button class="btn sm" data-act="ai-customer" data-id="${id}">✨ ${esc(t("AI 写成建议"))}</button><div data-ai class="ai-out"></div></div>
       <small class="disc">${esc(t("以上只是根据交易记录的风险提示，不构成法律意见；重大纠纷请咨询律师，并保留全部单据。"))}</small></div>
-    <h3 class="grp">${esc(t("销售历史"))}</h3>${sales.length ? lifeBlock(customerLifecycle(sales), { viewKey: "custLife", showSale: true, emptyMsg: "还没有交易。", pageKey: "custLife" }) : empty("还没有交易。")}`;
+    <h3 class="grp">${esc(t("销售历史"))}</h3>${sales.length ? lifeBlock(customerLifecycle(sales), { viewKey: "custLife", showSale: true, emptyMsg: "还没有交易。", pageKey: "custLife", newestFirst: true }) : empty("还没有交易。")}`;
   return { title: c.name, body, foot: `${btn("打印对账单", "print-customer", { cls: "primary", data: { id } })}${ro() ? "" : btn("修改", "customer-edit", { data: { id } })}` };
 }
 ACT["customer-view"] = el => { resetPage("custLife"); show(() => customerPage(el.dataset.id), true); };
