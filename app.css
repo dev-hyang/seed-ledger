@@ -287,3 +287,18 @@ dialog[open]~.toast{z-index:1000}
 .audit-d{display:flex;align-items:center;gap:6px;flex:1 1 160px}
 .audit-d span{font-size:13px;color:var(--muted)}
 .audit-d input{flex:1}
+
+/* 按单价议价：品种 | 单价输入框（和文字同一行）| 金额靠右；手机上品种占一行，输入框和金额在下一行 */
+.ulines{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:4px 0 12px}
+.uline{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(96px,auto);gap:6px 14px;align-items:center;padding:10px 12px;border-top:1px solid var(--line)}
+.uline:first-child{border-top:0}
+.uline-name b{font-size:15px;display:block}
+.uline-name small{font-size:12.5px}
+.uline-in{display:flex;align-items:center;gap:8px;margin:0}
+.uline-in span{font-size:13px;color:var(--muted);white-space:nowrap}
+.uline-in input{width:96px;min-height:40px;padding:0 10px;font-size:16px;text-align:right;font-variant-numeric:tabular-nums}
+.uline-amt{font-size:15px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.uline.total{grid-template-columns:1fr auto;background:var(--soft);border-radius:0 0 12px 12px}
+.uline.total span{font-size:14px;color:var(--muted)}
+.uline.total b{font-size:17px;text-align:right;font-variant-numeric:tabular-nums}
+@media (max-width:520px){.uline:not(.total){grid-template-columns:1fr auto}.uline-name{grid-column:1 / -1}}

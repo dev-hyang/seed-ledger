@@ -252,9 +252,10 @@ FORMS.pay = async (d, f) => { await save("pay", { saleId: f.dataset.sale, date: 
    折上折：按当时欠款 × 百分比，或直接减一笔金额；金额当场固化，之后欠款变了也不跟着变。
    核销：这笔收不回来了，记为坏账（客户画像会用到）。 */
 ACT["collect-new"] = el => show(() => collectForm(el.dataset.id));
-function unitPriceRows(s){
-  return s.lines.map((l, i) => `<div class="sline" data-uline><div class="sline-top"><b>${esc(brandName(l.brandId))}</b><small>${esc(qty(l.qty))} · ${esc(t("单据价"))} ${esc(unitPrice(l.price))}${l.hint != null ? ` · 🔒 ${esc(unitPrice(l.hint))}` : ""}</small></div>
-    <div class="grid2">${fld("议价单价（¥/斤）", `<input name="uprice" data-uprice data-i="${i}" type="number" step="any" min="0" inputmode="decimal" value="${l.hint != null ? l.hint : l.price}">`)}<p class="lamt" data-ulamt></p></div></div>`).join("");
+function unitPriceRows(s){   // 一行一个品种：品种和数量 | 议价单价输入框（和文字同一行）| 该行金额靠右
+  return `<div class="ulines">${s.lines.map((l, i) => `<div class="uline" data-uline><div class="uline-name"><b>${esc(brandName(l.brandId))}</b><small>${esc(qty(l.qty))} · ${esc(t("单据价"))} ${esc(unitPrice(l.price))}${l.hint != null ? ` · 🔒 ${esc(unitPrice(l.hint))}` : ""}</small></div>
+    <label class="uline-in"><span>${esc(t("议价单价"))}</span><input name="uprice" data-uprice data-i="${i}" type="number" step="any" min="0" inputmode="decimal" value="${l.hint != null ? l.hint : l.price}" aria-label="${esc(brandName(l.brandId) + " " + t("议价单价"))}"></label>
+    <b class="uline-amt" data-ulamt></b></div>`).join("")}<div class="uline total"><span>${esc(t("按单价合计"))}</span><b data-utotal></b></div></div>`;
 }
 function collectForm(id){
   const s = model().saleM.get(id), hint = s.lines.some(l => l.hint != null) && hintTotal(s) < s.net - EPS;
@@ -305,12 +306,12 @@ function collectPreview(f){
   if (type === "negotiate" && nMode === "unit") {
     for (const el of f.querySelectorAll("[data-uline]")) {
       const i = +el.querySelector("[data-uprice]").dataset.i, l = s.lines[i], p = +el.querySelector("[data-uprice]").value || 0;
-      const slot = el.querySelector("[data-ulamt]"); if (slot) slot.textContent = l && p ? `= ${money(l.qty * p)}` : "";
+      const slot = el.querySelector("[data-ulamt]"); if (slot) slot.textContent = l && p ? money(l.qty * p) : "—";
     }
+    const tot = f.querySelector("[data-utotal]"); if (tot) tot.textContent = money(target);
   }
   const net = r2(s.net - amount), bal = r2(net - s.paid), profit = r2(net - s.cogs - s.deliveryCost);
-  const extra = type === "negotiate" && nMode === "unit" ? kv("按单价合计", money(target)) : "";
-  f.querySelector("[data-preview]").innerHTML = `<div class="stmt">${extra}${kv("本次让利", "−" + money(amount), amount ? "neg" : "")}${kv("调整后应收", money(net))}${kv("调整后欠款", money(Math.max(bal, 0)))}<div class="kv total"><span>${esc(t("调整后利润"))}</span><b class="${profit < 0 ? "neg" : "pos"}">${esc(money(profit, { sign: true }))}</b></div></div>${profit < 0 ? `<p class="hint neg">${esc(t("按这个价格这张单会亏本。"))}</p>` : ""}`;
+  f.querySelector("[data-preview]").innerHTML = `<div class="stmt">${kv("本次让利", "−" + money(amount), amount ? "neg" : "")}${kv("调整后应收", money(net))}${kv("调整后欠款", money(Math.max(bal, 0)))}<div class="kv total"><span>${esc(t("调整后利润"))}</span><b class="${profit < 0 ? "neg" : "pos"}">${esc(money(profit, { sign: true }))}</b></div></div>${profit < 0 ? `<p class="hint neg">${esc(t("按这个价格这张单会亏本。"))}</p>` : ""}`;
 }
 INP.collect = (el, f) => collectPreview(f);
 FORMS.collect = async (d, f) => {

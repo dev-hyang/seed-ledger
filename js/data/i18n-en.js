@@ -41,7 +41,7 @@ const EN = {
   "作废销售单": "Void sales order", "作废的单不计入销售、库存和利润，但记录和原因永久保留，可供查账。": "Voided orders are excluded from sales, stock and profit, but the record and reason are kept permanently for auditing.", "作废原因": "Void reason",
   "收款": "Payment", "当前应收": "Current receivable", "已收": "Received", "成本（含送货）": "Cost (incl. delivery)", "私下价合计 {a}，对应欠款 {b}": "Private price total {a}, balance {b}", "按私下价议价": "Negotiate at private price",
   "类型": "Type", "议价方式": "How to negotiate", "一口价": "Lump sum", "按单价议价": "By unit price", "填每行议价后的单价，系统按数量算总价。": "Enter the agreed unit price on each line; the total is calculated from quantity.",
-  "议价单价（¥/斤）": "Negotiated unit price (¥/jin)", "单据价": "Slip price", "按单价合计": "Total at unit prices",
+  "议价单价（¥/斤）": "Negotiated unit price (¥/jin)", "议价单价": "New unit price", "单据价": "Slip price", "按单价合计": "Total at unit prices",
   "折上折方式": "Extra discount type", "按比例": "By percent", "按金额": "By amount", "再减金额（¥）": "Amount to take off (¥)", "例如直接少 500，从当前欠款里减": "e.g. take off 500 from the current balance",
   "议价后的应收总额（¥）": "Receivable after negotiation (¥)", "客户讲价后，双方认可的总金额": "The total both sides agreed on after bargaining", "再折（%）": "Extra discount (%)", "在当前欠款上再打折": "Applied on top of the current balance",
   "这张单的过程": "This order's timeline", "销售历史": "Sales history", "行记录": "Rows", "时间线": "Timeline",
