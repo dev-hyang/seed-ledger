@@ -262,7 +262,28 @@ dialog[open]~.toast{z-index:1000}
 
 .row-main .badge{align-self:flex-start;margin:2px 0}   /* 同名等小标签不要被拉成整行 */
 
+/* 销售 / 客户生命周期：时间线（行记录用表格） */
+.tl{list-style:none;margin:4px 0 12px;padding:0 0 0 4px}
+.tl li{position:relative;display:grid;grid-template-columns:minmax(88px,auto) 1fr auto;gap:4px 12px;align-items:start;padding:10px 8px 14px 22px;border-left:3px solid var(--line)}
+.tl li::before{content:"";position:absolute;left:-8px;top:16px;width:12px;height:12px;border-radius:50%;background:var(--brand);border:2px solid var(--surface);box-shadow:0 0 0 2px var(--brand)}
+.tl li.pos::before,.tl li.closes::before{background:var(--good);box-shadow:0 0 0 2px var(--good)}
+.tl li.neg::before{background:var(--bad);box-shadow:0 0 0 2px var(--bad)}
+.tl li.warn::before{background:var(--warn);box-shadow:0 0 0 2px var(--warn)}
+.tl time{font-size:12.5px;color:var(--muted)}
+.tl-body b{font-size:15px;display:block}
+.tl-body .link{padding:0;min-height:0}
+.tl-side{text-align:right}
+.tl-side b{display:block;font-size:15px}
+@media (max-width:520px){.tl li{grid-template-columns:1fr auto}.tl time{grid-column:1 / -1}}
+
 /* 批量选择条：滚动时贴在顶部；待催账汇总 */
 .batchbar{position:sticky;top:56px;z-index:5;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 10px;margin-bottom:10px;background:var(--soft);border:1px solid var(--line);border-radius:12px}
 .batchbar b{margin-right:auto}
 .todo-sum{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 8px;font-size:14px}
+
+/* 审计日志筛选：手机两列，宽屏一行 */
+.audit-f select,.audit-f input[type=date]{min-height:40px;border:1px solid var(--line);border-radius:10px;padding:0 8px;background:var(--surface);color:inherit;font:inherit}
+.audit-f select{flex:1 1 140px}
+.audit-d{display:flex;align-items:center;gap:6px;flex:1 1 160px}
+.audit-d span{font-size:13px;color:var(--muted)}
+.audit-d input{flex:1}

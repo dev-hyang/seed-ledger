@@ -10,7 +10,7 @@ import * as db from "./db.js";
 import { S, adoptLocal, loadOrg, notify, setKick, settingsFrom } from "./state.js";
 import { debounce, toast } from "./util.js";
 import { t } from "./i18n.js";
-import { hashError, joinOutcome, cleanInvite, inviteFresh, displayFromEmail } from "./auth-msg.js";
+import { hashError, linkLanding, joinOutcome, cleanInvite, inviteFresh, displayFromEmail } from "./auth-msg.js";
 
 const T = { orgs: DB_PREFIX + "orgs", members: DB_PREFIX + "org_members", records: DB_PREFIX + "records", audit: DB_PREFIX + "audit_log", requests: DB_PREFIX + "member_requests", votes: DB_PREFIX + "request_votes" };   // 表名（见 config.js 的 DB_PREFIX）
 const fn = name => DB_PREFIX + name;   // 函数名
@@ -30,8 +30,13 @@ async function initCloud(){
   if (!CLOUD_CONFIGURED) { S.cloud = "local"; await loadOrg("local"); return; }
   await loadOrg("local");   // 先让页面有东西可看，再等登录结果
   S.cloud = "signedout"; notify();
-  const linkErr = hashError(location.hash);   // 点了过期 / 用过的确认链接跳回来：说清楚，并清掉地址里的错误参数
-  if (linkErr) { setTimeout(() => toast(linkErr), 400); history.replaceState(null, "", location.pathname + location.search); }
+  const linkErr = hashError(location.hash, location.search), linkOk = !linkErr && linkLanding(location.hash);   // 点了确认链接跳回来：失败说清楚原因并清掉地址里的错误参数；成功提示一下（令牌由 supabase-js 读取）
+  if (linkErr) {
+    setTimeout(() => toast(linkErr), 400);
+    const q = new URLSearchParams(location.search); ["error", "error_code", "error_description"].forEach(k => q.delete(k));
+    history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : ""));
+  }
+  if (linkOk) setTimeout(() => toast(linkOk), 1200);
   const inv = new URLSearchParams(location.search).get("invite");   // 邀请链接 ?invite=码：记下来，并把它从地址栏里去掉
   if (inv) {
     rememberInvite(inv, peekInvite()?.display);
@@ -197,11 +202,27 @@ const approveMember = user => SB.client.rpc(fn("approve_member"), { p_org: S.org
 const rejectMember = user => SB.client.rpc(fn("reject_member"), { p_org: S.org, p_user: user });
 const resetInvite = async (days = 7) => (await SB.client.rpc(fn("reset_invite"), { p_org: S.org, p_days: days })).data;   // 创建者
 const closeInvite = () => SB.client.rpc(fn("close_invite"), { p_org: S.org });                                    // 创建者
-async function cloudAudit(limit = 300){
-  const { data } = await SB.client.from(T.audit).select("seq, kind, rec_id, action, before, after, by_user, at").eq("org_id", S.org).order("seq", { ascending: false }).limit(limit);
-  return data || [];
+/* 审计日志分页：由近及远，每页 limit 条；多取 1 条判断有没有下一页（hasNext），不算总数。
+   云端用 seq 做游标（before = 上一页最后一条的 seq），筛选条件都在数据库里过滤；from / to 是 ISO 时间，to 不含。 */
+async function cloudAudit({ limit = 20, before, kind, action, user, from, to } = {}){
+  let q = SB.client.from(T.audit).select("seq, kind, rec_id, action, before, after, by_user, at").eq("org_id", S.org);
+  if (before) q = q.lt("seq", before);
+  if (kind) q = q.eq("kind", kind);
+  if (action) q = q.eq("action", action);
+  if (user) q = q.eq("by_user", user);
+  if (from) q = q.gte("at", from);
+  if (to) q = q.lt("at", to);
+  const { data, error } = await q.order("seq", { ascending: false }).limit(limit + 1);
+  if (error) throw error;
+  const rows = data || [];
+  return { rows: rows.slice(0, limit), hasNext: rows.length > limit };
 }
-async function localAudit(){ return (await db.getAll("audit", S.org)).reverse(); }
+/* 本机留痕：数据本来就在这台设备上，全取出来再筛，offset 分页 */
+async function localAudit({ limit = 20, offset = 0, kind, action, from, to } = {}){
+  const rows = (await db.getAll("audit", S.org)).reverse()
+    .filter(r => (!kind || r.kind === kind) && (!action || r.action === action) && (!from || r.at >= from) && (!to || r.at < to));
+  return { rows: rows.slice(offset, offset + limit), hasNext: rows.length > offset + limit };
+}
 const conflictsList = async () => (await db.listAll("conflicts")).filter(c => c.org === S.org).reverse();
 
 const recheck = () => afterAuth();

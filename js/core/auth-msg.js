@@ -31,14 +31,24 @@ function signupOutcome(data, error, email = ""){
   return { kind: "confirm", message: t("确认邮件已发到 {email}。收不到的话：先看垃圾邮件箱；如果你在小月亮等应用注册过，直接用同一个邮箱和密码登录；还是没有，点「重发确认邮件」（太频繁会被限流，隔几分钟再试）。", { email }) };
 }
 
-/** 邮件里的链接跳回来时地址里带的错误（过期 / 已用过）→ 提示文字；没有错误返回空 */
-function hashError(hash){
+/** 邮件里的链接跳回来时地址里带的错误（过期 / 已用过 / 跳转地址没放行）→ 提示文字；没有错误返回空。
+    Supabase 有时把错误放在 #hash，有时放在 ?query（PKCE、或跳回地址不在 Redirect URLs 白名单里时），两处都看。 */
+function hashError(hash, search = ""){
+  const hp = new URLSearchParams(String(hash || "").replace(/^#/, "")), qp = new URLSearchParams(String(search || "").replace(/^\?/, ""));
+  const get = k => hp.get(k) || qp.get(k);
+  const code = get("error_code") || get("error"); if (!code) return "";
+  if (code === "otp_expired") return t("确认链接已失效（过期、已经点过，或被邮箱的安全扫描提前打开过）：请直接用邮箱和密码登录试试，不行点「重发确认邮件」");
+  return t("登录链接有问题：") + (get("error_description") || code);
+}
+/** 确认链接成功跳回（#access_token=…&type=signup）→ 提示「邮箱已确认」；其它返回空 */
+function linkLanding(hash){
   const hp = new URLSearchParams(String(hash || "").replace(/^#/, ""));
-  const code = hp.get("error_code"); if (!code) return "";
-  return code === "otp_expired" ? t("确认链接已失效：请直接用邮箱和密码登录试试，不行点「重发确认邮件」") : t("登录链接有问题：") + (hp.get("error_description") || code);
+  if (!hp.get("access_token")) return "";
+  const type = hp.get("type");
+  return type === "signup" || type === "email_change" ? t("邮箱已确认，已自动登录。") : type === "recovery" ? t("已通过邮件链接登录，可以在设置里改密码。") : "";
 }
 
-export { authMessage, signupOutcome, hashError };
+export { authMessage, signupOutcome, hashError, linkLanding };
 
 /* ============ 角色权限、加入结果、邀请码状态（纯函数，有测试） ============
    角色（权限从小到大）：viewer 只读 · staff 录入员（能录入，不能管成员）· partner 合伙人（录入 + 批准 / 拒绝加入申请、看邀请码和审计）· owner 创建者（改角色、移出成员、重新生成 / 关闭邀请码）。

@@ -7,6 +7,7 @@ import { customerLabel, findByPhone, validPhone } from "../logic/customers.js";
 import { esc, today, toast } from "../core/util.js";
 import { t, money, qty, unitPrice, pct, dateFmt, locale } from "../core/i18n.js";
 import { r2, EPS } from "../logic/ledger.js";
+import { collectConcession, saleLifecycle } from "../logic/lifecycle.js";
 import { profileCustomer, anonymizedSummary } from "../logic/profile.js";
 import { askAI, aiAvailable, aiError } from "../core/advice.js";
 import { model, byId, brandName, customerName, seasonName, sortBy, yearSelect, ro } from "./common.js";
@@ -15,6 +16,7 @@ import { ACT, FORMS, CHG, INP } from "./actions.js";
 import { priceFor, brandOpts, yearNow } from "./stock.js";
 import { priceOf, tierOf } from "../logic/pricing.js";
 import { renderTrips } from "./routes.js";
+import { lifeBlock } from "./lifecycle.js";
 
 const subs = [["list", "销售单"], ["collect", "催账"], ["trips", "送货路线"]];
 const STATUS = { settled: ["已结清", "good"], partial: ["部分已付", "warn"], unpaid: ["未付款 / 赊账", "bad"], void: ["已作废", ""] };
@@ -218,13 +220,14 @@ function salePage(id){
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>${esc(t("品种"))}</th><th class="n">${esc(t("数量"))}</th><th class="n">${esc(t("单价"))}</th><th class="n">${esc(t("金额"))}</th></tr></thead><tbody>
       ${s.lines.map(l => `<tr><td><b>${esc(brandName(l.brandId))}</b><small>${esc(seasonName((byId("brand", l.brandId) || {}).seasonId))}</small>${l.hint != null ? `<small class="priv">🔒 ${esc(t("当时可能给了"))} ${esc(unitPrice(l.hint))}（${esc(t("仅自己可见"))}）</small>` : ""}</td><td class="n">${esc(qty(l.qty))}</td><td class="n">${esc(unitPrice(l.price))}</td><td class="n">${esc(money(l.amount))}</td></tr>`).join("")}</tbody></table></div>
     <div class="stmt">${kv("货款", money(s.gross))}
-      ${s.adjs.map(a => `<div class="kv adj"><span>${esc(t(adjLab[a.type]))}${a.pct ? ` ${esc(pct(a.pct))}` : ""} · ${esc(dateFmt(a.date))}${a.reason ? `<small>${esc(a.reason)}</small>` : ""}</span><b class="neg">−${esc(money(a.amount))}${ro() || void_ ? "" : `<button class="x sm" data-act="adj-del" data-id="${a.id}" aria-label="${esc(t("撤销这条调整"))}">×</button>`}</b></div>`).join("")}
+      ${s.adjs.map(a => `<div class="kv adj"><span>${esc(t(adjLab[a.type]))}${a.nMode === "unit" && a.prices ? ` · ${esc(a.prices.map(l => brandName(l.brandId) + " " + unitPrice(l.price)).join("、"))}` : a.pct ? ` ${esc(pct(a.pct))}` : ""} · ${esc(dateFmt(a.date))}${a.reason ? `<small>${esc(a.reason)}</small>` : ""}</span><b class="neg">−${esc(money(a.amount))}${ro() || void_ ? "" : `<button class="x sm" data-act="adj-del" data-id="${a.id}" aria-label="${esc(t("撤销这条调整"))}">×</button>`}</b></div>`).join("")}
       <div class="kv total"><span>${esc(t("应收"))}</span><b>${esc(money(s.net))}</b></div>
       ${s.pays.length ? `<h4>${esc(t("收款"))}</h4>${sortBy(s.pays, p => p.date).map(p => `<div class="kv"><span>${esc(dateFmt(p.date))} · ${esc(t((METHODS.find(m => m[0] === p.method) || [0, "其它"])[1]))}${p.note ? `<small>${esc(p.note)}</small>` : ""}</span><b class="pos">+${esc(money(p.amount))}${ro() || void_ ? "" : `<button class="x sm" data-act="pay-del" data-id="${p.id}" aria-label="${esc(t("撤销这笔收款"))}">×</button>`}</b></div>`).join("")}` : ""}
       <div class="kv total"><span>${esc(s.balance < -EPS ? t("多收") : t("欠款"))}</span><b class="${s.balance > EPS ? "neg" : ""}">${esc(money(Math.abs(s.balance)))}</b></div></div>
     ${hasHint && s.balance > EPS && !void_ && hintTotal(s) < s.net - EPS ? `<p class="hint priv">🔒 ${esc(t("按私下价结算的话，应收约 {a}（比现在少 {b}）。", { a: money(hintTotal(s)), b: money(Math.max(s.net - hintTotal(s), 0)) }))}</p>` : ""}
     <div class="stmt"><h4>${esc(t("这张单的成本与利润（应收口径）"))}</h4>${kv("进货成本", money(s.cogs))}${kv(s.delivery?.type === "deliver" ? "送货成本" : "取货方式", s.delivery?.type === "deliver" ? money(s.deliveryCost) : t("客户上门取货"))}
-      <div class="kv total"><span>${esc(t("利润"))}</span><b class="${s.profit < 0 ? "neg" : "pos"}">${esc(money(s.profit, { sign: true }))}</b></div></div>`;
+      <div class="kv total"><span>${esc(t("利润"))}</span><b class="${s.profit < 0 ? "neg" : "pos"}">${esc(money(s.profit, { sign: true }))}</b></div></div>
+    <h3 class="grp">${esc(t("这张单的过程"))}</h3>${lifeBlock(saleLifecycle(s), { viewKey: "saleLife" })}`;
   const foot = ro() || void_ ? btn("打印单据", "print-sale", { data: { id } }) : `${s.delivery?.type === "deliver" && !s.delivery.done ? btn("已送达", "delivered", { data: { id } }) : ""}${btn("＋ 收款", "pay-new", { cls: "primary", data: { id } })}${s.balance > EPS ? btn(s.chase ? "取消催账标记" : "🚩 标记待催账", "chase-toggle", { data: { id } }) : ""}${btn("催账 / 议价", "collect-new", { data: { id } })}${btn("打印单据", "print-sale", { data: { id } })}${btn("修改", "sale-edit", { data: { id } })}${btn("作废", "sale-void", { cls: "ghost-danger", data: { id } })}`;
   return { title: t("销售单"), body, foot };
 }
@@ -245,10 +248,14 @@ ACT["pay-new"] = el => show(() => { const s = model().saleM.get(el.dataset.id);
 FORMS.pay = async (d, f) => { await save("pay", { saleId: f.dataset.sale, date: d.date, amount: d.amount, method: d.method, note: d.note }); back(); };
 
 /* ---------- 催账：议价 / 折上折 / 核销 ----------
-   议价：填议价后的应收总额，差额记为一笔「议价」调整。
-   折上折：在议价之后还没收的欠款上再打折，按当时的欠款 × 百分比算出金额并记下（之后欠款变了也不会跟着变，账可复查）。
+   议价：一口价（填议价后总额）或按单价（各行新单价 × 数量，系统算总额）；差额记为一笔「议价」调整。
+   折上折：按当时欠款 × 百分比，或直接减一笔金额；金额当场固化，之后欠款变了也不跟着变。
    核销：这笔收不回来了，记为坏账（客户画像会用到）。 */
 ACT["collect-new"] = el => show(() => collectForm(el.dataset.id));
+function unitPriceRows(s){
+  return s.lines.map((l, i) => `<div class="sline" data-uline><div class="sline-top"><b>${esc(brandName(l.brandId))}</b><small>${esc(qty(l.qty))} · ${esc(t("单据价"))} ${esc(unitPrice(l.price))}${l.hint != null ? ` · 🔒 ${esc(unitPrice(l.hint))}` : ""}</small></div>
+    <div class="grid2">${fld("议价单价（¥/斤）", `<input name="uprice" data-uprice data-i="${i}" type="number" step="any" min="0" inputmode="decimal" value="${l.hint != null ? l.hint : l.price}">`)}<p class="lamt" data-ulamt></p></div></div>`).join("");
+}
 function collectForm(id){
   const s = model().saleM.get(id), hint = s.lines.some(l => l.hint != null) && hintTotal(s) < s.net - EPS;
   return { title: t("催账 / 议价"),
@@ -256,30 +263,64 @@ function collectForm(id){
       <div class="stmt">${kv("当前应收", money(s.net))}${kv("已收", money(s.paid))}${kv("欠款", money(s.balance), "neg")}${kv("成本（含送货）", money(s.cogs + s.deliveryCost))}</div>
       ${hint ? `<p class="hint priv">🔒 ${esc(t("私下价合计 {a}，对应欠款 {b}", { a: money(hintTotal(s)), b: money(Math.max(hintTotal(s) - s.paid, 0)) }))} <button type="button" class="link" data-act="collect-hint">${esc(t("按私下价议价"))}</button></p>` : ""}
       ${fld("类型", seg("type", [["negotiate", t("议价")], ["discount", t("折上折")], ["writeoff", t("核销坏账")]], "negotiate"))}
-      <div data-show="negotiate">${fld("议价后的应收总额（¥）", num("target", r2(s.net), { min: 0 }), t("客户讲价后，双方认可的总金额"))}</div>
-      <div data-show="discount" hidden>${fld("再折（%）", num("pct", "", { min: 0 }), t("在当前欠款上再打折"))}</div>
+      <div data-show="negotiate">
+        ${fld("议价方式", seg("nMode", [["lump", t("一口价")], ["unit", t("按单价议价")]], "lump"))}
+        <div data-nmode="lump">${fld("议价后的应收总额（¥）", num("target", r2(s.net), { min: 0 }), t("客户讲价后，双方认可的总金额"))}</div>
+        <div data-nmode="unit" hidden><p class="hint">${esc(t("填每行议价后的单价，系统按数量算总价。"))}</p>${unitPriceRows(s)}</div>
+      </div>
+      <div data-show="discount" hidden>
+        ${fld("折上折方式", seg("dMode", [["pct", t("按比例")], ["amt", t("按金额")]], "pct"))}
+        <div data-dmode="pct">${fld("再折（%）", num("pct", "", { min: 0 }), t("在当前欠款上再打折"))}</div>
+        <div data-dmode="amt" hidden>${fld("再减金额（¥）", num("off", "", { min: 0 }), t("例如直接少 500，从当前欠款里减"))}</div>
+      </div>
       <div data-show="writeoff" hidden>${fld("核销金额（¥）", num("wo", r2(Math.max(s.balance, 0)), { min: 0 }))}</div>
       ${fld("原因 / 备注", area("reason", "", { ph: "例如 客户反映发芽率一般，同意让利" }))}
       <div class="preview" data-preview></div>
       <div class="ai-box"><button type="button" class="btn sm" data-act="ai-negotiate" data-id="${id}">✨ ${esc(t("AI 议价建议"))}</button><div data-ai class="ai-out"></div><small>${esc(t("AI 只看金额和客户等级（不含姓名电话），用你自己的 key；不可用也不影响记账，利润已按成本和送货算好。"))}</small></div></form>`,
     foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("记录"))}</button>` };
 }
-ACT["collect-hint"] = el => { const f = el.closest("form"), s = model().saleM.get(f.dataset.sale); f.elements.type.value = "negotiate"; [...f.elements.type].forEach(r => { r.checked = r.value === "negotiate"; }); f.elements.target.value = hintTotal(s); collectPreview(f); };
-function collectAmount(f){
-  const s = model().saleM.get(f.dataset.sale), type = f.elements.type.value || "negotiate";
-  const raw = type === "negotiate" ? s.net - (+f.elements.target.value || 0) : type === "discount" ? Math.max(s.balance, 0) * (+f.elements.pct.value || 0) / 100 : +f.elements.wo.value || 0;
-  return { s, type, amount: r2(Math.max(raw, 0)) };
+function readUnitPrices(f){ return [...f.querySelectorAll("[data-uprice]")].map(el => el.value === "" ? undefined : +el.value); }
+function collectInput(f, d = {}){
+  return { type: (d.type || f.elements.type?.value) || "negotiate", nMode: d.nMode || f.elements.nMode?.value, dMode: d.dMode || f.elements.dMode?.value,
+    target: d.target ?? (f.elements.target?.value === "" ? undefined : +f.elements.target?.value), pct: d.pct ?? (f.elements.pct?.value === "" ? undefined : +f.elements.pct?.value),
+    off: d.off ?? (f.elements.off?.value === "" ? undefined : +f.elements.off?.value), wo: d.wo ?? (f.elements.wo?.value === "" ? undefined : +f.elements.wo?.value), prices: readUnitPrices(f) };
+}
+ACT["collect-hint"] = el => {
+  const f = el.closest("form"), s = model().saleM.get(f.dataset.sale);
+  [...f.elements.type].forEach(r => { r.checked = r.value === "negotiate"; });
+  [...f.elements.nMode].forEach(r => { r.checked = r.value === "unit"; });
+  f.elements.target.value = hintTotal(s);
+  for (const elp of f.querySelectorAll("[data-uprice]")) { const l = s.lines[+elp.dataset.i]; if (l) elp.value = l.hint ?? l.price; }
+  collectPreview(f);
+};
+function collectAmount(f, d){
+  const s = model().saleM.get(f.dataset.sale), c = collectConcession(s, collectInput(f, d));
+  return { s, ...c };
 }
 function collectPreview(f){
-  const { s, type, amount } = collectAmount(f);
+  const { s, type, amount, nMode, dMode, target } = collectAmount(f);
   for (const box of f.querySelectorAll("[data-show]")) box.hidden = box.dataset.show !== type;
+  for (const box of f.querySelectorAll("[data-nmode]")) box.hidden = type !== "negotiate" || box.dataset.nmode !== nMode;
+  for (const box of f.querySelectorAll("[data-dmode]")) box.hidden = type !== "discount" || box.dataset.dmode !== dMode;
+  if (type === "negotiate" && nMode === "unit") {
+    for (const el of f.querySelectorAll("[data-uline]")) {
+      const i = +el.querySelector("[data-uprice]").dataset.i, l = s.lines[i], p = +el.querySelector("[data-uprice]").value || 0;
+      const slot = el.querySelector("[data-ulamt]"); if (slot) slot.textContent = l && p ? `= ${money(l.qty * p)}` : "";
+    }
+  }
   const net = r2(s.net - amount), bal = r2(net - s.paid), profit = r2(net - s.cogs - s.deliveryCost);
-  f.querySelector("[data-preview]").innerHTML = `<div class="stmt">${kv("本次让利", "−" + money(amount), amount ? "neg" : "")}${kv("调整后应收", money(net))}${kv("调整后欠款", money(Math.max(bal, 0)))}<div class="kv total"><span>${esc(t("调整后利润"))}</span><b class="${profit < 0 ? "neg" : "pos"}">${esc(money(profit, { sign: true }))}</b></div></div>${profit < 0 ? `<p class="hint neg">${esc(t("按这个价格这张单会亏本。"))}</p>` : ""}`;
+  const extra = type === "negotiate" && nMode === "unit" ? kv("按单价合计", money(target)) : "";
+  f.querySelector("[data-preview]").innerHTML = `<div class="stmt">${extra}${kv("本次让利", "−" + money(amount), amount ? "neg" : "")}${kv("调整后应收", money(net))}${kv("调整后欠款", money(Math.max(bal, 0)))}<div class="kv total"><span>${esc(t("调整后利润"))}</span><b class="${profit < 0 ? "neg" : "pos"}">${esc(money(profit, { sign: true }))}</b></div></div>${profit < 0 ? `<p class="hint neg">${esc(t("按这个价格这张单会亏本。"))}</p>` : ""}`;
 }
 INP.collect = (el, f) => collectPreview(f);
 FORMS.collect = async (d, f) => {
-  const { s, type, amount } = collectAmount(f); if (amount <= 0) { toast(t("让利金额要大于 0")); return; }
-  await save("adj", { saleId: s.id, date: today(), type, amount, pct: type === "discount" ? d.pct : undefined, target: type === "negotiate" ? d.target : undefined, reason: d.reason });
+  const { s, type, amount, nMode, dMode, target, pct, prices } = collectAmount(f, d); if (amount <= 0) { toast(t("让利金额要大于 0")); return; }
+  await save("adj", { saleId: s.id, date: today(), type, amount, reason: d.reason,
+    pct: type === "discount" && dMode === "pct" ? pct : undefined,
+    target: type === "negotiate" ? target : undefined,
+    nMode: type === "negotiate" ? nMode : undefined,
+    dMode: type === "discount" ? dMode : undefined,
+    prices: type === "negotiate" && nMode === "unit" ? prices : undefined });
   back();
 };
 ACT["ai-negotiate"] = async el => {

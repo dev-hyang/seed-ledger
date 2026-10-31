@@ -13,8 +13,8 @@ import { PROVIDERS, providerOf, aiSettings, saveAiSettings, aiReady, testAi } fr
 import { ACT, FORMS, CHG, INP } from "./actions.js";
 
 const ROLE = { owner: "创建者", partner: "合伙人（录入 + 批准申请）", staff: "录入员（可录入，不能管成员）", viewer: "只读成员" };
-const KIND_LAB = { sale: "销售单", pay: "收款", adj: "催账调整", purchase: "进货", sreturn: "退货", spay: "打款入池", sfee: "手续费", customer: "客户", brand: "品种", price: "价格", supplier: "种子公司", trip: "送货", town: "镇", setting: "设置" };
-const ACTION_LAB = { create: "新增", update: "修改", delete: "删除", restore: "恢复" };
+const KIND_LAB = { sale: "销售单", pay: "收款", adj: "催账调整", purchase: "进货", sreturn: "退货", spay: "打款入池", sfee: "手续费", customer: "客户", brand: "品种", price: "价格", supplier: "种子公司", trip: "送货", town: "镇", setting: "设置", member: "成员" };
+const ACTION_LAB = { create: "新增", update: "修改", delete: "删除", restore: "恢复", partner_approved: "批准合伙人", member_removed: "移出成员" };
 
 function renderMore(){
   const mem = S.cloud === "online" || S.cloud === "offline";
@@ -320,12 +320,47 @@ function diffText(before, after){
   for (const k of Object.keys(after || {})) if (JSON.stringify(before[k]) !== JSON.stringify(after[k]) && typeof after[k] !== "object") out.push(`${k}: ${before[k] ?? "∅"} → ${after[k] ?? "∅"}`);
   return out.slice(0, 4).join("；");
 }
+/* 每次只取 20 条（由近及远），有更多才显示「加载更多」；筛选：操作、类型、成员（云端）、日期范围。筛选一变就从第一页重新取。 */
+const AUD_PAGE = 20;
+const AUD = { f: {}, rows: [], hasNext: false, loading: false, members: [], online: false, err: "" };
+const audLocalDay = (d, plus = 0) => { if (!d) return undefined; const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + plus); return x.toISOString(); };   // 按本机时区的整天
+async function audLoad(more){
+  if (AUD.loading) return;
+  AUD.loading = true; AUD.err = "";
+  const f = AUD.f, q = { limit: AUD_PAGE, kind: f.kind, action: f.action, from: audLocalDay(f.from), to: audLocalDay(f.to, 1) };
+  try {
+    const who = id => AUD.members.find(m => m.user_id === id)?.name || (id ? t("合伙人") : t("本机"));
+    const res = AUD.online
+      ? await cloud.cloudAudit({ ...q, user: f.user, before: more ? AUD.rows[AUD.rows.length - 1]?.seq : undefined })
+      : await cloud.localAudit({ ...q, offset: more ? AUD.rows.length : 0 });
+    const rows = res.rows.map(r => ({ seq: r.seq, at: r.at, kind: r.kind, action: r.action, who: AUD.online ? who(r.by_user) : t("本机"), before: r.before, after: r.after }));
+    AUD.rows = more ? AUD.rows.concat(rows) : rows; AUD.hasNext = res.hasNext;
+  } catch (e) { AUD.err = e.message || String(e); }
+  finally { AUD.loading = false; }
+}
+function auditPage(){
+  const f = AUD.f, opt = lab => Object.entries(lab).map(([k, v]) => [k, t(v)]);
+  const filters = `<div class="filters audit-f">
+    ${select("action", opt(ACTION_LAB), f.action, { blank: t("全部操作"), change: "audit-f" })}
+    ${select("kind", opt(KIND_LAB), f.kind, { blank: t("全部类型"), change: "audit-f" })}
+    ${AUD.online ? select("user", AUD.members.map(m => [m.user_id, m.name || t("合伙人")]), f.user, { blank: t("全部成员"), change: "audit-f" }) : ""}
+    <label class="audit-d"><span>${esc(t("从"))}</span><input type="date" name="from" value="${esc(f.from || "")}" data-change="audit-f"></label>
+    <label class="audit-d"><span>${esc(t("到"))}</span><input type="date" name="to" value="${esc(f.to || "")}" data-change="audit-f"></label>
+    ${Object.values(f).some(Boolean) ? btn("清除筛选", "audit-clear", { cls: "sm" }) : ""}</div>`;
+  const list = AUD.rows.length ? `<ul class="list tight audit">${AUD.rows.map(r => `<li><div class="row static"><span class="row-main"><b>${esc(t(ACTION_LAB[r.action] || r.action))} · ${esc(t(KIND_LAB[r.kind] || r.kind))} ${esc(brief(r.after))}</b><small>${esc(diffText(r.before, r.after))}</small></span><span class="row-side"><small>${esc(new Date(r.at).toLocaleString())}</small><small>${esc(r.who)}</small></span></div></li>`).join("")}</ul>`
+    : AUD.loading ? "" : empty(Object.values(f).some(Boolean) ? "没有符合条件的记录。" : "还没有记录。");
+  const more = AUD.hasNext ? `<div class="actions" style="justify-content:center">${btn(AUD.loading ? "加载中…" : "加载更多", "audit-more", { disabled: AUD.loading })}</div>` : "";
+  return { title: t("审计日志"), body: `<p class="hint">${esc(AUD.online ? t("来自云端，由数据库自动记录，不能被修改或删除。") : t("本机记录；联网登录后以云端日志为准。"))}</p>${filters}${AUD.err ? `<p class="neg" role="alert">${esc(t("出错了：") + AUD.err)}</p>` : ""}${list}${more}` };
+}
 ACT["open-audit"] = async () => {
-  const members = S.user && (S.cloud === "online") ? (await cloud.listMembers().catch(() => ({ members: [] }))).members : [];
-  const who = id => members.find(m => m.user_id === id)?.name || (id ? t("合伙人") : t("本机"));
-  const rows = S.cloud === "online" ? (await cloud.cloudAudit()).map(r => ({ at: r.at, kind: r.kind, action: r.action, who: who(r.by_user), before: r.before, after: r.after })) : (await cloud.localAudit()).map(r => ({ at: r.at, kind: r.kind, action: r.action, who: t("本机"), before: r.before, after: r.after }));
-  show(() => ({ title: t("审计日志"), body: `<p class="hint">${esc(S.cloud === "online" ? t("来自云端，由数据库自动记录，不能被修改或删除。") : t("本机记录；联网登录后以云端日志为准。"))}</p>${rows.length ? `<ul class="list tight audit">${rows.slice(0, 300).map(r => `<li><div class="row static"><span class="row-main"><b>${esc(t(ACTION_LAB[r.action] || r.action))} · ${esc(t(KIND_LAB[r.kind] || r.kind))} ${esc(brief(r.after))}</b><small>${esc(diffText(r.before, r.after))}</small></span><span class="row-side"><small>${esc(new Date(r.at).toLocaleString())}</small><small>${esc(r.who)}</small></span></div></li>`).join("")}</ul>` : empty("还没有记录。")}` }));
+  AUD.online = S.cloud === "online"; AUD.f = {}; AUD.rows = []; AUD.hasNext = false;
+  AUD.members = S.user && AUD.online ? (await cloud.listMembers().catch(() => ({ members: [] }))).members || [] : [];
+  await audLoad(false);
+  show(auditPage, true);
 };
+CHG["audit-f"] = async el => { AUD.f[el.name] = el.value || undefined; await audLoad(false); };
+ACT["audit-clear"] = async () => { AUD.f = {}; await audLoad(false); };
+ACT["audit-more"] = async () => { await audLoad(true); };
 ACT["open-conflicts"] = async () => {
   const list = await cloud.conflictsList();
   show(() => ({ title: t("同步冲突"), body: list.length ? `<ul class="list tight">${list.map(c => `<li><div class="row static"><span class="row-main"><b>${esc(t(KIND_LAB[c.kind] || c.kind))} ${esc(brief(c.mine))}</b><small>${esc(t("你的版本："))}${esc(JSON.stringify(c.mine).slice(0, 160))}</small></span><span class="row-side"><small>${esc(new Date(c.at).toLocaleString())}</small></span></div></li>`).join("")}</ul>` : empty("没有冲突。") }));

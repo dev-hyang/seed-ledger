@@ -4,7 +4,7 @@ Supabase 免费套餐同时只能有两个项目，所以账本提供两种部�
 
 | | A. 独立项目 | B. 并入 baby-log 数据库 |
 |---|---|---|
-| 脚本 | `001_schema.sql` → `002_roles_and_invites.sql` → `003_staff_role.sql` → `004_anonymous_join.sql` → `005_member_votes.sql`（按顺序） | `shared-db/sl_001 … sl_008`（按顺序，每个可重复执行） |
+| 脚本 | `001_schema.sql` → `002_roles_and_invites.sql` → `003_staff_role.sql` → `004_anonymous_join.sql` → `005_member_votes.sql` → `006_audit_paging.sql`（按顺序） | `shared-db/sl_001 … sl_009`（按顺序，每个可重复执行） |
 | 对象名 | `orgs` `records` `put_record` … | 全部 `sl_` 前缀：`sl_orgs` `sl_records` `sl_put_record` … |
 | `DB_PREFIX` | `""` | `"sl_"` |
 | URL / anon key | 新项目的 | baby-log 那个项目的 |
@@ -20,6 +20,7 @@ Supabase 免费套餐同时只能有两个项目，所以账本提供两种部�
 6. `shared-db/sl_006_staff_role.sql`：新增「录入员」角色
 7. `shared-db/sl_007_anonymous_join.sql`：免邮箱加入（见下）
 8. `shared-db/sl_008_member_votes.sql`：合伙人申请与成员移出的全体表决（见下）
+9. `shared-db/sl_009_audit_paging.sql`：审计日志分页用的索引（只加索引，可选；不执行也能用，日志多了会慢）
 
 然后 `js/config.js`：`DB_PREFIX = "sl_"`，URL 和 anon key 填 baby-log 项目的。
 

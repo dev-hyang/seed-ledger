@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 const store = { "seedledger.v1.locale": "zh-CN" };
 globalThis.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
 globalThis.document = { documentElement: {}, title: "" };
-const { authMessage, signupOutcome, hashError } = await import("../js/core/auth-msg.js");
+const { authMessage, signupOutcome, hashError, linkLanding } = await import("../js/core/auth-msg.js");
 
 test("注册：邮箱已注册过（共用账号）→ Supabase 返回「成功」但 identities 为空、不发邮件 → 提示直接登录", () => {
   const out = signupOutcome({ user: { identities: [] }, session: null }, null, "a@b.test");
@@ -34,6 +34,9 @@ test("邮件链接过期跳回来：地址里的错误转成提示；没有错�
   assert.match(hashError("#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid"), /已失效/);
   assert.match(hashError("#error_code=other&error_description=Boom"), /Boom/);
   assert.equal(hashError("#access_token=abc"), ""); assert.equal(hashError(""), "");
+  assert.match(hashError("", "?error=access_denied&error_code=otp_expired"), /已失效/);   // 错误在 query 里
+  assert.match(hashError("", "?error=server_error&error_description=Bad+redirect"), /Bad redirect/);
+  assert.equal(hashError("", "?invite=ABC"), "");
 });
 
 const { perms, joinOutcome, inviteState } = await import("../js/core/auth-msg.js");
@@ -108,4 +111,12 @@ test("邀请码或邀请链接：两种都能取出码；带参数 / 锚点 / �
   assert.equal(extractInvite("https://x.test/seed-ledger/?a=1&invite=Ab12Cd34&b=2#top"), "Ab12Cd34");
   assert.equal(extractInvite("请加入：https://x.test/?invite=AB12CD34 谢谢"), "AB12CD34");
   assert.equal(extractInvite("https://x.test/seed-ledger/"), ""); assert.equal(extractInvite(""), ""); assert.equal(extractInvite("hi"), "");
+});
+
+test("确认链接成功跳回：signup / email_change 提示邮箱已确认；没有令牌或其它类型不提示", () => {
+  assert.match(linkLanding("#access_token=a&refresh_token=b&type=signup"), /已确认/);
+  assert.match(linkLanding("#access_token=a&type=email_change"), /已确认/);
+  assert.equal(linkLanding("#type=signup"), "");
+  assert.equal(linkLanding("#access_token=a&type=magiclink"), "");
+  assert.equal(linkLanding(""), "");
 });

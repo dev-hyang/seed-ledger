@@ -3,7 +3,7 @@
    手机号默认遮挡显示（设置里可关），AI 建议只发脱敏数字（无姓名电话地址）。 */
 import { S, save, live, remove } from "../core/state.js";
 import { esc, toast } from "../core/util.js";
-import { t, money, pct, dateFmt, locale } from "../core/i18n.js";
+import { t, money, pct, locale } from "../core/i18n.js";
 import { profileCustomer, anonymizedSummary } from "../logic/profile.js";
 import { r2, EPS } from "../logic/ledger.js";
 import { askAI, aiAvailable, aiError } from "../core/advice.js";
@@ -12,7 +12,8 @@ import { show, back, fld, text, area, seg, formData, badge, empty, btn, kv, ask 
 import { tierOf } from "../logic/pricing.js";
 import { customerLabel, findByPhone, maskPhone, placeOf, sameNameCount, validPhone } from "../logic/customers.js";
 import { ACT, FORMS, INP } from "./actions.js";
-import { saleRow } from "./sales.js";
+import { customerLifecycle } from "../logic/lifecycle.js";
+import { lifeBlock } from "./lifecycle.js";
 
 const GRADE = { A: ["A 优", "good"], B: ["B 一般", "warn"], C: ["C 谨慎", "bad"], N: ["新客户", ""] };
 const RENEW = { yes: "建议明年继续合作", careful: "可以继续，但要收紧条件", no: "不建议明年继续赊账 / 签约", new: "新客户：先小额、现款或高定金" };
@@ -45,7 +46,7 @@ function customerPage(id){
       ${p.guard.length ? `<h4>${esc(t("建议的保障措施"))}</h4><ul class="bul">${p.guard.map(g => `<li>${esc(t(g))}</li>`).join("")}</ul>` : ""}
       <div class="ai-box"><button class="btn sm" data-act="ai-customer" data-id="${id}">✨ ${esc(t("AI 写成建议"))}</button><div data-ai class="ai-out"></div></div>
       <small class="disc">${esc(t("以上只是根据交易记录的风险提示，不构成法律意见；重大纠纷请咨询律师，并保留全部单据。"))}</small></div>
-    <h3 class="grp">${esc(t("交易记录"))}</h3>${sales.length ? `<ul class="list">${sales.map(saleRow).join("")}</ul>` : empty("还没有交易。")}`;
+    <h3 class="grp">${esc(t("销售历史"))}</h3>${sales.length ? lifeBlock(customerLifecycle(sales), { viewKey: "custLife", showSale: true, emptyMsg: "还没有交易。" }) : empty("还没有交易。")}`;
   return { title: c.name, body, foot: `${btn("打印对账单", "print-customer", { cls: "primary", data: { id } })}${ro() ? "" : btn("修改", "customer-edit", { data: { id } })}` };
 }
 ACT["customer-view"] = el => show(() => customerPage(el.dataset.id), true);
