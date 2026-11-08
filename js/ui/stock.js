@@ -4,9 +4,10 @@ import { esc, today } from "../core/util.js";
 import { t, money, qty, unitLabel, pct, dateFmt } from "../core/i18n.js";
 import { inventory, supplierStatement, suggestReturnFee, r2 } from "../logic/ledger.js";
 import { model, byId, brandName, supplierName, seasonName, seasonOpts, sortBy, yearSelect, ro } from "./common.js";
-import { show, back, fld, text, num, date, area, select, formData, badge, empty, btn, kv, ask } from "./kit.js";
+import { subnav, show, back, fld, text, num, date, area, select, formData, badge, empty, btn, kv, ask } from "./kit.js";
 import { ACT, FORMS, CHG } from "./actions.js";
 import { paged, resetPage } from "./pager.js";
+import { filterUI } from "./filters.js";
 
 import { normalizePrice } from "../logic/pricing.js";
 
@@ -21,7 +22,7 @@ function priceFor(brandId, year){
 
 function renderStock(){
   const sub = S.sub.stock || "inv";
-  const tabs = `<div class="subtabs" role="tablist">${subs.map(([k, l]) => `<button role="tab" aria-selected="${sub === k}" data-act="stock-sub" data-k="${k}">${esc(t(l))}</button>`).join("")}</div>`;
+  const tabs = subnav(subs, sub, "stock-sub", "库存");
   const body = { inv: invView, flow: flowView, brand: brandView, pool: poolView }[sub]();
   return `<div class="page-head"><h1>${esc(t("库存"))}</h1><div class="head-tools">${yearSelect(yearNow())}</div></div>${tabs}${body}`;
 }
@@ -35,21 +36,28 @@ function invView(){
   const other = rows.filter(r => !S.settings.seasons.some(s => s.id === r.seasonId));
   if (other.length) bySeason.push({ s: { id: "", name: "其它" }, rows: other });
   const left = rows.filter(r => r.onHand > 0.5);
-  return `<div class="kpis">${kv("库存价值", money(total))}${kv("未售完的品种", String(left.length))}</div>
+  return `<div class="kpis k2">${kv("库存价值", money(total))}${kv("未售完的品种", String(left.length))}</div>
     ${left.length ? `<p class="hint">${esc(t("没卖完的货可以退回种子公司；注意退货比例高时可能被收手续费，在「种子公司账」里看。"))}</p>` : ""}
-    ${bySeason.map(g => `<h3 class="grp">${esc(t(g.s.name))}</h3><div class="tbl-wrap"><table class="tbl"><thead><tr><th>${esc(t("品种"))}</th><th class="n">${esc(t("进货"))}</th><th class="n">${esc(t("退货"))}</th><th class="n">${esc(t("已售"))}</th><th class="n">${esc(t("库存"))}</th><th class="n">${esc(t("库存价值"))}</th></tr></thead><tbody>
-      ${g.rows.map(r => `<tr><td><b>${esc(brandName(r.brandId))}</b><small>${esc(supplierName(r.supplierId))}</small></td><td class="n">${esc(qty(r.purchased))}</td><td class="n">${esc(qty(r.returned))}</td><td class="n">${esc(qty(r.sold))}</td>
-      <td class="n ${r.oversold ? "neg" : ""}"><b>${esc(qty(r.onHand))}</b>${r.oversold ? `<small class="neg">${esc(t("卖超了，检查进货记录"))}</small>` : ""}</td><td class="n">${esc(money(r.value))}</td></tr>`).join("")}</tbody></table></div>`).join("")}`;
+    ${bySeason.map(g => `<h3 class="grp">${esc(t(g.s.name))}</h3><div class="tbl-wrap"><table class="tbl stack"><thead><tr><th>${esc(t("品种"))}</th><th class="n">${esc(t("进货"))}</th><th class="n">${esc(t("退货"))}</th><th class="n">${esc(t("已售"))}</th><th class="n">${esc(t("库存"))}</th><th class="n">${esc(t("库存价值"))}</th></tr></thead><tbody>
+      ${g.rows.map(r => `<tr><td class="lead nm" title="${esc(brandName(r.brandId) + " · " + supplierName(r.supplierId))}"><b>${esc(brandName(r.brandId))}</b><small>${esc(supplierName(r.supplierId))}</small></td><td class="n" data-l="${esc(t("进货"))}">${esc(qty(r.purchased))}</td><td class="n" data-l="${esc(t("退货"))}">${esc(qty(r.returned))}</td><td class="n" data-l="${esc(t("已售"))}">${esc(qty(r.sold))}</td>
+      <td class="n ${r.oversold ? "neg" : ""}" data-l="${esc(t("库存"))}"><b>${esc(qty(r.onHand))}</b>${r.oversold ? `<small class="neg">${esc(t("卖超了，检查进货记录"))}</small>` : ""}</td><td class="n" data-l="${esc(t("库存价值"))}">${esc(money(r.value))}</td></tr>`).join("")}</tbody></table></div>`).join("")}`;
 }
 
 /* ---------- 进货 / 退货 ---------- */
 function flowView(){
   const y = yearNow(), m = model();
-  const rows = sortBy([...m.D.purchase.filter(p => p.year === y).map(p => ({ ...p, type: "purchase" })), ...m.D.sreturn.filter(p => p.year === y).map(p => ({ ...p, type: "return" }))], r => r.date, -1);
-  const head = ro() ? "" : `<div class="actions">${btn("＋ 进货", "purchase-new", { cls: "primary" })}${btn("＋ 退货给种子公司", "return-new")}</div>`;
-  if (!rows.length) return head + empty("这一年还没有进货记录。");
+  const F = S.filters, so = F.flowSort || "new";
+  const all = [...m.D.purchase.filter(p => p.year === y).map(p => ({ ...p, type: "purchase" })), ...m.D.sreturn.filter(p => p.year === y).map(p => ({ ...p, type: "return" }))];
+  let rows = all.filter(r => (!F.flowType || r.type === F.flowType) && (!F.flowSup || r.supplierId === F.flowSup));
+  rows = so === "old" ? sortBy(rows, r => r.date) : so === "qty" ? sortBy(rows, r => r.qty, -1) : so === "amt" ? sortBy(rows, r => r.qty * r.unitCost, -1) : sortBy(rows, r => r.date, -1);   // 默认最新的在前
+  const head = (ro() ? "" : `<div class="page-acts">${btn("＋ 进货", "purchase-new", { cls: "primary" })}${btn("＋ 退货给种子公司", "return-new")}</div>`)
+    + (all.length ? filterUI("flow", { state: F, onChange: () => resetPage("flow"),
+      fields: [{ k: "flowType", label: "类型", opts: [["purchase", t("进货")], ["return", t("退货")]] }, { k: "flowSup", label: "种子公司", opts: sortBy(live("supplier"), x => x.name).map(x => [x.id, x.name]) }],
+      sort: { k: "flowSort", def: "new", opts: [["new", t("日期：最新的在前")], ["old", t("日期：最早的在前")], ["qty", t("数量：多的在前")], ["amt", t("金额：大的在前")]] } }) : "");
+  if (all.length && !rows.length) return head + empty("没有符合条件的记录。");
+  if (!rows.length) return head + empty("这一年还没有进货记录。", "", ro() ? "" : "种子公司送货来了，点上面的「＋ 进货」记一笔；库存会自动加上。");
   const pg = paged("flow", rows);
-  return head + `<ul class="list">${pg.rows.map(r => `<li><button class="row" data-act="${r.type}-edit" data-id="${r.id}"><span class="row-main"><b>${esc(brandName(r.brandId))}</b><small>${esc(supplierName(r.supplierId))} · ${esc(dateFmt(r.date))}</small></span>
+  return head + `<div class="list-head"><span class="hint">${esc(t("点一条可以修改或删除。"))}</span></div><ul class="list">${pg.rows.map(r => `<li><button class="row" data-act="${r.type}-edit" data-id="${r.id}"><span class="row-main"><b>${esc(brandName(r.brandId))}</b><small>${esc(supplierName(r.supplierId))} · ${esc(dateFmt(r.date))}</small></span>
     <span class="row-side"><b>${esc(qty(r.qty))}</b><small>${esc(money(r.qty * r.unitCost))}</small>${badge(t(r.type === "purchase" ? "进货" : "退货"), r.type === "purchase" ? "" : "warn")}</span></button></li>`).join("")}</ul>${pg.btn}`;
 }
 const brandOpts = () => {
@@ -93,8 +101,8 @@ FORMS.return = (d, f) => saveFlow("sreturn", f, d)();
 /* ---------- 品种与价格 ---------- */
 function brandView(){
   const y = yearNow(), brands = live("brand");
-  const head = ro() ? "" : `<div class="actions">${btn("＋ 添加品种", "brand-new", { cls: "primary" })}</div>`;
-  if (!brands.length) return head + empty("按季节添加稻种品种，例如早稻：富香 977；一晚：美华 303。");
+  const head = ro() ? "" : `<div class="page-acts">${btn("＋ 添加品种", "brand-new", { cls: "primary" })}</div>`;
+  if (!brands.length) return head + empty("按季节添加稻种品种，例如早稻：富香 977；一晚：美华 303。", "", ro() ? "" : "每个品种要归到一家种子公司，没有的话先到「种子公司账」添加。");
   const groups = S.settings.seasons.map(s => ({ s, rows: sortBy(brands.filter(b => b.seasonId === s.id), b => b.name) })).filter(g => g.rows.length);
   return head + `<p class="hint">${esc(t("价格是 {y} 年的；没单独设置的年份沿用上一年。", { y }))}</p>` + groups.map(g => `<h3 class="grp">${esc(t(g.s.name))}</h3><ul class="list">${g.rows.map(b => { const p = priceFor(b.id, y);
     return `<li><button class="row" data-act="brand-edit" data-id="${b.id}"><span class="row-main"><b>${esc(b.name)}</b><small>${esc(supplierName(b.supplierId))}${b.active === false ? " · " + esc(t("停用")) : ""}</small></span>
@@ -125,7 +133,7 @@ FORMS.brand = async (d, f) => {
 /* ---------- 种子公司账（钱池） ---------- */
 function poolView(){
   const y = yearNow(), m = model(), sup = sortBy(live("supplier"), s => s.name);
-  const head = ro() ? "" : `<div class="actions">${btn("＋ 添加种子公司", "supplier-new", { cls: "primary" })}</div>`;
+  const head = ro() ? "" : `<div class="page-acts">${btn("＋ 添加种子公司", "supplier-new", { cls: "primary" })}</div>`;
   if (!sup.length) return head + empty("添加种子公司后，这里按年对账：打款进「钱池」，进货和手续费从池里扣，余额结转明年。");
   return head + `<p class="hint">${esc(t("种子公司不退现金：打的款放在「钱池」里，用于进货；退货和余款都留在池里，结转到明年。拖欠了则要补款。"))}</p><ul class="list">${sup.map(s => {
     const st = supplierStatement(m, s.id, y);
@@ -136,7 +144,7 @@ function poolView(){
 function statementPage(id){
   const s = byId("supplier", id), y = yearNow(), m = model();
   if (!s) return { title: "", body: "" };
-  const st = supplierStatement(m, id, y), fee = suggestReturnFee(m, id, y), pg = paged("stmt", st.entries);   // 池内余额已按全部往来算好，只截取显示
+  const st = supplierStatement(m, id, y), fee = suggestReturnFee(m, id, y), pg = paged("stmt", [...st.entries].reverse());   // 显示最新的在前；每行的「池内余额」仍是按时间顺序算出来的   // 池内余额已按全部往来算好，只截取显示
   const line = (k, v, cls) => kv(k, esc(money(v, { sign: cls === "sign" })), cls === "sign" ? "" : cls);
   const typeLab = { pay: "打款入池", purchase: "进货", return: "退货抵扣", fee: "手续费" };
   return { title: s.name,

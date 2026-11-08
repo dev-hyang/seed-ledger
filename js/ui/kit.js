@@ -3,6 +3,7 @@
    弹层里点「返回」回到上一层（例如：客户 → 某张销售单 → 收款表单，逐层退回）。 */
 import { $, esc } from "../core/util.js";
 import { t } from "../core/i18n.js";
+import { ACT, CHG } from "./actions.js";
 
 const stack = [];
 const dlg = () => $("#sheet");
@@ -52,11 +53,22 @@ function formData(form){
 
 /* ---------- 展示 ---------- */
 const badge = (text_, kind = "") => `<span class="badge ${kind}">${esc(text_)}</span>`;
-const empty = (msg, action = "") => `<div class="empty"><p>${esc(t(msg))}</p>${action}</div>`;
+/** 空状态：一句话说现在是什么情况，hint 说下一步怎么做，action 是一个按钮 */
+const empty = (msg, action = "", hint = "") => `<div class="empty"><p>${esc(t(msg))}</p>${hint ? `<small>${esc(t(hint))}</small>` : ""}${action}</div>`;
+/** 视图切换（行记录 / 时间线 这类）：一组按钮，按下的那个高亮；opts: [[value, 中文标签]]，data 是附加的 data-* */
+const segBtns = (opts, cur, act, data = {}, label = "") => `<div class="segbtn" role="group"${label ? ` aria-label="${esc(t(label))}"` : ""}>${opts.map(([k, l]) => `<button type="button" aria-pressed="${k === cur}" data-act="${act}" data-k="${esc(k)}" ${Object.entries(data).map(([a, v]) => `data-${a}="${esc(v)}"`).join(" ")}>${esc(t(l))}</button>`).join("")}</div>`;
 const btn = (label, act, o = {}) => `<button type="button" class="btn ${o.cls || ""}" data-act="${act}" ${Object.entries(o.data || {}).map(([k, v]) => `data-${k}="${esc(v)}"`).join(" ")} ${o.disabled ? "disabled" : ""}>${o.raw ? label : esc(t(label))}</button>`;
 const kv = (k, v, cls = "") => `<div class="kv ${cls}"><span>${esc(t(k))}</span><b>${v}</b></div>`;
 
-export { show, replace, back, closeAll, refresh, sheetOpen, paint, fld, text, num, date, area, select, seg, formData, badge, empty, btn, kv };
+/** 页面里的分页导航：电脑上是一排标签，手机上是一个带小标题的下拉（两种都渲染，CSS 按宽度只显示一种）。
+    subs: [[key, 中文标签]]；act 是点标签时的处理（ACT[act]，读 el.dataset.k）；下拉选了也走同一个处理。page：页面名，读屏用 */
+function subnav(subs, cur, act, page){
+  return `<div class="subtabs" role="tablist">${subs.map(([k, l]) => `<button type="button" role="tab" aria-selected="${cur === k}" data-act="${act}" data-k="${k}">${esc(t(l))}</button>`).join("")}</div>
+    <label class="subpick"><span>${esc(t("看哪一页"))}</span><select data-change="subnav" data-subact="${act}" aria-label="${esc(t("{p}：选一页", { p: t(page) }))}">${subs.map(([k, l]) => `<option value="${k}" ${cur === k ? "selected" : ""}>${esc(t(l))}</option>`).join("")}</select></label>`;
+}
+CHG.subnav = el => ACT[el.dataset.subact]?.({ dataset: { k: el.value } });
+
+export { show, replace, back, closeAll, refresh, sheetOpen, paint, fld, text, num, date, area, select, seg, segBtns, subnav, formData, badge, empty, btn, kv };
 
 /* ---------- 二次确认（删除、作废） ---------- */
 let yes = null;

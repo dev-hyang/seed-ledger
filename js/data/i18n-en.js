@@ -413,6 +413,30 @@ const EN = {
   "已切到常显示（在家）：页面在后台超过 30 分钟会自动切回遮挡": "Now always shown (at home): after 30 minutes in the background it hides again",
   "显示 10 秒。要一直显示：双击或长按眼睛": "Shown for 10 seconds. To keep them shown, double-tap or long-press the eye",
   "已遮起来。要一直显示：双击或长按眼睛": "Hidden. To keep them shown, double-tap or long-press the eye",
-  "离开超过 30 分钟，金额已自动遮挡": "You were away over 30 minutes, so amounts are hidden again"
+  "离开超过 30 分钟，金额已自动遮挡": "You were away over 30 minutes, so amounts are hidden again",
+  // 2026-11-08.2 UI polish
+  "扫描 / 导入": "Scan / import", "按顺序点右边的按钮，每一步都只填几项。": "Tap the buttons on the right in order — each step is just a few fields.",
+  "{y} 年利润": "{y} profit", "种子公司账 ›": "Seed company accounts ›",
+  "勾选下面的单，再点上面的按钮。": "Tick orders below, then tap a button above.", "只看": "Show",
+  "点一张单：收款、催账、打印都在里面。": "Tap an order to record payment, chase or print.", 
+  "卖给谁": "Who is buying", "卖了什么": "What was sold", "选了品种会自动填单价，可以再改": "Choosing a variety fills in the price; you can still change it",
+  "「私下价」只有你自己看得到，不会印在给客户的单子上。": "The private price is only visible to you and is never printed on the customer's slip.",
+  "怎么付钱": "Payment", "本次收款（¥）": "Paid now (¥)", "其它（可不填）": "Other (optional)", "其它操作": "Other actions", 
+  "没有找到这位客户。": "No matching customer.", "换个字试试：姓名、镇、村或电话的一部分都行。": "Try other words: part of the name, town, village or phone works.",
+  "种子公司送货来了，点上面的「＋ 进货」记一笔；库存会自动加上。": "When a seed company delivers, tap “+ Purchase” above; stock updates automatically.",
+  "点一条可以修改或删除。": "Tap a row to edit or delete it.",
+  "每个品种要归到一家种子公司，没有的话先到「种子公司账」添加。": "Each variety belongs to a seed company; add one under “Seed company accounts” first.",
+  "现在看的是": "Showing",  "筛选": "Filters", "日期范围（可不填）": "Date range (optional)",
+  "导出和打印": "Export and print", "导出和打印都按上面的筛选。CSV 可以用 Excel 或 WPS 打开。": "Export and print follow the filters above. CSV files open in Excel or WPS.",
+  "看哪一页": "Page", "{p}：选一页": "{p}: choose a page", "更多操作": "More actions", "最急：{x}": "Most urgent: {x}",
+  "完成": "Done", "排序": "Sort", "筛选 · 排序": "Filter · Sort", "去掉条件：{x}": "Remove filter: {x}", "疑似重复": "Possible duplicates", "等级": "Grade",
+  "没欠款": "Nothing owed", "欠款：多的在前": "Balance: largest first", "最近买过的在前": "Most recent buyers first", "按姓名": "By name",
+  "点客户看欠款、销售记录和合作建议。": "Tap a customer to see what they owe, their sales and advice.",
+  "换个字试试：姓名、镇、村或电话的一部分都行；或者去掉上面的筛选条件。": "Try other words (part of the name, town, village or phone), or remove the filters above.",
+  "客户表排序": "Customer table order", "利润：高的在前": "Profit: highest first", "应收：多的在前": "Receivable: largest first", "未收：多的在前": "Outstanding: largest first",
+  "日期：最新的在前": "Date: newest first", "日期：最早的在前": "Date: oldest first", "金额：大的在前": "Amount: largest first", "数量：多的在前": "Quantity: largest first",
+  "标了待催账的": "Marked to chase", "有超过半年没结的": "Unpaid over 6 months", "最近有单的在前": "Most recent orders first", "欠得最久的在前": "Owed longest first",
+  "待催账优先，再按欠款": "Marked first, then by balance", "按客户归拢。点一张单可以收款、议价或打折。": "Grouped by customer. Tap an order to record payment, negotiate or discount.",
+  "没有符合条件的客户。": "No customers match.", "已勾选的": "Ticked", "没勾选的": "Not ticked", "需要核对的": "Need checking", "按读到的顺序": "In the order read"
 };
 export { EN };

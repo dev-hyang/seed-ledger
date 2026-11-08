@@ -100,8 +100,8 @@ document.addEventListener("change", e => {
   const el = e.target;
   if (el.id === "lang") { setLocale(el.value); render(); return; }
   if (el.dataset.file === "import") { guard(() => importFile(el.files[0])); return; }
-  const name = el.dataset.change; if (!name && !el.dataset.rep) return;
-  const fn = el.dataset.rep ? CHG.rep : CHG[name]; if (!fn) return;
+  const name = el.dataset.change; if (!name) return;
+  const fn = CHG[name]; if (!fn) return;
   guard(async () => { await fn(el, el.form); render(); refresh(); });
 });
 document.addEventListener("input", e => {

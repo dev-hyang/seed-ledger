@@ -15,7 +15,7 @@ const setPageSize = n => { if (PAGE_SIZES.includes(+n)) saveJSON(KEY, +n); reset
 /** 返回 { rows, more, btn }：rows 是要渲染的那部分，btn 是「继续加载」按钮（没有更多时为空串） */
 function paged(key, list){
   const p = pageOf(list, shown.get(key) ?? pageSize());
-  return { ...p, btn: p.more ? `<div class="actions" style="justify-content:center"><button type="button" class="btn" data-act="page-more" data-k="${esc(key)}">${esc(t("继续加载"))}</button></div>` : "" };
+  return { ...p, btn: p.more ? `<div class="more-row"><button type="button" class="btn" data-act="page-more" data-k="${esc(key)}">${esc(t("继续加载"))}</button></div>` : "" };
 }
 ACT["page-more"] = el => { const k = el.dataset.k; shown.set(k, (shown.get(k) ?? pageSize()) + pageSize()); };
 

@@ -11,13 +11,14 @@ import { collectConcession, saleLifecycle } from "../logic/lifecycle.js";
 import { profileCustomer, anonymizedSummary } from "../logic/profile.js";
 import { askAI, aiAvailable, aiError } from "../core/advice.js";
 import { model, byId, brandName, customerName, seasonName, sortBy, yearSelect, ro } from "./common.js";
-import { show, back, fld, text, num, date, area, select, seg, formData, badge, empty, btn, kv, ask } from "./kit.js";
+import { subnav, show, back, fld, text, num, date, area, select, seg, formData, badge, empty, btn, kv, ask } from "./kit.js";
 import { ACT, FORMS, CHG, INP } from "./actions.js";
 import { priceFor, brandOpts, yearNow } from "./stock.js";
 import { priceOf, tierOf } from "../logic/pricing.js";
 import { renderTrips } from "./routes.js";
 import { lifeBlock } from "./lifecycle.js";
 import { paged, resetPage } from "./pager.js";
+import { filterUI } from "./filters.js";
 
 const subs = [["list", "销售单"], ["collect", "催账"], ["trips", "送货路线"]];
 const STATUS = { settled: ["已结清", "good"], partial: ["部分已付", "warn"], unpaid: ["未付款 / 赊账", "bad"], void: ["已作废", ""] };
@@ -25,13 +26,15 @@ const MODES = [["cash", "当场结清"], ["partial", "付定金 / 部分结款"]
 const METHODS = [["cash", "现金"], ["wechat", "微信"], ["alipay", "支付宝"], ["bank", "银行转账"], ["other", "其它"]];
 const ageDays = d => Math.max(0, Math.round((Date.now() - new Date(d + "T00:00:00")) / 864e5));
 const brandsOf = s => [...new Set(s.lines.map(l => brandName(l.brandId)))].join("、");
+const SALE_SORTS = () => [["new", t("日期：最新的在前")], ["old", t("日期：最早的在前")], ["amt", t("金额：大的在前")], ["owe", t("欠款：多的在前")]];
 const statusBadge = s => badge(t(STATUS[s.status][0]), STATUS[s.status][1]);
 
 function renderSales(){
   const sub = S.sub.sales || "list";
-  const tabs = `<div class="subtabs" role="tablist">${subs.map(([k, l]) => `<button role="tab" aria-selected="${sub === k}" data-act="sales-sub" data-k="${k}">${esc(t(l))}</button>`).join("")}</div>`;
+  const tabs = subnav(subs, sub, "sales-sub", "销售");
   const body = { list: listView, collect: collectView, trips: renderTrips }[sub]();
-  return `<div class="page-head"><h1>${esc(t("销售"))}</h1><div class="head-tools">${sub === "list" ? yearSelect(yearNow()) : ""}${ro() ? "" : btn("📷 扫描 / 导入", "scan-open")}${ro() ? "" : btn("＋ 记一笔销售", "sale-new", { cls: "primary" })}</div></div>${tabs}${body}`;
+  const acts = ro() ? "" : `<div class="page-acts">${btn("＋ 记一笔销售", "sale-new", { cls: "primary" })}${btn("📷 扫描 / 导入", "scan-open")}</div>`;
+  return `<div class="page-head"><h1>${esc(t("销售"))}</h1><div class="head-tools">${sub === "list" ? yearSelect(yearNow()) : ""}</div></div>${acts}${tabs}${body}`;
 }
 ACT["sales-sub"] = el => { S.sub.sales = el.dataset.k; resetPage("sales", "collect", "trips"); };
 
@@ -45,7 +48,9 @@ const sel = new Set(); let selMode = false;
 const chaseable = s => s.status !== "void" && s.balance > EPS;
 function visibleSales(){
   const y = yearNow(), st = S.filters.saleStatus || "", q = (S.filters.saleQ || "").trim();
-  let rows = sortBy(model().sales.filter(s => s.year === y), s => s.date + s.id, -1);
+  const so = S.filters.saleSort || "new";
+  let rows = model().sales.filter(s => s.year === y);
+  rows = so === "old" ? sortBy(rows, s => s.date + s.id) : so === "amt" ? sortBy(rows, s => s.net, -1) : so === "owe" ? sortBy(rows, s => s.balance, -1) : sortBy(rows, s => s.date + s.id, -1);   // 默认最新的在前
   if (st === "owing") rows = rows.filter(chaseable);
   if (st === "chase") rows = rows.filter(s => s.chase && chaseable(s));
   if (st === "settled") rows = rows.filter(s => s.status === "settled");
@@ -58,16 +63,21 @@ function pickRow(s){
 }
 function listView(){
   const st = S.filters.saleStatus || "", q = (S.filters.saleQ || "").trim(), rows = visibleSales(), pg = paged("sales", rows);   // 合计、全选都按完整的 rows，只渲染前几页
-  const chips = [["", "全部"], ["owing", "有欠款"], ["chase", "待催账"], ["settled", "已结清"]].map(([k, l]) => `<button class="chip" aria-pressed="${st === k}" data-act="sale-filter" data-k="${k}">${esc(t(l))}</button>`).join("");
   const live_ = rows.filter(s => s.status !== "void"), sum = r2(live_.reduce((a, s) => a + s.net, 0)), owe = r2(live_.reduce((a, s) => a + Math.max(s.balance, 0), 0)), marked = live_.filter(s => s.chase && chaseable(s)).length;
   const bar = ro() || !rows.length ? "" : selMode
-    ? `<div class="batchbar" role="toolbar" aria-label="${esc(t("批量操作"))}"><b>${esc(t("已选 {n} 张", { n: sel.size }))}</b><button class="btn sm" data-act="sales-select-all">${esc(t("全选未结清"))}</button>
-        <button class="btn sm primary" data-act="batch-chase" ${sel.size ? "" : "disabled"}>🚩 ${esc(t("标记待催账"))}</button><button class="btn sm" data-act="batch-unchase" ${sel.size ? "" : "disabled"}>${esc(t("取消标记"))}</button>
-        <button class="btn sm" data-act="batch-due" ${sel.size ? "" : "disabled"}>${esc(t("设约定收款日"))}</button><button class="btn sm" data-act="sales-select-done">${esc(t("完成"))}</button></div>`
-    : `<div class="actions"><button class="btn sm" data-act="sales-select">☑ ${esc(t("批量选择"))}</button></div>`;
-  return `<div class="filters"><input type="search" data-input="saleQ" value="${esc(q)}" placeholder="${esc(t("搜客户、品种、单号"))}" aria-label="${esc(t("搜索"))}">${chips}</div>
+    ? `<div class="batchbar" role="toolbar" aria-label="${esc(t("批量操作"))}"><div class="bb-head"><b>${esc(t("已选 {n} 张", { n: sel.size }))}</b><button class="btn sm" data-act="sales-select-done">${esc(t("完成"))}</button></div>
+        <div class="bb-acts"><button class="btn sm" data-act="sales-select-all">${esc(t("全选未结清"))}</button><button class="btn sm primary" data-act="batch-chase" ${sel.size ? "" : "disabled"}>🚩 ${esc(t("标记待催账"))}</button>
+        <button class="btn sm" data-act="batch-unchase" ${sel.size ? "" : "disabled"}>${esc(t("取消标记"))}</button><button class="btn sm" data-act="batch-due" ${sel.size ? "" : "disabled"}>${esc(t("设约定收款日"))}</button></div>
+        <p class="hint">${esc(t("勾选下面的单，再点上面的按钮。"))}</p></div>`
+    : "";
+  const selBtn = ro() || !rows.length || selMode ? "" : `<button class="link" data-act="sales-select">☑ ${esc(t("批量选择"))}</button>`;
+  const fb = filterUI("sales", { state: S.filters, onChange: () => resetPage("sales"),
+    fields: [{ k: "saleStatus", label: "收款状态", opts: [["owing", t("有欠款")], ["chase", t("待催账")], ["settled", t("已结清")]] }],
+    sort: { k: "saleSort", def: "new", opts: SALE_SORTS() },
+    search: `<input type="search" class="fsearch" data-input="saleQ" value="${esc(q)}" placeholder="${esc(t("搜客户、品种、单号"))}" aria-label="${esc(t("搜索"))}">` });
+  return `${fb}
     <div class="kpis">${kv("销售额", money(sum))}${kv("未收", money(owe), owe > EPS ? "neg" : "")}${kv("待催账", String(marked), marked ? "neg" : "")}${kv("单数", String(live_.length))}</div>
-    ${bar}
+    ${bar}${rows.length && !selMode ? `<div class="list-head"><span class="hint">${esc(t("点一张单：收款、催账、打印都在里面。"))}</span>${selBtn}</div>` : ""}
     ${rows.length ? `<ul class="list">${pg.rows.map(selMode && !ro() ? pickRow : saleRow).join("")}</ul>${pg.btn}` : empty("这一年还没有销售单。", ro() ? "" : btn("＋ 记一笔销售", "sale-new", { cls: "primary" }))}`;
 }
 ACT["sales-select"] = () => { selMode = true; sel.clear(); };
@@ -91,7 +101,6 @@ ACT["chase-toggle"] = async el => {
   if (s.chase) { await save("sale", withoutChase(s)); toast(t("已取消催账标记")); }
   else { await save("sale", { ...s, chase: true, chaseAt: today() }); toast(t("已标记待催账，概览里会提醒")); }
 };
-ACT["sale-filter"] = el => { S.filters.saleStatus = el.dataset.k; resetPage("sales"); };
 INP.saleQ = el => { S.filters.saleQ = el.value; resetPage("sales"); };
 
 /* ---------- 催账：所有没收齐的单，按客户归拢，欠得多的在前 ---------- */
@@ -99,10 +108,18 @@ function collectView(){
   const m = model(), owing = m.sales.filter(s => s.status !== "void" && s.balance > EPS);
   if (!owing.length) return empty("没有欠款，账都收齐了。");
   const by = new Map(); for (const s of owing) { if (!by.has(s.customerId)) by.set(s.customerId, []); by.get(s.customerId).push(s); }
-  const groups = sortBy([...by].map(([id, list]) => ({ id, list: sortBy(list, s => s.date), total: r2(list.reduce((a, s) => a + s.balance, 0)), marked: list.some(s => s.chase) })), g => (g.marked ? 1e12 : 0) + g.total, -1);   // 标了待催账的客户排在前面
-  const total = r2(groups.reduce((a, g) => a + g.total, 0)), late = owing.filter(s => ageDays(s.date) > 180).length, pg = paged("collect", groups);   // 按客户分页
+  const all = [...by].map(([id, list]) => ({ id, list: sortBy(list, s => s.date + s.id, -1), total: r2(list.reduce((a, s) => a + s.balance, 0)), marked: list.some(s => s.chase), last: list.reduce((a, s) => s.date > a ? s.date : a, ""), first: list.reduce((a, s) => !a || s.date < a ? s.date : a, "") }));   // 每位客户里最新的单在前
+  const total = r2(all.reduce((a, g) => a + g.total, 0)), late = owing.filter(s => ageDays(s.date) > 180).length;   // 上面的合计按全部，不受筛选影响
+  const F = S.filters, so = F.collectSort || "new", show = F.collectShow || "";
+  let groups = show === "chase" ? all.filter(g => g.marked) : show === "late" ? all.filter(g => g.list.some(s => ageDays(s.date) > 180)) : all;
+  groups = so === "chase" ? sortBy(groups, g => (g.marked ? 1e12 : 0) + g.total, -1) : so === "owe" ? sortBy(groups, g => g.total, -1) : so === "old" ? sortBy(groups, g => g.first) : sortBy(groups, g => g.last, -1);   // 默认：最近有单的客户在前
+  const pg = paged("collect", groups);   // 按客户分页
+  const fb = filterUI("collect", { state: F, onChange: () => resetPage("collect"),
+    fields: [{ k: "collectShow", label: "只看", opts: [["chase", t("标了待催账的")], ["late", t("有超过半年没结的")]] }],
+    sort: { k: "collectSort", def: "new", opts: [["new", t("最近有单的在前")], ["old", t("欠得最久的在前")], ["owe", t("欠款：多的在前")], ["chase", t("待催账优先，再按欠款")]] } });
   return `<div class="kpis">${kv("欠款合计", money(total), "neg")}${kv("欠款客户", String(groups.length))}${kv("待催账的客户", String(groups.filter(g => g.marked).length), groups.some(g => g.marked) ? "neg" : "")}${kv("超过半年未结", String(late), late ? "neg" : "")}</div>
-    ${pg.rows.map(g => `<div class="card"><div class="card-head"><button class="link" data-act="customer-view" data-id="${g.id}"><b>${esc(customerName(g.id))}</b></button>${g.marked ? badge(t("待催账"), "bad") : ""}<b class="neg">${esc(money(g.total))}</b></div><ul class="list tight">${g.list.map(s => `<li><button class="row" data-act="sale-view" data-id="${s.id}"><span class="row-main"><b>${esc(brandsOf(s))}</b><small>${esc(dateFmt(s.date))} · ${esc(t("{n} 天", { n: ageDays(s.date) }))}${s.lines.some(l => l.hint) ? " · 🔒" : ""}</small></span><span class="row-side"><b class="neg">${esc(money(s.balance))}</b>${s.chase ? badge(t("待催账"), "bad") : ""}${ageDays(s.date) > 180 ? badge(t("逾期"), "bad") : ""}</span></button></li>`).join("")}</ul></div>`).join("")}${pg.btn}`;
+    ${fb}<p class="hint">${esc(t("按客户归拢。点一张单可以收款、议价或打折。"))}</p>
+    ${groups.length ? "" : empty("没有符合条件的客户。")}${pg.rows.map(g => `<div class="card"><div class="card-head"><button class="link" data-act="customer-view" data-id="${g.id}"><b>${esc(customerName(g.id))}</b></button>${g.marked ? badge(t("待催账"), "bad") : ""}<b class="neg">${esc(money(g.total))}</b></div><ul class="list tight">${g.list.map(s => `<li><button class="row" data-act="sale-view" data-id="${s.id}"><span class="row-main"><b>${esc(brandsOf(s))}</b><small>${esc(dateFmt(s.date))} · ${esc(t("{n} 天", { n: ageDays(s.date) }))}${s.lines.some(l => l.hint) ? " · 🔒" : ""}</small></span><span class="row-side"><b class="neg">${esc(money(s.balance))}</b>${s.chase ? badge(t("待催账"), "bad") : ""}${ageDays(s.date) > 180 ? badge(t("逾期"), "bad") : ""}</span></button></li>`).join("")}</ul></div>`).join("")}${pg.btn}`;
 }
 
 /* ---------- 新建 / 修改销售单 ---------- */
@@ -110,7 +127,7 @@ function lineRow(l = {}){
   const opts = brandOpts();
   return `<div class="sline" data-line><div class="sline-top">${select("brandId", opts, l.brandId, { change: "sale-brand", blank: t("选品种") })}<button type="button" class="x sm" data-act="sale-line-del" aria-label="${esc(t("删除这一行"))}">×</button></div>
     <div class="grid3">${fld("数量（斤）", num("qty", l.qty, { min: 0 }))}${fld("单价（¥/斤）", num("price", l.price, { min: 0 }))}${fld("私下价 🔒", num("hint", l.hint, { min: 0, ph: t("可不填") }))}</div>
-    <small class="stk"></small><small class="lamt"></small></div>`;
+    <div class="sline-foot"><small class="stk"></small><small class="lamt"></small></div></div>`;
 }
 function saleForm(s){
   const d = s?.date || today(), cust = sortBy(Object.values(Object.fromEntries([...S.data.customer].filter(([, c]) => !c._del))), c => c.name).map(c => [c.id, customerLabel(c, { mask: S.settings.maskPhone })]);
@@ -118,24 +135,27 @@ function saleForm(s){
   const tier = tierOf(s?.tier ?? byId("customer", s?.customerId)?.tier);
   return { title: t(edit ? "修改销售单" : "记一笔销售"),
     body: `<form id="f" data-form="sale" data-id="${s?.id || ""}" data-input-form="sale" data-tier="${tier}">
+      <fieldset class="box"><legend>${esc(t("卖给谁"))}</legend>
       ${fld("客户", select("customerId", cust, s?.customerId, { blank: t("— 选客户，或在下面新建 —"), change: "sale-customer" }))}
       <details class="newcust" ${cust.length ? "" : "open"}><summary>${esc(t("＋ 新客户"))}</summary>
         <div class="grid2">${fld("姓名", text("newName"))}${fld("手机号（必填）", text("newPhone", "", { type: "tel", mode: "tel" }))}${fld("镇", text("newTown"))}${fld("村", text("newVillage"))}</div></details>
-      ${fld("日期", date("date", d))}
-      ${fld("价格档", seg("tier", [["retail", t("零售价")], ["wholesale", t("批发价")]], tier))}
-      ${edit ? "" : fld("售卖方式", seg("mode", MODES.map(([k, l]) => [k, t(l)]), s?.mode || "cash"))}
+      ${fld("日期", date("date", d))}</fieldset>
+      <fieldset class="box"><legend>${esc(t("卖了什么"))}</legend>
+      ${fld("价格档", seg("tier", [["retail", t("零售价")], ["wholesale", t("批发价")]], tier), t("选了品种会自动填单价，可以再改"))}
       <div class="lines">${firstLines.map(lineRow).join("")}</div>
       <button type="button" class="btn sm" data-act="sale-line-add">${esc(t("＋ 再加一个品种"))}</button>
       <div class="total-bar"><span>${esc(t("货款合计"))}</span><b data-total>${esc(money(0))}</b></div>
+      <small>${esc(t("「私下价」只有你自己看得到，不会印在给客户的单子上。"))}</small></fieldset>
+      ${edit ? "" : `<fieldset class="box"><legend>${esc(t("怎么付钱"))}</legend>${fld("售卖方式", seg("mode", MODES.map(([k, l]) => [k, t(l)]), s?.mode || "cash"))}
+        <div class="grid2">${fld("本次收款（¥）", num("payAmount", "", { min: 0 }))}${fld("方式", select("method", METHODS.map(([k, l]) => [k, t(l)]), "cash", { blank: false }))}</div></fieldset>`}
       <fieldset class="box"><legend>${esc(t("取货 / 送货"))}</legend>
         ${seg("dtype", [["pickup", t("客户上门取货")], ["deliver", t("我送货")]], s?.delivery?.type || "pickup")}
         <div class="grid2 dcost">${fld("人工（¥）", num("labor", s?.delivery?.labor, { min: 0 }))}${fld("车费（¥）", num("vehicle", s?.delivery?.vehicle, { min: 0 }))}</div>
         <div class="dcost">${fld("送货日期（可不填）", date("deliverOn", s?.delivery?.on || "", { req: false }), t("填了就会按日期进概览的送货提醒"))}</div>
         <small>${esc(t("送货成本会计入这张单的成本。同一趟送多家，可在「送货路线」里合并，成本自动按数量分摊。"))}</small></fieldset>
-      ${edit ? "" : `<fieldset class="box pay"><legend>${esc(t("本次收款"))}</legend>
-        <div class="grid2">${fld("收款金额（¥）", num("payAmount", "", { min: 0 }))}${fld("方式", select("method", METHODS.map(([k, l]) => [k, t(l)]), "cash", { blank: false }))}</div></fieldset>`}
+      <fieldset class="box"><legend>${esc(t("其它（可不填）"))}</legend>
       ${fld("约定收款日（赊账时可填）", date("dueOn", s?.dueOn || "", { req: false }), t("到期前 3 天起进概览的催账提醒"))}
-      ${fld("备注", area("note", s?.note))}</form>`,
+      ${fld("备注", area("note", s?.note))}</fieldset></form>`,
     foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("保存"))}</button>` };
 }
 ACT["sale-new"] = () => show(() => saleForm());
@@ -218,8 +238,8 @@ function salePage(id){
   const adjLab = { negotiate: "议价", discount: "折上折", writeoff: "核销坏账" };
   const body = `<div class="detail-head"><button class="link" data-act="customer-view" data-id="${s.customerId}"><b>${esc(customerName(s.customerId))}</b></button><span>${s.chase && s.balance > EPS ? badge(t("待催账"), "bad") + " " : ""}${statusBadge(s)}</span></div>
     <p class="meta">${esc(s.no || "")} · ${esc(dateFmt(s.date))} · ${esc(t(tierOf(s.tier) === "wholesale" ? "批发价" : "零售价"))}${s.delivery?.type === "deliver" && s.delivery.on ? ` · 🚚 ${esc(dateFmt(s.delivery.on))}${s.delivery.done ? " ✓" : ""}` : ""}${s.dueOn && s.balance > EPS ? ` · ${esc(t("约定收款"))} ${esc(dateFmt(s.dueOn))}` : ""}${s.note ? " · " + esc(s.note) : ""}${void_ ? ` · <b class="neg">${esc(t("作废原因："))}${esc(s.voidReason || "")}</b>` : ""}</p>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>${esc(t("品种"))}</th><th class="n">${esc(t("数量"))}</th><th class="n">${esc(t("单价"))}</th><th class="n">${esc(t("金额"))}</th></tr></thead><tbody>
-      ${s.lines.map(l => `<tr><td><b>${esc(brandName(l.brandId))}</b><small>${esc(seasonName((byId("brand", l.brandId) || {}).seasonId))}</small>${l.hint != null ? `<small class="priv">🔒 ${esc(t("当时可能给了"))} ${esc(unitPrice(l.hint))}（${esc(t("仅自己可见"))}）</small>` : ""}</td><td class="n">${esc(qty(l.qty))}</td><td class="n">${esc(unitPrice(l.price))}</td><td class="n">${esc(money(l.amount))}</td></tr>`).join("")}</tbody></table></div>
+    <div class="tbl-wrap"><table class="tbl stack"><thead><tr><th>${esc(t("品种"))}</th><th class="n">${esc(t("数量"))}</th><th class="n">${esc(t("单价"))}</th><th class="n">${esc(t("金额"))}</th></tr></thead><tbody>
+      ${s.lines.map(l => `<tr><td class="lead nmb" title="${esc(brandName(l.brandId))}"><b>${esc(brandName(l.brandId))}</b><small>${esc(seasonName((byId("brand", l.brandId) || {}).seasonId))}</small>${l.hint != null ? `<small class="priv">🔒 ${esc(t("当时可能给了"))} ${esc(unitPrice(l.hint))}（${esc(t("仅自己可见"))}）</small>` : ""}</td><td class="n" data-l="${esc(t("数量"))}">${esc(qty(l.qty))}</td><td class="n" data-l="${esc(t("单价"))}">${esc(unitPrice(l.price))}</td><td class="n" data-l="${esc(t("金额"))}">${esc(money(l.amount))}</td></tr>`).join("")}</tbody></table></div>
     <div class="stmt">${kv("货款", money(s.gross))}
       ${s.adjs.map(a => `<div class="kv adj"><span>${esc(t(adjLab[a.type]))}${a.nMode === "unit" && a.prices ? ` · ${esc(a.prices.map(l => brandName(l.brandId) + " " + unitPrice(l.price)).join("、"))}` : a.pct ? ` ${esc(pct(a.pct))}` : ""} · ${esc(dateFmt(a.date))}${a.reason ? `<small>${esc(a.reason)}</small>` : ""}</span><b class="neg">−${esc(money(a.amount))}${ro() || void_ ? "" : `<button class="x sm" data-act="adj-del" data-id="${a.id}" aria-label="${esc(t("撤销这条调整"))}">×</button>`}</b></div>`).join("")}
       <div class="kv total"><span>${esc(t("应收"))}</span><b>${esc(money(s.net))}</b></div>
@@ -229,8 +249,10 @@ function salePage(id){
     <div class="stmt"><h4>${esc(t("这张单的成本与利润（应收口径）"))}</h4>${kv("进货成本", money(s.cogs))}${kv(s.delivery?.type === "deliver" ? "送货成本" : "取货方式", s.delivery?.type === "deliver" ? money(s.deliveryCost) : t("客户上门取货"))}
       <div class="kv total"><span>${esc(t("利润"))}</span><b class="${s.profit < 0 ? "neg" : "pos"}">${esc(money(s.profit, { sign: true }))}</b></div></div>
     <h3 class="grp">${esc(t("这张单的过程"))}</h3>${lifeBlock(saleLifecycle(s), { viewKey: "saleLife" })}`;
-  const foot = ro() || void_ ? btn("打印单据", "print-sale", { data: { id } }) : `${s.delivery?.type === "deliver" && !s.delivery.done ? btn("已送达", "delivered", { data: { id } }) : ""}${btn("＋ 收款", "pay-new", { cls: "primary", data: { id } })}${s.balance > EPS ? btn(s.chase ? "取消催账标记" : "🚩 标记待催账", "chase-toggle", { data: { id } }) : ""}${btn("催账 / 议价", "collect-new", { data: { id } })}${btn("打印单据", "print-sale", { data: { id } })}${btn("修改", "sale-edit", { data: { id } })}${btn("作废", "sale-void", { cls: "ghost-danger", data: { id } })}`;
-  return { title: t("销售单"), body, foot };
+  // 底部只放常用的（收款、催账）；打印、修改、作废放在内容最下面一行，不挤在一起
+  const foot = ro() || void_ ? btn("打印单据", "print-sale", { cls: "primary", data: { id } }) : `${s.delivery?.type === "deliver" && !s.delivery.done ? btn("🚚 " + esc(t("已送达")), "delivered", { raw: true, data: { id } }) : ""}${s.balance > EPS ? btn(s.chase ? "取消催账标记" : "🚩 标记待催账", "chase-toggle", { data: { id } }) : ""}${btn("催账 / 议价", "collect-new", { data: { id } })}${btn("＋ 收款", "pay-new", { cls: "primary", data: { id } })}`;
+  const tools = ro() || void_ ? "" : `<h3 class="grp">${esc(t("其它操作"))}</h3><div class="toolrow">${btn("🖨 " + esc(t("打印单据")), "print-sale", { raw: true, cls: "sm", data: { id } })}${btn("✏️ " + esc(t("修改")), "sale-edit", { raw: true, cls: "sm", data: { id } })}${btn("作废", "sale-void", { cls: "sm ghost-danger", data: { id } })}</div>`;
+  return { title: t("销售单"), body: body + tools, foot };
 }
 const hintTotal = s => r2(s.lines.reduce((a, l) => a + l.qty * (l.hint ?? l.price), 0));
 ACT["sale-view"] = el => show(() => salePage(el.dataset.id), true);

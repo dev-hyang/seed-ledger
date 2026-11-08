@@ -17,7 +17,7 @@ let plan = null;   // 正在编辑的一趟：{ id, date, name, vehicle, labor, 
 
 function renderTrips(){
   const trips = sortBy(live("trip"), x => x.date, -1), m = model();
-  const head = ro() ? "" : `<div class="actions">${btn("＋ 安排一趟送货", "trip-new", { cls: "primary" })}</div>`;
+  const head = ro() ? "" : `<div class="page-acts">${btn("＋ 安排一趟送货", "trip-new", { cls: "primary wide" })}</div>`;
   const pending = m.sales.filter(s => s.status !== "void" && s.delivery?.type === "deliver" && !s.delivery.tripId), pg = paged("trips", trips);
   return head + (pending.length ? `<p class="hint">${esc(t("有 {n} 张「我送货」的单还没安排到某一趟。", { n: pending.length }))}</p>` : "")
     + (trips.length ? `<ul class="list">${pg.rows.map(x => { const ids = (x.saleIds || []).filter(id => m.saleM.has(id));

@@ -4,7 +4,7 @@ import { esc } from "../core/util.js";
 import { t, money, qty, unitPrice, dateFmt, pct } from "../core/i18n.js";
 import { EPS } from "../logic/ledger.js";
 import { brandName } from "./common.js";
-import { badge } from "./kit.js";
+import { badge, segBtns } from "./kit.js";
 import { ACT } from "./actions.js";
 import { paged, resetPage } from "./pager.js";
 
@@ -39,7 +39,7 @@ const toneOf = e => e.kind === "void" || e.kind === "writeoff" ? "neg" : e.close
     newestFirst：倒过来显示（最新的在第一页），余额仍是按时间正序算出来的那一刻的值 */
 function lifeBlock(events, { viewKey, showSale = false, emptyMsg = "还没有记录。", pageKey = "", newestFirst = false } = {}){
   const view = S.filters[viewKey] || "rows";
-  const tabs = `<div class="subtabs" role="tablist">${[["rows", "行记录"], ["time", "时间线"]].map(([k, l]) => `<button type="button" role="tab" aria-selected="${view === k}" data-act="life-view" data-k="${k}" data-filter="${viewKey}" data-page="${esc(pageKey)}">${esc(t(l))}</button>`).join("")}</div>`;
+  const tabs = segBtns([["rows", "行记录"], ["time", "时间线"]], view, "life-view", { filter: viewKey, page: pageKey });
   if (!events.length) return `${tabs}<div class="empty"><p>${esc(t(emptyMsg))}</p></div>`;
   const list = newestFirst ? [...events].reverse() : events;
   const pg = pageKey ? paged(pageKey, list) : { rows: list, btn: "" };
@@ -49,8 +49,8 @@ ACT["life-view"] = el => { S.filters[el.dataset.filter] = el.dataset.k; if (el.d
 
 function rowView(events, showSale){
   const bal = e => showSale ? e.custBal : e.balance;
-  return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>${esc(t("日期"))}</th>${showSale ? `<th>${esc(t("销售单"))}</th>` : ""}<th>${esc(t("事项"))}</th><th class="n">${esc(t("金额"))}</th><th class="n">${esc(t("欠款"))}</th></tr></thead><tbody>
-    ${events.map(e => `<tr class="${toneOf(e)}${e.closes ? " closes" : ""}"><td>${esc(dateFmt(e.date))}</td>${showSale ? `<td>${e.saleId ? `<button type="button" class="link" data-act="sale-view" data-id="${esc(e.saleId)}">${esc(e.saleNo || t("销售单"))}</button>` : ""}</td>` : ""}<td><b>${esc(eventTitle(e))}</b>${eventDetail(e) ? `<small>${esc(eventDetail(e))}</small>` : ""}${e.closes ? " " + badge(t("结清"), "good") : ""}</td><td class="n">${esc(eventAmt(e))}</td><td class="n">${Math.abs(bal(e)) > EPS ? esc(money(Math.max(bal(e), 0))) : "—"}</td></tr>`).join("")}</tbody></table></div>`;
+  return `<div class="tbl-wrap"><table class="tbl stack"><thead><tr><th>${esc(t("日期"))}</th>${showSale ? `<th>${esc(t("销售单"))}</th>` : ""}<th>${esc(t("事项"))}</th><th class="n">${esc(t("金额"))}</th><th class="n">${esc(t("欠款"))}</th></tr></thead><tbody>
+    ${events.map(e => `<tr class="${toneOf(e)}${e.closes ? " closes" : ""}"><td data-l="${esc(t("日期"))}">${esc(dateFmt(e.date))}</td>${showSale ? `<td data-l="${esc(t("销售单"))}">${e.saleId ? `<button type="button" class="link" data-act="sale-view" data-id="${esc(e.saleId)}">${esc(e.saleNo || t("销售单"))}</button>` : ""}</td>` : ""}<td class="lead"><b>${esc(eventTitle(e))}${e.closes ? " " + badge(t("结清"), "good") : ""}</b>${eventDetail(e) ? `<small>${esc(eventDetail(e))}</small>` : ""}</td><td class="n" data-l="${esc(t("金额"))}">${esc(eventAmt(e))}</td><td class="n" data-l="${esc(t("欠款"))}">${Math.abs(bal(e)) > EPS ? esc(money(Math.max(bal(e), 0))) : "—"}</td></tr>`).join("")}</tbody></table></div>`;
 }
 
 function timeView(events, showSale){

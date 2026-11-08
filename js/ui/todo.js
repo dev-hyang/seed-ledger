@@ -8,6 +8,8 @@ import { t, money, qty, dateFmt } from "../core/i18n.js";
 import { buildTodos } from "../logic/todos.js";
 import { perms } from "../core/auth-msg.js";
 import { customerName, brandName, supplierName } from "./common.js";
+import { ACT } from "./actions.js";
+import { LS_PREFIX } from "../config.js";
 
 const ICON = { delivery: "🚚", collect: "💰", team: "👥", stock: "📦", pool: "🏢" };
 
@@ -36,18 +38,35 @@ function describe(it){
 }
 const attrs = o => Object.entries(o).map(([k, v]) => k === "act" ? `data-act="${esc(v)}"` : `data-${esc(k)}="${esc(v)}"`).join(" ");
 
+/* 一行一条，紧凑：图标 + 文字（一行，太长显示省略号）+ 右边一个小按钮；第二个操作（已送达）收进「⋯」小菜单，手机上也排得下 */
 function card(it, write){
-  const d = describe(it);
+  const d = describe(it), more = it.done && write;
   return `<li class="todo-item tone-${it.tone}"><span class="todo-ic" aria-hidden="true">${ICON[it.kind] || "•"}</span>
     <div class="todo-main"><b>${esc(d.title)}</b>${d.sub ? `<small>${esc(d.sub)}</small>` : ""}</div>
-    <div class="todo-acts"><button type="button" class="btn sm ${it.tone === "bad" ? "primary" : ""}" ${attrs(it.act)}>${esc(t(d.label))}</button>${it.done && write ? `<button type="button" class="btn sm" ${attrs(it.done)}>${esc(t("已送达"))}</button>` : ""}</div></li>`;
+    <div class="todo-acts"><button type="button" class="btn sm ${it.tone === "bad" ? "primary" : ""}" ${attrs(it.act)}>${esc(t(d.label))}</button>${more ? `<details class="todo-more"><summary aria-label="${esc(t("更多操作"))}">⋯</summary><div class="todo-pop"><button type="button" class="btn sm" ${attrs(it.done)}>${esc(t("已送达"))}</button></div></details>` : ""}</div></li>`;
 }
+
+/* 展开 / 收起：有逾期（红色）的默认展开；否则按这台设备上次的选择。收起时标题行仍显示条数和最急的一条 */
+const OPEN_KEY = LS_PREFIX + ".todoOpen";
+let sessionOpen = null;   // 这次打开页面后手动点过，就按点的来（有逾期也能收起）
+const storedOpen = () => { try { const v = localStorage.getItem(OPEN_KEY); return v === null ? null : v === "1"; } catch (e) { return null; } };
+ACT["todo-toggle"] = el => {
+  sessionOpen = el.getAttribute("aria-expanded") !== "true";
+  try { localStorage.setItem(OPEN_KEY, sessionOpen ? "1" : "0"); } catch (e) { /* 隐私模式：只这次有效 */ }
+};
 
 function todoSection(m, year){
   const role = S.cloud === "local" ? "owner" : S.role, { items, total, collect } = buildTodos({ m, today: today(), year, perms: perms(role), team: S.team || null, me: S.user?.id || "" });
-  const head = `<div class="card-head"><h3>${esc(t("待处理"))}${total ? ` <span class="badge ${items.some(x => x.tone === "bad") ? "bad" : "warn"}">${total}</span>` : ""}</h3></div>${collect.customers ? `<p class="todo-sum">💰 ${esc(t("待催账 {n} 位客户，共 {a}", { n: collect.customers, a: money(collect.amount) }))} <button type="button" class="link" data-act="goto" data-tab="sales" data-sub="collect">${esc(t("去催账 ›"))}</button></p>` : ""}`;
-  if (!items.length) return `<section class="card todo-card">${head}<p class="hint todo-empty">✓ ${esc(t("今天没有要处理的事"))}</p></section>`;
-  return `<section class="card todo-card" aria-label="${esc(t("待处理"))}">${head}<ul class="todos">${items.map(it => card(it, canWrite())).join("")}</ul>${total > items.length ? `<p class="hint">${esc(t("还有 {n} 条没显示：先处理上面的", { n: total - items.length }))}</p>` : ""}</section>`;
+  const urgent = items.some(x => x.tone === "bad");
+  if (!items.length) return `<section class="card todo-card"><h3 class="todo-h0">${esc(t("待处理"))}</h3><p class="hint todo-empty">✓ ${esc(t("今天没有要处理的事"))}</p></section>`;
+  const open = sessionOpen ?? (urgent ? true : storedOpen() ?? true);
+  const first = describe(items[0]).title;
+  const head = `<h3 class="todo-h"><button type="button" class="todo-toggle" data-act="todo-toggle" aria-expanded="${open}" aria-controls="todoBody">
+      <span class="todo-ttl">${esc(t("待处理"))}</span><span class="badge ${urgent ? "bad" : "warn"}">${total}</span>
+      ${open ? "" : `<span class="todo-peek">${esc(t("最急：{x}", { x: first }))}</span>`}<span class="todo-chev" aria-hidden="true"></span></button></h3>`;
+  if (!open) return `<section class="card todo-card is-closed" aria-label="${esc(t("待处理"))}">${head}</section>`;
+  const sum = collect.customers ? `<p class="todo-sum">💰 ${esc(t("待催账 {n} 位客户，共 {a}", { n: collect.customers, a: money(collect.amount) }))} <button type="button" class="link" data-act="goto" data-tab="sales" data-sub="collect">${esc(t("去催账 ›"))}</button></p>` : "";
+  return `<section class="card todo-card" aria-label="${esc(t("待处理"))}">${head}<div id="todoBody">${sum}<ul class="todos">${items.map(it => card(it, canWrite())).join("")}</ul>${total > items.length ? `<p class="hint">${esc(t("还有 {n} 条没显示：先处理上面的", { n: total - items.length }))}</p>` : ""}</div></section>`;
 }
 
 export { todoSection };

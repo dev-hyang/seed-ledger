@@ -13,6 +13,7 @@ import { tierOf } from "../logic/pricing.js";
 import { customerLabel, findByPhone, maskPhone, placeOf, nameCounts, validPhone } from "../logic/customers.js";
 import { ACT, FORMS, INP } from "./actions.js";
 import { paged, resetPage } from "./pager.js";
+import { filterUI } from "./filters.js";
 import { customerLifecycle } from "../logic/lifecycle.js";
 import { lifeBlock } from "./lifecycle.js";
 
@@ -23,12 +24,20 @@ function renderCustomers(){
   const m = model(), q = (S.filters.custQ || "").trim().toLowerCase(), all = live("customer"), names = nameCounts(all);
   let rows = all;
   if (q) rows = rows.filter(c => `${c.name}${c.town || ""}${c.village || ""}${c.phone || ""}`.toLowerCase().includes(q));
-  rows = sortBy(rows.map(c => ({ c, p: profileCustomer(m, c.id) })), r => -r.p.stats.owing || r.c.name);
+  const F = S.filters, so = F.custSort || "owe", lastBuy = id => (m.salesByCustomer.get(id) || []).reduce((a, x) => x.date > a ? x.date : a, "");
+  rows = rows.map(c => ({ c, p: profileCustomer(m, c.id) }));
+  if (F.custGrade) rows = rows.filter(r => r.p.grade === F.custGrade);
+  if (F.custOwe === "owe") rows = rows.filter(r => r.p.stats.owing > EPS); else if (F.custOwe === "clear") rows = rows.filter(r => !(r.p.stats.owing > EPS));
+  rows = so === "recent" ? sortBy(rows, r => lastBuy(r.c.id), -1) : so === "name" ? sortBy(rows, r => r.c.name) : sortBy(rows, r => -r.p.stats.owing || r.c.name);
+  const fb = filterUI("customers", { state: F, onChange: () => resetPage("customers"),
+    fields: [{ k: "custGrade", label: "等级", opts: Object.entries(GRADE).map(([k, [l]]) => [k, t(l)]) }, { k: "custOwe", label: "欠款", opts: [["owe", t("有欠款")], ["clear", t("没欠款")]] }],
+    sort: { k: "custSort", def: "owe", opts: [["owe", t("欠款：多的在前")], ["recent", t("最近买过的在前")], ["name", t("按姓名")]] },
+    search: `<input type="search" class="fsearch" data-input="custQ" value="${esc(S.filters.custQ || "")}" placeholder="${esc(t("搜姓名、镇、村、电话"))}" aria-label="${esc(t("搜索"))}">` });
   const pg = paged("customers", rows);
   return `<div class="page-head"><h1>${esc(t("客户"))}</h1><div class="head-tools">${ro() ? "" : btn("＋ 新客户", "customer-new", { cls: "primary" })}</div></div>
-    <div class="filters"><input type="search" data-input="custQ" value="${esc(S.filters.custQ || "")}" placeholder="${esc(t("搜姓名、镇、村、电话"))}" aria-label="${esc(t("搜索"))}"></div>
-    ${rows.length ? `<ul class="list">${pg.rows.map(({ c, p }) => `<li><button class="row" data-act="customer-view" data-id="${c.id}"><span class="row-main"><b>${esc(c.name)}</b>${names.get(String(c.name).trim()) > 1 ? ` <span class="badge">${esc(t("同名"))}</span>` : ""}<small>${esc([placeOf(c), c.phone ? (S.settings.maskPhone ? maskPhone(c.phone) : c.phone) : t("未填手机号，请补上")].filter(Boolean).join(" · "))}</small></span>
-      <span class="row-side">${p.stats.owing > EPS ? `<b class="neg">${esc(t("欠"))} ${esc(money(p.stats.owing))}</b>` : `<small>${esc(money(p.stats.net))}</small>`}${badge(t(GRADE[p.grade][0]), GRADE[p.grade][1])}</span></button></li>`).join("")}</ul>${pg.btn}` : empty("还没有客户。记第一笔销售时可以直接新建客户。", ro() ? "" : btn("＋ 新客户", "customer-new", { cls: "primary" }))}`;
+    ${all.length ? fb : ""}
+    ${rows.length ? `<div class="list-head"><span class="hint">${esc(t("点客户看欠款、销售记录和合作建议。"))}</span></div><ul class="list">${pg.rows.map(({ c, p }) => `<li><button class="row" data-act="customer-view" data-id="${c.id}"><span class="row-main"><b>${esc(c.name)}</b>${names.get(String(c.name).trim()) > 1 ? ` <span class="badge">${esc(t("同名"))}</span>` : ""}<small>${esc([placeOf(c), c.phone ? (S.settings.maskPhone ? maskPhone(c.phone) : c.phone) : t("未填手机号，请补上")].filter(Boolean).join(" · "))}</small></span>
+      <span class="row-side">${p.stats.owing > EPS ? `<b class="neg">${esc(t("欠"))} ${esc(money(p.stats.owing))}</b>` : `<small>${esc(money(p.stats.net))}</small>`}${badge(t(GRADE[p.grade][0]), GRADE[p.grade][1])}</span></button></li>`).join("")}</ul>${pg.btn}` : all.length ? empty("没有找到这位客户。", "", "换个字试试：姓名、镇、村或电话的一部分都行；或者去掉上面的筛选条件。") : empty("还没有客户。记第一笔销售时可以直接新建客户。", ro() ? "" : btn("＋ 新客户", "customer-new", { cls: "primary" }))}`;
 }
 INP.custQ = el => { S.filters.custQ = el.value; resetPage("customers"); };
 const maskedPhone = p => S.settings.maskPhone ? String(p).replace(/^(.{3}).*(.{4})$/, "$1****$2") : p;

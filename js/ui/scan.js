@@ -17,11 +17,12 @@ import { priceFor } from "./stock.js";
 import { show, back, closeAll, refresh, badge, btn } from "./kit.js";
 import { ACT, CHG, INP } from "./actions.js";
 import { resetPage } from "./pager.js";
+import { filterUI } from "./filters.js";
 
 const CONSENT = LS_PREFIX + ".scan-ok", MAX_FILES = 8, MAX_IMAGES = 6, MAX_CHUNKS = 8, MAX_DRAFTS = 200;
 const sc = { files: [], text: "", busy: false, reading: 0, error: "", drafts: null };
 const consent = () => { try { return localStorage.getItem(CONSENT) === "1"; } catch (e) { return false; } };
-const reset = () => Object.assign(sc, { files: [], text: "", busy: false, reading: 0, error: "", drafts: null });
+const reset = () => { Object.assign(sc, { files: [], text: "", busy: false, reading: 0, error: "", drafts: null }); SV.show = undefined; SV.sort = "new"; };
 let askFn = askText;   // 测试时可替换
 export const _setAsk = fn => { askFn = fn || askText; };
 
@@ -36,8 +37,8 @@ function inputBody(){
     <button type="button" class="x sm" data-act="scan-file-del" data-i="${i}" aria-label="${esc(t("移除这个文件"))}">×</button></li>`).join("");
   return `<p class="hint">${esc(t("销售单、送货单、手抄账本的一页、客户对账表、微信 / 支付宝收款截图都行。识别出来先是草稿，你核对后才入库。"))}</p>
     ${ready ? "" : `<div class="banner warn"><span>${esc(t("需要先设置 AI（用你自己的 key）。"))}</span><button type="button" class="btn sm primary" data-act="open-ai">${esc(t("设置 AI"))}</button></div>`}
-    <div class="actions"><label class="btn">${esc(t("📷 拍照"))}<input type="file" accept="image/*" capture="environment" data-change="scan-files" hidden></label>
-      <label class="btn">${esc(t("📁 选文件 / 相册"))}<input type="file" accept="${ACCEPT}" multiple data-change="scan-files" hidden></label></div>
+    <div class="toolrow"><label class="btn tile">${esc(t("📷 拍照"))}<input type="file" accept="image/*" capture="environment" data-change="scan-files" hidden></label>
+      <label class="btn tile">${esc(t("📁 选文件 / 相册"))}<input type="file" accept="${ACCEPT}" multiple data-change="scan-files" hidden></label></div>
     <p class="hint">${esc(t("支持：图片、PDF、Excel（xlsx / xls）、CSV / 文本。最多 {n} 个。", { n: MAX_FILES }))}</p>
     ${sc.reading ? `<p class="hint" role="status">${esc(t("正在读取文件…"))}</p>` : ""}
     ${files ? `<ul class="list tight">${files}</ul>` : ""}
@@ -53,14 +54,28 @@ const customerOpts = () => sortBy(live("customer"), c => c.name).map(c => `<opti
 const brandOpts = () => S.settings.seasons.map(s => { const bs = sortBy(live("brand").filter(b => b.seasonId === s.id && b.active !== false), b => b.name); return bs.length ? `<optgroup label="${esc(t(s.name))}">${bs.map(b => `<option value="${esc(b.id)}">${esc(b.name)}</option>`).join("")}</optgroup>` : ""; }).join("");
 const selected = (html, v) => html.replace(`value="${esc(v)}"`, `value="${esc(v)}" selected`);
 
+/* 核对页的显示：筛选 / 排序只改显示顺序，每笔的编号和数据不变 */
+const SV = { sort: "new" };
+const needsCheck = d => d.dup || d.noDate || (!d.customerId && !validPhone(d.phone)) || d.flags.some(f => f.startsWith("unit:"));
+function viewIdx(){
+  let idx = sc.drafts.map((_, i) => i);
+  const ok = { on: d => d.on, off: d => !d.on, dup: d => d.dup, warn: needsCheck }[SV.show];
+  if (ok) idx = idx.filter(i => ok(sc.drafts[i]));
+  if (SV.sort === "new") idx.sort((a, b) => String(sc.drafts[b].date).localeCompare(String(sc.drafts[a].date)) || a - b);
+  else if (SV.sort === "old") idx.sort((a, b) => String(sc.drafts[a].date).localeCompare(String(sc.drafts[b].date)) || a - b);
+  return idx;
+}
 function reviewBody(){
   const on = sc.drafts.filter(d => d.on).length, cOpts = customerOpts(), bOpts = brandOpts();
   return `<p class="hint">${esc(t("共读到 {n} 笔，已勾选 {m} 笔。逐笔核对，不对的直接改；不想导入的取消勾选。", { n: sc.drafts.length, m: on }))}</p>
     ${sc.error ? `<p class="neg" role="alert">${esc(sc.error)}</p>` : ""}
     <div class="actions"><button class="btn sm" data-act="scan-chase-all" data-v="1">🚩 ${esc(t("全部标记待催账"))}</button><button class="btn sm" data-act="scan-chase-all" data-v="0">${esc(t("全部取消标记"))}</button></div>
     ${newBrandBanner()}
-    ${sc.drafts.map((d, i) => `<div class="card scan-d ${d.on ? "" : "off"}">
-      <div class="card-head"><label class="chk" style="margin:0"><input type="checkbox" data-change="scan-on" data-i="${i}" ${d.on ? "checked" : ""}> <b>${esc(t("第 {n} 笔", { n: i + 1 }))}</b></label><span class="head-tools"><select data-change="scan-tier" data-i="${i}" aria-label="${esc(t("价格档"))}"><option value="retail" ${d.tier !== "wholesale" ? "selected" : ""}>${esc(t("零售价"))}</option><option value="wholesale" ${d.tier === "wholesale" ? "selected" : ""}>${esc(t("批发价"))}</option></select><b data-total="${i}">${esc(money(totalOf(d)))}</b></span></div>
+    ${filterUI("scan", { state: SV, fields: [{ k: "show", label: "只看", opts: [["on", t("已勾选的")], ["off", t("没勾选的")], ["dup", t("疑似重复")], ["warn", t("需要核对的")]] }],
+      sort: { k: "sort", def: "new", opts: [["new", t("日期：最新的在前")], ["old", t("日期：最早的在前")], ["doc", t("按读到的顺序")]] } })}
+    ${viewIdx().length ? "" : `<p class="hint">${esc(t("没有符合条件的记录。"))}</p>`}
+    ${viewIdx().map(i => [sc.drafts[i], i]).map(([d, i]) => `<div class="card scan-d ${d.on ? "" : "off"}">
+      <div class="card-head"><label class="chk"><input type="checkbox" data-change="scan-on" data-i="${i}" ${d.on ? "checked" : ""}> <b>${esc(t("第 {n} 笔", { n: i + 1 }))}</b></label><span class="head-tools"><select data-change="scan-tier" data-i="${i}" aria-label="${esc(t("价格档"))}"><option value="retail" ${d.tier !== "wholesale" ? "selected" : ""}>${esc(t("零售价"))}</option><option value="wholesale" ${d.tier === "wholesale" ? "selected" : ""}>${esc(t("批发价"))}</option></select><b data-total="${i}">${esc(money(totalOf(d)))}</b></span></div>
       ${d.dup ? `<p class="hint warn">${esc(t("疑似重复：已有一笔同客户、同一天、同品种数量的销售，所以默认没勾选。"))}</p>` : ""}
       ${!d.customerId && !validPhone(d.phone) ? `<p class="hint warn">${esc(t("没有读到手机号：同名客户无法区分，建议在下面补上手机号。"))}</p>` : ""}
       ${d.noDate ? `<p class="hint warn">${esc(t("没读到日期，先用了今天，请改成单据上的日期。"))}</p>` : ""}
@@ -99,7 +114,7 @@ const uniqueNbs = () => [...new Set(sc.drafts.filter(d => d.on).flatMap(d => d.l
 function newBrandBanner(){
   const n = uniqueNbs().length; if (!n) return "";
   return `<div class="banner"><span>${esc(t("有 {n} 个新品种：确认它们属于哪家种子公司、季节和价格。导入时会先建好，再记销售。", { n }))}</span>
-    <label class="rf"><span>${esc(t("统一设置种子公司"))}</span><select data-change="scan-nb-all"><option value="">—</option>${supplierOpts("")}</select></label></div>`;
+    <label class="ff"><span>${esc(t("统一设置种子公司"))}</span><select data-change="scan-nb-all"><option value="">—</option>${supplierOpts("")}</select></label></div>`;
 }
 const reviewFoot = () => { const n = sc.drafts.filter(d => d.on).length;
   return `<button class="btn" data-act="scan-back">${esc(t("返回重新识别"))}</button><button class="btn primary" data-act="scan-import" ${n ? "" : "disabled"}>${esc(t("导入 {n} 笔", { n }))}</button>`; };

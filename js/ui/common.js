@@ -28,7 +28,8 @@ function years(){
 }
 const maskPhone = p => { const s = String(p || ""); return s.length >= 7 ? s.slice(0, 3) + "****" + s.slice(-4) : s; };
 const phoneHTML = p => !p ? "" : S.settings.maskPhone ? `<a class="tel" href="tel:${esc(p)}">${esc(maskPhone(p))}</a>` : `<a class="tel" href="tel:${esc(p)}">${esc(p)}</a>`;
-const yearSelect = (cur, name = "year", cls = "") => `<select class="${cls}" data-change="${name}" aria-label="${esc(t("年份"))}">${years().map(y => `<option value="${y}" ${+cur === y ? "selected" : ""}>${y}</option>`).join("")}</select>`;
+/** 年份下拉：前面带「年份」两个字，一眼看出这是在选哪一年 */
+const yearSelect = (cur, name = "year", cls = "") => `<label class="ypick ${cls}"><span>${esc(t("年份"))}</span><select data-change="${name}">${years().map(y => `<option value="${y}" ${+cur === y ? "selected" : ""}>${y}</option>`).join("")}</select></label>`;
 const ro = () => !canWrite();
 
 export { model, byId, brandName, customerName, supplierName, seasonName, seasonOpts, sortBy, years, maskPhone, phoneHTML, yearSelect, ro };

@@ -1,6 +1,11 @@
 /* 发布日志（更多 → 发布日志；新版本第一次打开起，概览页顶上提示最多 5 次）。每次发布加一条，和版本号同一个 commit（最新在前）。
    写给店主看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。界面在 js/ui/releases-ui.js（和姊妹应用同一份）。 */
 export const RELEASES = [
+  { v: "2026-11-08.2", title: { zh: "各页面更清楚、更好点，手机电脑都整齐", en: "Clearer, easier pages on phone and computer" }, items: [
+    { k: "better", zh: "概览：四个大按钮（记销售、进货、扫描、报表）；「待处理」可以收起，每条一行，按钮就在旁边", en: "Overview: four big buttons (sale, purchase, scan, reports); “To do” can be folded, one line per item with its button alongside" },
+    { k: "better", zh: "各页的筛选和排序统一成一个「筛选」按钮，默认最新的在前；已选的条件一眼看到，点 ✕ 就去掉", en: "Every page now has one “Filter” button for filtering and sorting, newest first by default; chosen filters show as tags you can remove with ✕" },
+    { k: "better", zh: "手机上：页面切换改成下拉框，表格变成一张张小卡片不用左右滑，品种名不再折行", en: "On phones: the page switcher is a drop-down, tables become small cards (no sideways scrolling), and variety names stay on one line" },
+    { k: "better", zh: "记销售单分成「卖给谁、卖了什么、怎么付钱、送货」几块；按钮大小统一，空白页面会告诉你下一步做什么", en: "The sale form is split into who, what, payment and delivery; buttons are the same size, and empty pages tell you what to do next" }] },
   { v: "2026-11-08.1", title: { zh: "新增「发布日志」，金额默认遮挡", en: "Release notes, and amounts hidden by default" }, items: [
     { k: "new", zh: "更多 → 发布日志：每次更新了什么，可按类型、时间筛选", en: "More → Release notes: what changed in each update, filter by type and time" },
     { k: "new", zh: "所有金额默认遮挡：点一下看 10 秒，顶栏眼睛可切换", en: "All amounts hidden by default: tap to see for 10 seconds; the eye in the top bar switches modes" },

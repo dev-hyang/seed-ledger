@@ -13,6 +13,7 @@ import { PROVIDERS, providerOf, aiSettings, saveAiSettings, aiReady, testAi } fr
 import { ACT, FORMS, CHG, INP } from "./actions.js";
 import { PAGE_SIZES, pageSize, setPageSize } from "./pager.js";
 import { moneyModeHTML } from "../core/privacy.js";
+import { filterUI } from "./filters.js";
 
 const ROLE = { owner: "创建者", partner: "合伙人（录入 + 批准申请）", staff: "录入员（可录入，不能管成员）", viewer: "只读成员" };
 const KIND_LAB = { sale: "销售单", pay: "收款", adj: "催账调整", purchase: "进货", sreturn: "退货", spay: "打款入池", sfee: "手续费", customer: "客户", brand: "品种", price: "价格", supplier: "种子公司", trip: "送货", town: "镇", setting: "设置", member: "成员" };
@@ -24,13 +25,13 @@ function renderMore(){
     <section class="card"><h3>${esc(t("账户与同步"))}</h3>${accountBlock()}</section>
     <section class="card"><h3>${esc(t("金额显示"))}</h3>${moneyModeHTML()}<p class="hint" style="margin:8px 0 0">${esc(t("遮挡：金额模糊，点一下看 10 秒，适合在外面。常显示：适合在家；页面在后台超过 30 分钟会自动切回遮挡。顶栏的眼睛也能切换（双击或长按）。"))}</p></section>
     <ul class="list menu">
-      <li><button class="row" data-act="open-settings"><span class="row-main"><b>${esc(t("设置"))}</b><small>${esc(t("语言、币种、单位、季节名称、送货参数、镇与距离"))}</small></span><span>›</span></button></li>
-      <li><button class="row" data-act="open-ai"><span class="row-main"><b>${esc(t("AI 助手"))}</b><small>${esc(aiReady() ? t("已设置：") + t(providerOf(aiSettings().provider).name) : t("还没设置（可选）：议价、客户建议、送货路线"))}</small></span><span>›</span></button></li>
-      ${perms(S.role).approve ? `<li><button class="row" data-act="open-audit"><span class="row-main"><b>${esc(t("审计日志"))}</b><small>${esc(t("谁在什么时候新增、修改、删除了什么"))}</small></span><span>›</span></button></li>` : ""}
-      ${mem && perms(S.role).approve ? `<li><button class="row" data-act="open-members"><span class="row-main"><b>${esc(t("成员与邀请"))}</b><small>${esc(t(S.role === "owner" ? "邀请码、批准申请、改角色" : "邀请码、批准申请"))}</small></span><span>›</span></button></li>` : ""}
-      <li><button class="row" data-act="open-conflicts"><span class="row-main"><b>${esc(t("同步冲突"))}</b><small>${esc(t("两个人同时改了同一条记录时，被放弃的那份留在这里"))}</small></span><span>›</span></button></li>
-      <li><button class="row" data-act="open-releases"><span class="row-main"><b>${esc(t("发布日志"))}</b><small>${esc(t("每次更新了什么"))} · v${esc(APP_VERSION)}</small></span><span>›</span></button></li>
-      <li><button class="row" data-act="open-backup"><span class="row-main"><b>${esc(t("备份与恢复"))}</b><small>${esc(t("导出 / 导入全部数据（JSON）"))}</small></span><span>›</span></button></li></ul>
+      <li><button class="row" data-act="open-settings"><span class="row-main"><b>${esc(t("设置"))}</b><small>${esc(t("语言、币种、单位、季节名称、送货参数、镇与距离"))}</small></span><span class="row-go" aria-hidden="true">›</span></button></li>
+      <li><button class="row" data-act="open-ai"><span class="row-main"><b>${esc(t("AI 助手"))}</b><small>${esc(aiReady() ? t("已设置：") + t(providerOf(aiSettings().provider).name) : t("还没设置（可选）：议价、客户建议、送货路线"))}</small></span><span class="row-go" aria-hidden="true">›</span></button></li>
+      ${perms(S.role).approve ? `<li><button class="row" data-act="open-audit"><span class="row-main"><b>${esc(t("审计日志"))}</b><small>${esc(t("谁在什么时候新增、修改、删除了什么"))}</small></span><span class="row-go" aria-hidden="true">›</span></button></li>` : ""}
+      ${mem && perms(S.role).approve ? `<li><button class="row" data-act="open-members"><span class="row-main"><b>${esc(t("成员与邀请"))}</b><small>${esc(t(S.role === "owner" ? "邀请码、批准申请、改角色" : "邀请码、批准申请"))}</small></span><span class="row-go" aria-hidden="true">›</span></button></li>` : ""}
+      <li><button class="row" data-act="open-conflicts"><span class="row-main"><b>${esc(t("同步冲突"))}</b><small>${esc(t("两个人同时改了同一条记录时，被放弃的那份留在这里"))}</small></span><span class="row-go" aria-hidden="true">›</span></button></li>
+      <li><button class="row" data-act="open-releases"><span class="row-main"><b>${esc(t("发布日志"))}</b><small>${esc(t("每次更新了什么"))} · v${esc(APP_VERSION)}</small></span><span class="row-go" aria-hidden="true">›</span></button></li>
+      <li><button class="row" data-act="open-backup"><span class="row-main"><b>${esc(t("备份与恢复"))}</b><small>${esc(t("导出 / 导入全部数据（JSON）"))}</small></span><span class="row-go" aria-hidden="true">›</span></button></li></ul>
     <p class="hint center">${esc(t("稻种账本"))} · <button type="button" class="vlink" data-act="open-releases" aria-label="${esc(t("发布日志"))}">${esc(t("版本"))} v${esc(APP_VERSION)}</button> · ${esc(t("只提供交易记录和风险提示，不构成法律意见。"))}</p>`;
 }
 
@@ -194,7 +195,7 @@ function membersPage({ team, invite }){
     const pr = progress(team, r), canVote = pr.voters.includes(me) && !pr.mine, mineReq = r.requested_by === me, target = team.members.find(m => m.user_id === r.target_user);
     const title = r.kind === "partner" ? t("{n} 申请成为合伙人", { n: nameOf(r.target_user) }) : t("申请移出成员 {n}", { n: nameOf(r.target_user) });
     const prog = pr.voters.length ? t("已同意 {a}/{b}（要全体同意）", { a: pr.agreed, b: pr.voters.length }) : t("已同意 {a} 人（要全体同意）", { a: pr.agreed });
-    return `<li class="vote"><div class="row static"><span class="row-main"><b>${esc(title)}</b><small>${esc(prog)}${p.approve && target?.contact ? " · " + esc(t("联系方式：{c}", { c: target.contact })) : ""}${pr.mine ? " · " + esc(pr.mine.approve ? t("你已同意") : t("你已拒绝")) : ""}</small></span>
+    return `<li class="vote"><div class="row static wrap"><span class="row-main"><b>${esc(title)}</b><small>${esc(prog)}${p.approve && target?.contact ? " · " + esc(t("联系方式：{c}", { c: target.contact })) : ""}${pr.mine ? " · " + esc(pr.mine.approve ? t("你已同意") : t("你已拒绝")) : ""}</small></span>
       <span class="row-side">${canVote ? `<button class="btn sm primary" data-act="vote-yes" data-r="${esc(r.id)}">${esc(t("同意"))}</button><button class="btn sm ghost-danger" data-act="vote-no" data-r="${esc(r.id)}">${esc(t("拒绝"))}</button>` : ""}${mineReq ? `<button class="btn sm" data-act="request-cancel" data-r="${esc(r.id)}">${esc(t("撤回"))}</button>` : ""}</span></div>
       ${canVote && r.kind === "partner" ? `<details class="hint"><summary>${esc(t("合伙人的权益和责任（表决前请确认）"))}</summary>${rightsHTML()}</details>` : ""}</li>`;
   };
@@ -207,11 +208,11 @@ function membersPage({ team, invite }){
         <p class="hint">${esc(t("凭邀请码加入的人要先经过批准；批准后是「只读」。要录入由创建者设为录入员；要当合伙人，本人申请并经创建者和全体合伙人同意。"))}</p></div>` : ""}
       ${S.role === "viewer" || S.role === "staff" ? `<div class="card"><h3>${esc(t("成为合伙人"))}</h3>${myPartnerReq ? `<p class="hint">${esc(t("你的申请已提交，等待创建者和全体合伙人同意。"))}</p>` : `<p class="hint">${esc(t("合伙人能批准新成员、参与表决。申请需要创建者和所有合伙人全部同意。"))}${anon ? " " + esc(t("免邮箱账号要先留下邮箱或电话。")) : ""}</p><button class="btn primary" data-act="partner-apply">${esc(t("申请成为合伙人"))}</button>`}</div>` : ""}
       ${team.pending.length && p.approve ? `<h3 class="grp">${esc(t("等你批准（{n}）", { n: team.pending.length }))}</h3><p class="hint">${esc(t("认识这个人再批准：批准后他能看到账本里的全部数据（只读）。不认识就拒绝，并重新生成邀请码。"))}</p>
-        <ul class="list">${team.pending.map(m => `<li><div class="row static"><span class="row-main"><b>${esc(m.name || "?")}</b><small>${esc(t("申请时间"))} ${esc(String(m.created_at || "").slice(0, 10))}${m.contact ? " · " + esc(t("联系方式：{c}", { c: m.contact })) : ""}</small></span>
+        <ul class="list">${team.pending.map(m => `<li><div class="row static wrap"><span class="row-main"><b>${esc(m.name || "?")}</b><small>${esc(t("申请时间"))} ${esc(String(m.created_at || "").slice(0, 10))}${m.contact ? " · " + esc(t("联系方式：{c}", { c: m.contact })) : ""}</small></span>
           <span class="row-side"><button class="btn sm primary" data-act="member-approve" data-u="${esc(m.user_id)}">${esc(t("批准"))}</button><button class="btn sm ghost-danger" data-act="member-reject" data-u="${esc(m.user_id)}">${esc(t("拒绝"))}</button></span></div></li>`).join("")}</ul>` : ""}
       ${mineOrVote.length ? `<h3 class="grp">${esc(t("待表决"))}</h3><ul class="list">${mineOrVote.map(vote).join("")}</ul>` : ""}
       <h3 class="grp">${esc(t("成员"))}</h3>
-      <ul class="list">${active.map(m => `<li><div class="row static"><span class="row-main"><b>${esc(m.name || "?")}${m.user_id === me ? " " + esc(t("（我）")) : ""}</b>${m.contact && p.approve ? `<small>${esc(m.contact)}</small>` : ""}</span><span class="row-side">${roleBox(m)}</span></div></li>`).join("")}</ul>
+      <ul class="list">${active.map(m => `<li><div class="row static wrap"><span class="row-main"><b>${esc(m.name || "?")}${m.user_id === me ? " " + esc(t("（我）")) : ""}</b>${m.contact && p.approve ? `<small>${esc(m.contact)}</small>` : ""}</span><span class="row-side">${roleBox(m)}</span></div></li>`).join("")}</ul>
       ${p.manage ? `<p class="hint">${esc(t("创建者能改角色（只读 / 录入员 / 创建者）。合伙人只能由本人申请、全体同意；移出成员也要全体同意，不能一个人决定。"))}</p>` : ""}` };
 }
 function partnerForm(){
@@ -345,16 +346,14 @@ async function audLoad(more){
 }
 function auditPage(){
   const f = AUD.f, opt = lab => Object.entries(lab).map(([k, v]) => [k, t(v)]);
-  const any = Object.values(f).some(Boolean), q = audQuick();
-  const cell = (lab, html) => `<label class="af-cell"><span>${esc(t(lab))}</span>${html}</label>`;
-  const filters = `<div class="audit-f">
-    <div class="af-row">${cell("操作", select("action", opt(ACTION_LAB), f.action, { blank: t("全部"), change: "audit-f" }))}${cell("类型", select("kind", opt(KIND_LAB), f.kind, { blank: t("全部"), change: "audit-f" }))}${AUD.online ? cell("成员", select("user", AUD.members.map(m => [m.user_id, m.name || t("合伙人")]), f.user, { blank: t("全部"), change: "audit-f" })) : ""}</div>
-    <div class="af-range" role="group" aria-label="${esc(t("日期范围"))}"><span class="af-lab">${esc(t("日期范围"))}</span>
-      <div class="af-dates"><input type="date" name="from" value="${esc(f.from || "")}" max="${esc(f.to || "")}" data-change="audit-f" aria-label="${esc(t("开始日期"))}"><span aria-hidden="true">—</span><input type="date" name="to" value="${esc(f.to || "")}" min="${esc(f.from || "")}" data-change="audit-f" aria-label="${esc(t("结束日期"))}"></div>
-      <div class="af-quick">${[["7", "近 7 天"], ["30", "近 30 天"], ["month", "本月"]].map(([k, l]) => `<button type="button" class="chip${q === k ? " on" : ""}" aria-pressed="${q === k}" data-act="audit-quick" data-k="${k}">${esc(t(l))}</button>`).join("")}${any ? `<button type="button" class="link af-clear" data-act="audit-clear">${esc(t("清除筛选"))}</button>` : ""}</div></div></div>`;
+  const q = audQuick();
+  const quick = `<div class="fbar-quick">${[["7", "近 7 天"], ["30", "近 30 天"], ["month", "本月"]].map(([k, l]) => `<button type="button" class="chip" aria-pressed="${q === k}" data-act="audit-quick" data-k="${k}">${esc(t(l))}</button>`).join("")}</div>`;
+  const filters = filterUI("audit", { state: f, onChange: () => audLoad(false),   // 日志由近及远（云端按序号倒着取），只能筛不能换排序
+    fields: [{ k: "action", label: "操作", opts: opt(ACTION_LAB) }, { k: "kind", label: "类型", opts: opt(KIND_LAB) }, ...(AUD.online ? [{ k: "user", label: "成员", opts: AUD.members.map(m => [m.user_id, m.name || t("合伙人")]) }] : []),
+      { type: "range", from: "from", to: "to", label: "日期范围", quick }] });
   const list = AUD.rows.length ? `<ul class="list tight audit">${AUD.rows.map(r => `<li><div class="row static"><span class="row-main"><b>${esc(t(ACTION_LAB[r.action] || r.action))} · ${esc(t(KIND_LAB[r.kind] || r.kind))} ${esc(brief(r.after))}</b><small>${esc(diffText(r.before, r.after))}</small></span><span class="row-side"><small>${esc(new Date(r.at).toLocaleString())}</small><small>${esc(r.who)}</small></span></div></li>`).join("")}</ul>`
     : AUD.loading ? "" : empty(Object.values(f).some(Boolean) ? "没有符合条件的记录。" : "还没有记录。");
-  const more = AUD.hasNext ? `<div class="actions" style="justify-content:center">${btn(AUD.loading ? "加载中…" : "加载更多", "audit-more", { disabled: AUD.loading })}</div>` : "";
+  const more = AUD.hasNext ? `<div class="more-row">${btn(AUD.loading ? "加载中…" : "加载更多", "audit-more", { disabled: AUD.loading })}</div>` : "";
   return { title: t("审计日志"), body: `<p class="hint">${esc(AUD.online ? t("来自云端，由数据库自动记录，不能被修改或删除。") : t("本机记录；联网登录后以云端日志为准。"))}</p>${filters}${AUD.err ? `<p class="neg" role="alert">${esc(t("出错了：") + AUD.err)}</p>` : ""}${list}${more}` };
 }
 ACT["open-audit"] = async () => {
@@ -363,8 +362,6 @@ ACT["open-audit"] = async () => {
   await audLoad(false);
   show(auditPage, true);
 };
-CHG["audit-f"] = async el => { AUD.f[el.name] = el.value || undefined; await audLoad(false); };
-ACT["audit-clear"] = async () => { AUD.f = {}; await audLoad(false); };
 /* 快捷日期：近 7 天 / 近 30 天 / 本月（都到今天为止）；当前范围正好是哪个就高亮哪个 */
 const audDay = (n = 0) => { const d = new Date(); d.setDate(d.getDate() - n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 const audRange = k => k === "month" ? [audDay().slice(0, 8) + "01", audDay()] : [audDay(+k - 1), audDay()];
