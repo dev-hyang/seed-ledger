@@ -400,6 +400,19 @@ const EN = {
   "待催账：{c}": "To chase: {c}",
   "欠款 {a} · 已 {n} 天": "Owes {a} · {n} days",
   "待催账 {n} 位客户，共 {a}": "{n} customer(s) to chase, {a} in total",
-  "去催账 ›": "Chase ›"
+  "去催账 ›": "Chase ›",
+  "发布日志": "Release notes",
+  "每次更新了什么": "What changed in each update",
+  "金额显示": "Amounts",
+  "遮挡（外出）": "Hidden (out)",
+  "常显示（在家）": "Always shown (at home)",
+  "遮挡：金额模糊，点一下看 10 秒，适合在外面。常显示：适合在家；页面在后台超过 30 分钟会自动切回遮挡。顶栏的眼睛也能切换（双击或长按）。": "Hidden: amounts are blurred; tap one to see it for 10 seconds. Good when you're out. Always shown: good at home; after 30 minutes in the background it switches back to hidden. The eye in the top bar also switches (double-tap or long-press).",
+  "金额已遮挡（外出）。单击：全部显示 10 秒；双击或长按：切到常显示（在家）": "Amounts hidden (out). Tap: show all for 10 seconds; double-tap or long-press: always show (at home)",
+  "金额常显示（在家）。单击：马上遮起来；双击或长按：切回遮挡（外出）": "Amounts shown (at home). Tap: hide now; double-tap or long-press: back to hidden (out)",
+  "已切回遮挡（外出）：点一个金额看 10 秒": "Back to hidden (out): tap an amount to see it for 10 seconds",
+  "已切到常显示（在家）：页面在后台超过 30 分钟会自动切回遮挡": "Now always shown (at home): after 30 minutes in the background it hides again",
+  "显示 10 秒。要一直显示：双击或长按眼睛": "Shown for 10 seconds. To keep them shown, double-tap or long-press the eye",
+  "已遮起来。要一直显示：双击或长按眼睛": "Hidden. To keep them shown, double-tap or long-press the eye",
+  "离开超过 30 分钟，金额已自动遮挡": "You were away over 30 minutes, so amounts are hidden again"
 };
 export { EN };

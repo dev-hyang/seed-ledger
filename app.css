@@ -225,7 +225,7 @@ dialog[open]~.toast{z-index:1000}
 /* 版本号（顶栏、概览页、设置、更多页）：小而灰，只用来对照有没有更新 */
 .appver{color:var(--muted);font-weight:400;font-size:11.5px;margin-left:4px;white-space:nowrap}
 .appver-line{margin:4px 0 12px}
-@media (max-width:420px){.top .appver{display:none}}   /* 窄屏顶栏放不下，概览页底部和更多页仍然有 */
+
 
 /* 扫描 / 导入 */
 .scan-file{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}
@@ -314,3 +314,33 @@ dialog[open]~.toast{z-index:1000}
 .uline.total span{font-size:14px;color:var(--muted)}
 .uline.total b{font-size:17px;text-align:right;font-variant-numeric:tabular-nums}
 @media (max-width:520px){.uline:not(.total){grid-template-columns:1fr auto}.uline-name{grid-column:1 / -1}}
+
+/* ── 11-08 顶栏：店名下面一行小字版本号（手机也显示，点开发布日志）；眼睛 = 金额遮挡 ── */
+.brand{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.brand-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top .appver{all:unset;align-self:flex-start;margin:2px 0 0;font-size:11.5px;font-weight:400;color:var(--muted);cursor:pointer;white-space:nowrap}
+.top .appver:hover,.vlink:hover{text-decoration:underline;text-underline-offset:3px;color:var(--ink)}
+.top .appver:focus-visible,.vlink:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:4px}
+.vlink{all:unset;cursor:pointer;color:inherit}
+.top-tools{flex:none}
+@media (max-width:420px){.top{padding-left:12px;padding-right:12px}.top-tools{gap:6px}.top select{padding:0 4px;max-width:76px}.pill{padding:0 10px}.brand{font-size:16px}}
+/* ── 金额遮挡（js/core/privacy.js）：遮挡模式下金额模糊（宽度不变、不跳）；点一个露那一行 10 秒；单击眼睛全部露 10 秒（外圈倒计时） ── */
+html.money-hide:not(.money-peek) .amt:not(.is-peek):not(svg *){filter:blur(6px);user-select:none;cursor:pointer}
+html.money-hide:not(.money-peek) svg .amt:not(.is-peek){fill-opacity:0;cursor:pointer}
+html.money-hide .amt{transition:filter .2s}
+html.money-hide .amt.is-peek:not(svg *){background:color-mix(in srgb,var(--brand) 14%,transparent);border-radius:5px}
+@media (prefers-reduced-motion:reduce){html.money-hide .amt{transition:none}}
+@media print{html.money-hide .amt{filter:none!important;fill-opacity:1!important;background:none!important}}
+.money-eye{position:relative;flex:none;display:grid;place-items:center;width:36px;height:36px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--surface);color:var(--muted);cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.money-eye:hover{color:var(--ink);border-color:var(--brand)}
+.money-eye[aria-pressed="true"]{color:var(--brand);background:color-mix(in srgb,var(--brand) 10%,var(--surface))}
+.me-ico{display:grid;place-items:center}
+.me-ring{position:absolute;inset:-1px;width:calc(100% + 2px);height:calc(100% + 2px);transform:rotate(-90deg);pointer-events:none}
+.me-ring circle{fill:none;stroke:var(--brand);stroke-width:2.5;stroke-dasharray:100.5;stroke-dashoffset:100.5;opacity:0}
+.money-eye.is-counting .me-ring circle{opacity:1;animation:meRing 10s linear forwards}
+@keyframes meRing{from{stroke-dashoffset:0}to{stroke-dashoffset:100.5}}
+@media (prefers-reduced-motion:reduce){.money-eye.is-counting .me-ring circle{animation:none;stroke-dashoffset:0}}
+/* 发布日志：在弹层里，弹层标题就是「发布日志」，模块自己的大标题收起；概览顶上的新版本提示 */
+.sheet .rl-title{display:none}
+.sheet .rl-head{margin-top:0}
+#main > .rl-badge{margin:0 0 12px}

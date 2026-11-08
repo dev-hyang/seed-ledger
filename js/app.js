@@ -16,6 +16,9 @@ import { renderReports } from "./ui/reports.js";
 import { renderMore, importFile } from "./ui/more.js";
 import { resetPage } from "./ui/pager.js";
 import "./ui/print.js";
+import { initPrivacy, moneyEye } from "./core/privacy.js";
+import { initReleases, releasePageHTML } from "./ui/releases-ui.js";
+import { RELEASES } from "./data/releases.js";
 import "./ui/scan.js";
 
 const ICON = {
@@ -27,7 +30,7 @@ const TABS = [["home", "概览", renderHome], ["sales", "销售", renderSales], 
 function chrome(){
   const lang = `<select id="lang" aria-label="${esc(t("界面语言"))}">${LOCALES.map(([k, l]) => `<option value="${k}" ${k === locale() ? "selected" : ""}>${l}</option>`).join("")}</select>`;
   const pill = { local: "本机", signedout: "未登录", noorg: "未加入账本", pending: "待批准", online: S.pendingOps ? "同步中" : "已同步", offline: "离线" }[S.cloud];
-  $("#top").innerHTML = `<span class="brand">🌾 ${esc(S.settings.name || t("稻种账本"))} <small class="appver" id="appver">v${esc(APP_VERSION)}</small></span><span class="top-tools">${lang}<button class="pill ${S.cloud}" data-tab="more" aria-label="${esc(t("同步状态"))}"><i></i>${esc(t(pill))}${S.pendingOps ? ` · ${S.pendingOps}` : ""}</button></span>`;
+  $("#top").innerHTML = `<span class="brand"><span class="brand-name">🌾 ${esc(S.settings.name || t("稻种账本"))}</span><button type="button" class="appver" id="appver" data-act="open-releases" aria-label="${esc(t("发布日志"))} · v${esc(APP_VERSION)}" title="${esc(t("发布日志"))}">v${esc(APP_VERSION)}</button></span><span class="top-tools">${moneyEye()}${lang}<button class="pill ${S.cloud}" data-tab="more" aria-label="${esc(t("同步状态"))}"><i></i>${esc(t(pill))}${S.pendingOps ? ` · ${S.pendingOps}` : ""}</button></span>`;
   $("#nav").innerHTML = TABS.map(([k, l]) => `<button data-tab="${k}" ${S.tab === k ? 'aria-current="page"' : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg><span>${esc(t(l))}</span></button>`).join("");
   document.body.classList.toggle("is-offline", S.cloud === "offline");
 }
@@ -73,6 +76,8 @@ ACT.goto = el => goto(el.dataset.tab, el.dataset.sub);
 ACT.back = () => back();
 ACT.close = () => closeAll();
 ACT["ask-yes"] = () => askYes();
+// 发布日志：弹层（标题就是「发布日志」，模块里的大标题在样式里收起）
+ACT["open-releases"] = () => show(() => ({ title: t("发布日志"), body: releasePageHTML() }));
 
 const guard = async fn => { try { await fn(); } catch (e) { toast(e.message === "readonly" ? t("你是只读成员，不能修改") : t("出错了：") + (e.message || e)); console.error(e); } };
 
@@ -123,4 +128,6 @@ async function healStaleModules(){
   await Promise.all(MODULES.map(u => fetch("js/" + u, { cache: "reload" }).catch(() => null)));
   location.reload(); return true;
 }
+initPrivacy({ toast });
+initReleases({ version: APP_VERSION, releases: RELEASES, lang: locale, accent: "var(--brand)", appId: "seed-ledger", open: 'data-act="open-releases"' });
 if (!(await healStaleModules())) initCloud().then(render);

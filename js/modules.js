@@ -3,8 +3,8 @@
    新增 / 删除 js 文件时同步改这里；tests/modules.test.js 会检查清单和实际文件一致。 */
 export const MODULES = [
   "app.js", "config.js", "modules.js",
-  "core/advice.js", "core/ai.js", "core/auth-msg.js", "core/db.js", "core/file-readers.js", "core/i18n.js", "core/state.js", "core/sync.js", "core/util.js",
-  "data/i18n-en.js", "data/s2t.js",
+  "core/advice.js", "core/ai.js", "core/auth-msg.js", "core/db.js", "core/file-readers.js", "core/i18n.js", "core/privacy.js", "core/state.js", "core/sync.js", "core/util.js",
+  "data/i18n-en.js", "data/releases.js", "data/s2t.js",
   "logic/customers.js", "logic/ledger.js", "logic/lifecycle.js", "logic/pager.js", "logic/pricing.js", "logic/profile.js", "logic/route.js", "logic/scan-import.js", "logic/todos.js",
-  "ui/actions.js", "ui/charts.js", "ui/common.js", "ui/customers.js", "ui/home.js", "ui/kit.js", "ui/lifecycle.js", "ui/more.js", "ui/pager.js", "ui/print.js", "ui/reports.js", "ui/routes.js", "ui/sales.js", "ui/scan.js", "ui/stock.js", "ui/todo.js"
+  "ui/actions.js", "ui/charts.js", "ui/common.js", "ui/customers.js", "ui/home.js", "ui/kit.js", "ui/lifecycle.js", "ui/more.js", "ui/pager.js", "ui/print.js", "ui/releases-ui.js", "ui/reports.js", "ui/routes.js", "ui/sales.js", "ui/scan.js", "ui/stock.js", "ui/todo.js"
 ];
