@@ -1,5 +1,5 @@
 /* ============ 界面小零件：弹层（带返回栈）、表单字段、徽标 ============
-   弹层用 show(fn, live)：fn() 返回 { title, body, foot }。live=true 的详情页会在数据变化后自动重画；表单页不重画（免得输入到一半被刷掉）。
+   弹层用 show(fn, live)：fn() 返回 { title, body, foot }。live=true 的详情页会在数据变化后自动重画（重画时保住没保存的输入、焦点和光标，见 snapFields）；表单页不重画（免得输入到一半被刷掉）。
    弹层里点「返回」回到上一层（例如：客户 → 某张销售单 → 收款表单，逐层退回）。 */
 import { $, esc } from "../core/util.js";
 import { t } from "../core/i18n.js";
@@ -7,22 +7,83 @@ import { ACT, CHG } from "./actions.js";
 
 const stack = [];
 const dlg = () => $("#sheet");
+let shown = null;   // 弹层里现在画的是哪一层（同一层再画 = 数据变了的重画；换了层 = 打开 / 返回）
 
 function paint(){
   const top = stack[stack.length - 1], d = dlg();
-  if (!top) { if (d.open) d.close(); return; }
-  const { title, body, foot } = top.fn(), keep = d.querySelector(".sheet-body")?.scrollTop || 0;
+  if (!top) { shown = null; if (d.open) d.close(); return; }
+  const same = shown === top && d.open, keep = same ? snapFields(d) : top.keep, y = same ? d.querySelector(".sheet-body")?.scrollTop || 0 : top.y || 0;
+  const { title, body, foot } = top.fn();
   d.innerHTML = `<div class="sheet-in"><div class="sheet-head">${stack.length > 1 ? `<button class="x" data-act="back" aria-label="${esc(t("返回"))}">‹</button>` : ""}<h2 id="sheetTitle">${esc(title)}</h2><button class="x" data-act="close" aria-label="${esc(t("关闭"))}">×</button></div>
     <div class="sheet-body">${body}</div>${foot ? `<div class="sheet-foot">${foot}</div>` : ""}</div>`;
   if (!d.open) d.showModal();
-  d.querySelector(".sheet-body").scrollTop = top.live ? keep : 0;
+  d.querySelector(".sheet-body").scrollTop = y;
+  restoreFields(d, keep);   // 重画 / 返回到这一层：把还没保存的输入、焦点和光标放回去
+  top.keep = null; shown = top;
 }
-const show = (fn, live = false) => { stack.push({ fn, live }); paint(); };
+/** 打开新的一层之前，记下当前这一层填了一半的内容和滚动位置（例如 设置 → 添加镇 → 返回，设置里改了的店名还在） */
+function stash(){
+  const top = stack[stack.length - 1], d = dlg();
+  if (top && shown === top && d.open) { top.keep = snapFields(d); top.y = d.querySelector(".sheet-body")?.scrollTop || 0; }
+}
+const show = (fn, live = false) => { stash(); stack.push({ fn, live }); paint(); };
 const back = () => { stack.pop(); paint(); };
 const closeAll = () => { stack.length = 0; paint(); };
-const replace = fn => { stack[stack.length - 1] = { fn, live: false }; paint(); };   // 当前这一层换成新内容（向导的下一步 / 上一步用，不关闭再打开，不闪）
+const replace = fn => { stack[stack.length - 1] = { fn, live: false }; paint(); };   // 当前这一层换成新内容（向导的下一步 / 上一步用，不关闭再打开，不闪；各步的值由向导自己记着）
 const refresh = () => { const top = stack[stack.length - 1]; if (top && top.live && dlg().open) paint(); };
 const sheetOpen = () => dlg().open;
+
+/* ---------- 重画时保住正在填的内容 ----------
+   页面（#main）和弹层是整块 innerHTML 重建的：后台同步 / 实时推送后的重画、详情页的自动重画、从上一层返回，都会把输入框重新生成。
+   重建前先记下用户改过、还没保存的字段（当前值 ≠ 渲染时的初始值），重建后按「表单 + 字段名 / data-* + 第几个」找回同一个字段放回去，焦点和光标也放回去。
+   只有这个字段的初始值没变才放回：保存、重置筛选、「用估算」这类操作改了初始值，就以新值为准。文件框没法回填，跳过。 */
+const SKIP_TYPES = new Set(["file", "button", "submit", "reset", "image", "hidden"]);
+const isTick = el => el.type === "checkbox" || el.type === "radio";
+const valOf = el => isTick(el) ? el.checked : el.tagName === "SELECT" ? [...el.options].filter(o => o.selected).map(o => o.value).join("\n") : el.value;
+function defOf(el){
+  if (isTick(el)) return el.defaultChecked;
+  if (el.tagName !== "SELECT") return el.defaultValue;
+  const d = [...el.options].filter(o => o.defaultSelected);
+  return (d.length || el.multiple || el.size > 1 ? d : [...el.options].slice(0, 1)).map(o => o.value).join("\n");
+}
+function setVal(el, v){
+  if (isTick(el)) el.checked = v;
+  else if (el.tagName === "SELECT") { const want = new Set(v.split("\n")); for (const o of el.options) o.selected = want.has(o.value); }
+  else el.value = v;
+}
+/** 每个字段一个稳定的键：所在表单 | 名字（name / data-input / data-change / id）| 行号等 data-* | 单选 / 勾选的值，同名的再按出现顺序编号 */
+function fieldKeys(root){
+  const seen = new Map(), out = [];
+  for (const el of root.querySelectorAll("input, textarea, select")) {
+    if (SKIP_TYPES.has(el.type)) continue;
+    const f = el.form, ds = el.dataset;
+    const base = [f ? f.dataset.form || f.id || "form" : "", el.name || ds.input || ds.change || el.id || el.tagName, [ds.i, ds.l, ds.k, ds.id, ds.fb, ds.u].filter(x => x != null).join(","), isTick(el) ? el.value : ""].join("|");
+    const n = seen.get(base) || 0; seen.set(base, n + 1);
+    out.push([base + "#" + n, el]);
+  }
+  return out;
+}
+function snapFields(root){
+  if (!root) return null;
+  const a = document.activeElement, dirty = [];
+  let focus = null;
+  for (const [k, el] of fieldKeys(root)) {
+    const v = valOf(el), d = defOf(el);
+    if (v !== d) dirty.push([k, v, d]);
+    if (el === a) { focus = { k }; try { focus.s = el.selectionStart; focus.e = el.selectionEnd; focus.dir = el.selectionDirection; } catch (e) { /* 数字、日期框没有光标位置 */ } }
+  }
+  return dirty.length || focus ? { dirty, focus } : null;
+}
+function restoreFields(root, snap){
+  if (!root || !snap) return;
+  const map = new Map(fieldKeys(root));
+  for (const [k, v, d] of snap.dirty) { const el = map.get(k); if (el && !el.disabled && defOf(el) === d) setVal(el, v); }
+  const el = snap.focus && map.get(snap.focus.k);
+  if (el && document.activeElement !== el) {
+    el.focus({ preventScroll: true });
+    if (snap.focus.s != null) try { el.setSelectionRange(snap.focus.s, snap.focus.e, snap.focus.dir || "none"); } catch (e) { /* 忽略 */ }
+  }
+}
 
 /* ---------- 表单字段 ---------- */
 const fld = (label, inner, hint = "") => `<label class="fld"><span>${esc(t(label))}</span>${inner}${hint ? `<small>${hint}</small>` : ""}</label>`;
@@ -68,7 +129,7 @@ function subnav(subs, cur, act, page){
 }
 CHG.subnav = el => ACT[el.dataset.subact]?.({ dataset: { k: el.value } });
 
-export { show, replace, back, closeAll, refresh, sheetOpen, paint, fld, text, num, date, area, select, seg, segBtns, subnav, formData, badge, empty, btn, kv };
+export { show, replace, back, closeAll, refresh, sheetOpen, paint, snapFields, restoreFields, fld, text, num, date, area, select, seg, segBtns, subnav, formData, badge, empty, btn, kv };
 
 /* ---------- 二次确认（删除、作废） ---------- */
 let yes = null;

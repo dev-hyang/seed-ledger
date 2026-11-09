@@ -62,13 +62,13 @@ const authForm = el => el.closest(".sheet-in").querySelector("form");
 const authSay = (f, msg) => { const b = f && f.querySelector("[data-authmsg]"); if (b) b.textContent = msg; };   // 消息留在弹层里，不会 3 秒就消失
 const wzSteps = () => WZ_STEPS[wz.path] || [];
 const msgBox = `<p class="hint ai-out" data-authmsg role="status"></p>`;
-const STEP_UI = {
+const STEP_UI = {   // d = 前面各步已填的值（wz.d）：「上一步 / 下一步」换页时都从这里填回去，密码也是（只在内存里，不存盘）
   invite: d => ({ title: "输入邀请码", body: `${fld("邀请码，或粘贴邀请链接", text("invite", d.invite || "", { max: 300, ph: "邀请码，或整条邀请链接" }), t("创建者在「更多 → 成员与邀请」里复制；邀请码和链接都行"))}` }),
   name: d => ({ title: "你的名字", body: `${fld("你的名字", text("name", d.name || "", { max: 40 }), t("申请加入时给创建者看"))}` }),
   account: d => ({ title: "要不要留邮箱？（可选）", body: `<p class="hint">${esc(t("不留也行：直接申请加入，批准后是只读成员；账号只存在这台设备的浏览器里，清了浏览器数据就进不去了。留下邮箱和密码，就能在任何设备登录，以后也能申请当合伙人。"))}</p>
-      ${fld("邮箱（可选）", text("email", d.email || "", { type: "email", max: 120 }))}${fld("密码（可选，至少 8 位）", `<input name="password" type="password" minlength="8" autocomplete="new-password">`)}` }),
+      ${fld("邮箱（可选）", text("email", d.email || "", { type: "email", max: 120 }))}${fld("密码（可选，至少 8 位）", `<input name="password" type="password" minlength="8" autocomplete="new-password" value="${esc(d.password || "")}">`)}` }),
   email: d => ({ title: "你的邮箱", body: `${fld("邮箱", text("email", d.email || "", { type: "email", req: true, max: 120 }), t("小月亮等姊妹应用的账号可以直接登录，不用重新注册"))}` }),
-  password: d => ({ title: "密码", body: `${fld("密码", `<input name="password" type="password" minlength="8" required autocomplete="current-password">`, t("至少 8 位。已有账号：下一步点「登录」；新用户点「注册」"))}` }),
+  password: d => ({ title: "密码", body: `${fld("密码", `<input name="password" type="password" minlength="8" required autocomplete="current-password" value="${esc(d.password || "")}">`, t("至少 8 位。已有账号：下一步点「登录」；新用户点「注册」"))}` }),
   invite2: d => ({ title: "要加入别人的店吗？（可选）", body: `<p class="hint">${esc(t("邀请码是用来加入别人的店的。没有也没关系：登录后你可以创建自己的店，也可以以后再用邀请码加入别人的店。"))}</p>
       ${fld("别人店的邀请码，或邀请链接（可选）", text("invite", d.invite2 || d.invite || "", { max: 300 }))}` })
 };

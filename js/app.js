@@ -7,7 +7,7 @@ import { t, LOCALES, locale, setLocale } from "./core/i18n.js";
 import { LS_PREFIX, CLOUD_CONFIGURED, APP_VERSION } from "./config.js";
 import { MODULES } from "./modules.js";
 import { ACT, FORMS, CHG, INP } from "./ui/actions.js";
-import { show, back, closeAll, refresh, paint, formData, sheetOpen, askYes } from "./ui/kit.js";
+import { show, back, closeAll, refresh, formData, sheetOpen, askYes, snapFields, restoreFields } from "./ui/kit.js";
 import { renderHome } from "./ui/home.js";
 import { renderSales } from "./ui/sales.js";
 import { renderCustomers } from "./ui/customers.js";
@@ -62,14 +62,22 @@ function render(){
   if (S.cloud === "noorg") { chrome(); $("#nav").hidden = true; $("#main").innerHTML = noorgScreen(); return; }
   if (S.cloud === "pending") { chrome(); $("#nav").hidden = true; $("#main").innerHTML = pendingScreen(); return; }
   $("#nav").hidden = false;
-  const main = $("#main"), active = document.activeElement, keep = active?.dataset?.input ? { k: active.dataset.input, s: active.selectionStart } : null, y = window.scrollY;
+  const main = $("#main"), keep = snapFields(main), y = window.scrollY;   // 重画前记下页面里没保存的输入、焦点和光标（搜索框、筛选里的日期等）
   chrome();
   main.innerHTML = banner() + (TABS.find(x => x[0] === S.tab) || TABS[0])[2]();
-  if (keep) { const el = main.querySelector(`[data-input="${keep.k}"]`); if (el) { el.focus(); try { el.setSelectionRange(keep.s, keep.s); } catch (e) {} } }
+  restoreFields(main, keep);
   window.scrollTo(0, y);
   document.documentElement.lang = locale();
 }
-subscribe(() => { render(); refresh(); });
+/* 后台重画（同步上传 / 下载、合伙人的实时推送、每分钟同步、等批准的定时检查、登录令牌刷新、联网 / 断网）：
+   正在某个输入框里打字时先不重画，离开输入框再补画一次——免得打到一半焦点被抢走、日期框没打完的部分丢掉。
+   点按钮、改下拉、提交表单这些自己操作引起的重画照常立刻进行。 */
+const TYPE_IN = new Set(["checkbox", "radio", "button", "submit", "reset", "file", "range", "color", "image"]);
+const typing = () => { const a = document.activeElement; return !!a && (a.tagName === "TEXTAREA" || (a.tagName === "INPUT" && !TYPE_IN.has(a.type))) && !!a.closest("#main, #sheet"); };
+let stale = false;
+function bgRender(){ if (typing()) { stale = true; return; } stale = false; render(); refresh(); }
+subscribe(bgRender);
+document.addEventListener("focusout", () => setTimeout(() => { if (stale) bgRender(); }, 0));
 
 function goto(tab, sub){ S.tab = tab; if (sub) S.sub[tab] = sub; resetPage(); saveJSON(LS_PREFIX + ".tab", tab); closeAll(); render(); window.scrollTo(0, 0); }
 ACT.goto = el => goto(el.dataset.tab, el.dataset.sub);
@@ -94,7 +102,7 @@ document.addEventListener("submit", e => {
   e.preventDefault();
   const fn = FORMS[f.dataset.form]; if (!fn) return;
   const btn = document.querySelector(`button[form="${f.id}"]`); if (btn) btn.disabled = true;
-  guard(async () => { await fn(formData(f), f); }).finally(() => { if (btn) btn.disabled = false; });
+  guard(async () => { await fn(formData(f), f); render(); refresh(); }).finally(() => { if (btn) btn.disabled = false; });   // 提交后马上重画（按回车提交时焦点还在输入框里，后台重画会被推迟）
 });
 document.addEventListener("change", e => {
   const el = e.target;
@@ -116,8 +124,8 @@ $("#sheet").addEventListener("close", () => { if (sheetOpen()) return; });
 new MutationObserver(() => { const f = $("#sheet form[data-input-form]"); if (f && !f.dataset.init) { f.dataset.init = "1"; INP[f.dataset.inputForm]?.(f.elements[0], f); } }).observe($("#sheet"), { childList: true, subtree: true });
 
 if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(() => {});
-window.addEventListener("online", () => render());
-window.addEventListener("offline", () => render());
+window.addEventListener("online", bgRender);
+window.addEventListener("offline", bgRender);
 
 /* 发布后的头几分钟，浏览器可能把新的 index.html 和缓存里的旧模块混在一起：版本不一致就强制重抓所有模块并刷新一次（每个版本只做一次，防循环） */
 async function healStaleModules(){

@@ -1,6 +1,10 @@
 /* 发布日志（更多 → 发布日志；新版本第一次打开起，概览页顶上提示最多 5 次）。每次发布加一条，和版本号同一个 commit（最新在前）。
    写给店主看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。界面在 js/ui/releases-ui.js（和姊妹应用同一份）。 */
 export const RELEASES = [
+  { v: "2026-11-09.1", title: { zh: "填表时没保存的内容不会再被自动刷新冲掉", en: "Unsaved typing is no longer wiped by automatic refreshes" }, items: [
+    { k: "fix", zh: "后台同步、合伙人那边一录入时，正在打的字、光标都保持不动，离开输入框后再刷新", en: "While syncing or when a partner adds records, what you are typing and the cursor stay put; the page refreshes after you leave the box" },
+    { k: "fix", zh: "设置里改到一半去「添加镇」再回来，改过的内容还在；登录时点「上一步」，密码不用重填", en: "Settings keeps your unsaved changes after adding a town and coming back; going back a step at sign-in keeps the password" }
+  ] },
   { v: "2026-11-08.2", title: { zh: "各页面更清楚、更好点，手机电脑都整齐", en: "Clearer, easier pages on phone and computer" }, items: [
     { k: "better", zh: "概览：四个大按钮（记销售、进货、扫描、报表）；「待处理」可以收起，每条一行，按钮就在旁边", en: "Overview: four big buttons (sale, purchase, scan, reports); “To do” can be folded, one line per item with its button alongside" },
     { k: "better", zh: "各页的筛选和排序统一成一个「筛选」按钮，默认最新的在前；已选的条件一眼看到，点 ✕ 就去掉", en: "Every page now has one “Filter” button for filtering and sorting, newest first by default; chosen filters show as tags you can remove with ✕" },
