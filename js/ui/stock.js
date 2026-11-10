@@ -68,7 +68,7 @@ function flowForm(type, rec){
   const isP = type === "purchase", d = rec?.date || today();
   return { title: t(rec ? (isP ? "修改进货" : "修改退货") : (isP ? "进货" : "退货给种子公司")),
     body: `<form id="f" data-form="${type}" data-id="${rec?.id || ""}">
-      ${fld("日期", date("date", d))}
+      ${fld("日期", date("date", d, { past: true }))}
       ${fld("品种", select("brandId", brandOpts(), rec?.brandId, { req: true, change: "flow-brand" }), t("按品种归到种子公司，不用另选公司"))}
       ${fld("数量（斤）", num("qty", rec?.qty, { req: true, min: 0 }))}
       ${fld(isP ? "进货价（¥/斤）" : "退货折价（¥/斤）", num("unitCost", rec?.unitCost, { req: true, min: 0 }), t(isP ? "种子公司给的价格" : "退回时种子公司按多少钱抵扣，通常和进货价一样"))}
@@ -174,13 +174,13 @@ FORMS.supplier = async (d, f) => {
   await save("supplier", { ...(old || {}), id: old?.id, name: d.name, contact: d.contact, note: d.note, rule: d.feePct > 0 ? { minRatioPct: d.minRatioPct || 0, feePct: d.feePct } : null });
   back();
 };
-ACT["pool-pay"] = el => show(() => ({ title: t("打款入池"), body: `<form id="f" data-form="spay" data-supplier="${el.dataset.id}">${fld("日期", date("date", today()))}${fld("金额（¥）", num("amount", "", { req: true, min: 0 }))}${fld("备注", area("note", "", { ph: "例如 预付 2027 年进货款" }))}</form>`,
+ACT["pool-pay"] = el => show(() => ({ title: t("打款入池"), body: `<form id="f" data-form="spay" data-supplier="${el.dataset.id}">${fld("日期", date("date", today(), { past: true }))}${fld("金额（¥）", num("amount", "", { req: true, min: 0 }))}${fld("备注", area("note", "", { ph: "例如 预付 2027 年进货款" }))}</form>`,
   foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("保存"))}</button>` }));
 FORMS.spay = async (d, f) => { await save("spay", { date: d.date, supplierId: f.dataset.supplier, amount: d.amount, note: d.note }); back(); };
 function feeForm(supplierId, v = {}, fromReturn = false){
   return { title: t("手续费"),
     body: `<form id="f" data-form="sfee" data-supplier="${supplierId}">${fromReturn ? `<p class="lead">${esc(t("按这家公司的规则，退货比例较高，可能被收手续费。金额可改，不收就取消。"))}</p>` : ""}
-      ${fld("日期", date("date", today()))}${fld("记入哪一年", num("year", v.year ?? yearNow(), { req: true, step: 1 }))}
+      ${fld("日期", date("date", today(), { past: true }))}${fld("记入哪一年", num("year", v.year ?? yearNow(), { req: true, step: 1 }))}
       ${fld("类型", select("reason", [["unpack", t("拆包费")], ["return", t("退货手续费")]], v.reason || "unpack", { blank: false }))}
       ${fld("金额（¥）", num("amount", v.amount, { req: true, min: 0 }))}${fld("备注", area("note"))}</form>`,
     foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("保存"))}</button>` };

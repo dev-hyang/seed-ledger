@@ -139,7 +139,7 @@ function saleForm(s){
       ${fld("客户", select("customerId", cust, s?.customerId, { blank: t("— 选客户，或在下面新建 —"), change: "sale-customer" }))}
       <details class="newcust" ${cust.length ? "" : "open"}><summary>${esc(t("＋ 新客户"))}</summary>
         <div class="grid2">${fld("姓名", text("newName"))}${fld("手机号（必填）", text("newPhone", "", { type: "tel", mode: "tel" }))}${fld("镇", text("newTown"))}${fld("村", text("newVillage"))}</div></details>
-      ${fld("日期", date("date", d))}</fieldset>
+      ${fld("日期", date("date", d, { past: true }))}</fieldset>
       <fieldset class="box"><legend>${esc(t("卖了什么"))}</legend>
       ${fld("价格档", seg("tier", [["retail", t("零售价")], ["wholesale", t("批发价")]], tier), t("选了品种会自动填单价，可以再改"))}
       <div class="lines">${firstLines.map(lineRow).join("")}</div>
@@ -266,7 +266,7 @@ FORMS.void = async (d, f) => { const s = byId("sale", f.dataset.id); await save(
 /* ---------- 收款 ---------- */
 ACT["pay-new"] = el => show(() => { const s = model().saleM.get(el.dataset.id);
   return { title: t("收款"), body: `<form id="f" data-form="pay" data-sale="${s.id}"><p class="lead">${esc(customerName(s.customerId))} · ${esc(t("欠款"))} <b class="neg">${esc(money(Math.max(s.balance, 0)))}</b></p>
-    ${fld("日期", date("date", today()))}${fld("金额（¥）", num("amount", s.balance > EPS ? r2(s.balance) : "", { req: true, min: 0 }))}${fld("方式", select("method", METHODS.map(([k, l]) => [k, t(l)]), "cash", { blank: false }))}${fld("备注", area("note"))}</form>`,
+    ${fld("日期", date("date", today(), { past: true }))}${fld("金额（¥）", num("amount", s.balance > EPS ? r2(s.balance) : "", { req: true, min: 0 }))}${fld("方式", select("method", METHODS.map(([k, l]) => [k, t(l)]), "cash", { blank: false }))}${fld("备注", area("note"))}</form>`,
     foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("保存"))}</button>` }; });
 FORMS.pay = async (d, f) => { await save("pay", { saleId: f.dataset.sale, date: d.date, amount: d.amount, method: d.method, note: d.note }); back(); };
 

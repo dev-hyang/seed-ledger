@@ -1,6 +1,10 @@
 /* 发布日志（更多 → 发布日志；新版本第一次打开起，概览页顶上提示最多 5 次）。每次发布加一条，和版本号同一个 commit（最新在前）。
    写给店主看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。界面在 js/ui/releases-ui.js（和姊妹应用同一份）。 */
 export const RELEASES = [
+  { v: "2026-11-09.2", title: { zh: "记账的日期不能选到未来", en: "Ledger dates can no longer be in the future" }, items: [
+    { k: "better", zh: "销售、收款、进货、退货、打款、手续费的日期：晚于今天的变灰、不能选", en: "Dates for sales, payments, purchases, returns, deposits and fees: anything after today is greyed out" },
+    { k: "better", zh: "送货日期、约定收款日、送货行程不受影响，照样能选未来", en: "Delivery dates, agreed payment dates and delivery trips are unchanged and can still be in the future" }
+  ] },
   { v: "2026-11-09.1", title: { zh: "填表时没保存的内容不会再被自动刷新冲掉", en: "Unsaved typing is no longer wiped by automatic refreshes" }, items: [
     { k: "fix", zh: "后台同步、合伙人那边一录入时，正在打的字、光标都保持不动，离开输入框后再刷新", en: "While syncing or when a partner adds records, what you are typing and the cursor stay put; the page refreshes after you leave the box" },
     { k: "fix", zh: "设置里改到一半去「添加镇」再回来，改过的内容还在；登录时点「上一步」，密码不用重填", en: "Settings keeps your unsaved changes after adding a town and coming back; going back a step at sign-in keeps the password" }

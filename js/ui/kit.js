@@ -1,7 +1,7 @@
 /* ============ 界面小零件：弹层（带返回栈）、表单字段、徽标 ============
    弹层用 show(fn, live)：fn() 返回 { title, body, foot }。live=true 的详情页会在数据变化后自动重画（重画时保住没保存的输入、焦点和光标，见 snapFields）；表单页不重画（免得输入到一半被刷掉）。
    弹层里点「返回」回到上一层（例如：客户 → 某张销售单 → 收款表单，逐层退回）。 */
-import { $, esc } from "../core/util.js";
+import { $, esc, today } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { ACT, CHG } from "./actions.js";
 
@@ -90,7 +90,8 @@ const fld = (label, inner, hint = "") => `<label class="fld"><span>${esc(t(label
 const attr = o => Object.entries(o).filter(([, v]) => v !== undefined && v !== false && v !== "").map(([k, v]) => v === true ? k : `${k}="${esc(v)}"`).join(" ");
 const text = (name, v = "", o = {}) => `<input ${attr({ name, value: v ?? "", required: o.req, maxlength: o.max || 80, placeholder: o.ph ? t(o.ph) : "", autocomplete: "off", type: o.type || "text", inputmode: o.mode })}>`;
 const num = (name, v = "", o = {}) => `<input ${attr({ name, type: "number", step: o.step || "any", min: o.min, inputmode: "decimal", value: v ?? "", required: o.req, placeholder: o.ph || "", "data-calc": o.calc })}>`;
-const date = (name, v = "", o = {}) => `<input ${attr({ name, type: "date", value: v, required: o.req ?? true })}>`;
+// o.past：已经发生的事（卖出、进货、收款），晚于今天的日期灰掉；送货日、约定收款日、行程这些安排不要加
+const date = (name, v = "", o = {}) => `<input ${attr({ name, type: "date", value: v, required: o.req ?? true, max: o.past ? today() : undefined })}>`;
 const area = (name, v = "", o = {}) => `<textarea ${attr({ name, rows: o.rows || 2, maxlength: 400, placeholder: o.ph ? t(o.ph) : "" })}>${esc(v ?? "")}</textarea>`;
 /** opts: [[value, label]] 或 [{group, items:[[value,label]]}]；label 已翻译好，不再包 t() */
 function select(name, opts, v = "", o = {}){

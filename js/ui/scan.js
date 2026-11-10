@@ -80,7 +80,7 @@ function reviewBody(){
       ${!d.customerId && !validPhone(d.phone) ? `<p class="hint warn">${esc(t("没有读到手机号：同名客户无法区分，建议在下面补上手机号。"))}</p>` : ""}
       ${d.noDate ? `<p class="hint warn">${esc(t("没读到日期，先用了今天，请改成单据上的日期。"))}</p>` : ""}
       ${d.flags.filter(f => f.startsWith("unit:")).map(f => `<p class="hint warn">${esc(t("不认识的单位「{u}」，数量先按斤算，请核对。", { u: f.slice(5) }))}</p>`).join("")}
-      <div class="grid2"><label class="fld"><span>${esc(t("日期"))}</span><input type="date" value="${esc(d.date)}" data-input="scan-d" data-i="${i}" data-k="date"></label>
+      <div class="grid2"><label class="fld"><span>${esc(t("日期"))}</span><input type="date" max="${today()}" value="${esc(d.date)}" data-input="scan-d" data-i="${i}" data-k="date"></label>
         <label class="fld"><span>${esc(t("本次已收（¥）"))}</span><input type="number" step="any" min="0" value="${d.paid ?? ""}" placeholder="${esc(t("没写 = 0"))}" data-input="scan-d" data-i="${i}" data-k="paid"></label></div>
       <label class="chk"><input type="checkbox" data-change="scan-chase" data-i="${i}" ${d.chase ? "checked" : ""}> ${esc(t("标记为待催账（还没结清，要去催）"))}</label>
       <label class="fld"><span>${esc(t("客户"))}</span><select data-change="scan-cust" data-i="${i}"><option value="">${esc(t("＋ 新客户：{n}", { n: d.customer || t("（没读到姓名）") }))}</option>${d.customerId ? selected(cOpts, d.customerId) : cOpts}</select></label>
