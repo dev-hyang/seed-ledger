@@ -481,3 +481,16 @@ html.money-hide .amt.is-peek:not(svg *){background:color-mix(in srgb,var(--brand
 .sheet .rl-title{display:none}
 .sheet .rl-head{margin-top:0}
 #main > .rl-badge{margin:0 0 12px}
+/* 扫描 / 导入：和爱家小助手「录入购物」同一个版式（缩略图 84px、右上角 × 删、虚线格子拍照 / 选文件）；文字框自己长高 */
+.scan-thumbs{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 6px}
+.scan-thumb{position:relative;width:84px;height:84px;border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface);flex:none}
+.scan-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.scan-doc{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;height:100%;padding:6px;box-sizing:border-box;text-align:center}
+.scan-doc > span{font-size:24px;line-height:1}
+.scan-doc small{font-size:11px;line-height:1.2;color:var(--muted);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-all}
+.scan-badge{position:absolute;left:4px;bottom:4px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;line-height:18px;text-align:center}
+.scan-del{position:absolute;top:3px;right:3px;width:26px;height:26px;min-height:0;padding:0;border:0;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:16px;line-height:1;cursor:pointer}
+.scan-add{position:relative;display:inline-flex;align-items:center;justify-content:center;min-width:84px;max-width:140px;height:84px;padding:6px 12px;box-sizing:border-box;border:2px dashed var(--line);border-radius:var(--radius-sm);background:var(--surface);font-size:13.5px;font-weight:600;line-height:1.3;text-align:center;cursor:pointer}
+.scan-add input{position:absolute;opacity:0;width:1px;height:1px}
+.scan-add:focus-within{outline:3px solid var(--ink);outline-offset:2px}
+textarea[data-autosize]{resize:none;transition:height .08s ease-out}

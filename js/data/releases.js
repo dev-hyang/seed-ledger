@@ -1,6 +1,10 @@
 /* 发布日志（更多 → 发布日志；新版本第一次打开起，概览页顶上提示最多 5 次）。每次发布加一条，和版本号同一个 commit（最新在前）。
    写给店主看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。界面在 js/ui/releases-ui.js（和姊妹应用同一份）。 */
 export const RELEASES = [
+  { v: "2026-11-12.1", title: { zh: "扫描 / 导入：照片和文件一格一格显示", en: "Scan / import: photos and files shown as thumbnails" }, items: [
+    { k: "better", zh: "拍的照片、选的文件显示成缩略图，可以拍很多次、一次选多个，每个右上角 × 就能删", en: "Photos and files show as thumbnails; take as many as you like, pick several at once, tap × to remove one" },
+    { k: "better", zh: "粘贴文字的框会跟着内容长高，不用一开始就滑动", en: "The paste box grows with the text, so you don't have to scroll right away" }
+  ] },
   { v: "2026-11-09.2", title: { zh: "记账的日期不能选到未来", en: "Ledger dates can no longer be in the future" }, items: [
     { k: "better", zh: "销售、收款、进货、退货、打款、手续费的日期：晚于今天的变灰、不能选", en: "Dates for sales, payments, purchases, returns, deposits and fees: anything after today is greyed out" },
     { k: "better", zh: "送货日期、约定收款日、送货行程不受影响，照样能选未来", en: "Delivery dates, agreed payment dates and delivery trips are unchanged and can still be in the future" }

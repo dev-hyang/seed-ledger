@@ -32,17 +32,15 @@ function scanPage(){
 }
 function inputBody(){
   const ready = aiReady(), p = providerOf(aiSettings().provider);
-  const files = sc.files.map((f, i) => `<li class="scan-file">${f.images?.[0]?.url ? `<img src="${f.images[0].url}" alt="">` : `<span class="scan-ico" aria-hidden="true">📄</span>`}
-    <span class="row-main"><b>${esc(f.name)}</b><small>${esc(f.images ? t("{n} 张图", { n: f.images.length }) : t("{n} 个字", { n: f.text.length }))}</small></span>
-    <button type="button" class="x sm" data-act="scan-file-del" data-i="${i}" aria-label="${esc(t("移除这个文件"))}">×</button></li>`).join("");
+  // 2026-11-12：和爱家小助手「录入购物」同一个版式——缩略图一格一格（照片显示图，PDF / 表格显示图标和名字），右上角 × 删；后面是虚线的「拍照」「选文件」格子
+  const thumbs = sc.files.map((f, i) => `<span class="scan-thumb">${f.images?.[0]?.url ? `<img src="${f.images[0].url}" alt="${esc(f.name)}">` : `<span class="scan-doc"><span aria-hidden="true">📄</span><small>${esc(f.name)}</small></span>`}${f.images && f.images.length > 1 ? `<span class="scan-badge">${f.images.length}</span>` : ""}<button type="button" class="scan-del" data-act="scan-file-del" data-i="${i}" aria-label="${esc(t("移除这个文件"))}">×</button></span>`).join("");
+  const adds = sc.files.length < MAX_FILES ? `<label class="scan-add">📷 ${esc(t("拍照"))}<input type="file" accept="image/*" capture="environment" data-change="scan-files"></label><label class="scan-add">📁 ${esc(t("选文件 / 相册"))}<input type="file" accept="${ACCEPT}" multiple data-change="scan-files"></label>` : "";
   return `<p class="hint">${esc(t("销售单、送货单、手抄账本的一页、客户对账表、微信 / 支付宝收款截图都行。识别出来先是草稿，你核对后才入库。"))}</p>
     ${ready ? "" : `<div class="banner warn"><span>${esc(t("需要先设置 AI（用你自己的 key）。"))}</span><button type="button" class="btn sm primary" data-act="open-ai">${esc(t("设置 AI"))}</button></div>`}
-    <div class="toolrow"><label class="btn tile">${esc(t("📷 拍照"))}<input type="file" accept="image/*" capture="environment" data-change="scan-files" hidden></label>
-      <label class="btn tile">${esc(t("📁 选文件 / 相册"))}<input type="file" accept="${ACCEPT}" multiple data-change="scan-files" hidden></label></div>
+    <div class="scan-thumbs">${thumbs}${adds}</div>
     <p class="hint">${esc(t("支持：图片、PDF、Excel（xlsx / xls）、CSV / 文本。最多 {n} 个。", { n: MAX_FILES }))}</p>
     ${sc.reading ? `<p class="hint" role="status">${esc(t("正在读取文件…"))}</p>` : ""}
-    ${files ? `<ul class="list tight">${files}</ul>` : ""}
-    <label class="fld"><span>${esc(t("或粘贴文字（聊天记录、记账文字、表格内容）"))}</span><textarea rows="4" maxlength="20000" data-input="scan-text">${esc(sc.text)}</textarea></label>
+    <label class="fld"><span>${esc(t("或粘贴文字（聊天记录、记账文字、表格内容）"))}</span><textarea rows="3" maxlength="20000" data-autosize data-input="scan-text">${esc(sc.text)}</textarea></label>
     <label class="chk"><input type="checkbox" data-change="scan-consent" ${consent() ? "checked" : ""}><span>${esc(t("我同意把这些图片 / 文字（包含单据上的客户姓名、电话）发给 {p}。不保存原图。", { p: t(p.name) }))}</span></label>
     <p class="hint">${esc(t("邮箱和长数字串（身份证、银行卡）发送前会自动抹掉。拍之前可以遮住不需要的信息。"))}</p>
     ${sc.error ? `<p class="neg" role="alert">${esc(sc.error)}</p>` : ""}`;

@@ -437,6 +437,8 @@ const EN = {
   "日期：最新的在前": "Date: newest first", "日期：最早的在前": "Date: oldest first", "金额：大的在前": "Amount: largest first", "数量：多的在前": "Quantity: largest first",
   "标了待催账的": "Marked to chase", "有超过半年没结的": "Unpaid over 6 months", "最近有单的在前": "Most recent orders first", "欠得最久的在前": "Owed longest first",
   "待催账优先，再按欠款": "Marked first, then by balance", "按客户归拢。点一张单可以收款、议价或打折。": "Grouped by customer. Tap an order to record payment, negotiate or discount.",
-  "没有符合条件的客户。": "No customers match.", "已勾选的": "Ticked", "没勾选的": "Not ticked", "需要核对的": "Need checking", "按读到的顺序": "In the order read"
+  "没有符合条件的客户。": "No customers match.", "已勾选的": "Ticked", "没勾选的": "Not ticked", "需要核对的": "Need checking", "按读到的顺序": "In the order read",
+  "拍照": "Take photo",
+  "选文件 / 相册": "Choose files / gallery",
 };
 export { EN };
