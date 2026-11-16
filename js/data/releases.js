@@ -1,6 +1,9 @@
 /* 发布日志（更多 → 发布日志；新版本第一次打开起，概览页顶上提示最多 5 次）。每次发布加一条，和版本号同一个 commit（最新在前）。
    写给店主看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。界面在 js/ui/releases-ui.js（和姊妹应用同一份）。 */
 export const RELEASES = [
+  { v: "2026-11-16.1", title: { zh: "刷新后还停在原来那一页", en: "Refresh keeps you on the same page" }, items: [
+    { k: "better", zh: "销售、库存里的子页（比如 销售 → 送货路线、库存 → 进货 / 退货）刷新后还在原处，不再回到第一个子页", en: "Sub-pages in Sales and Stock (e.g. Sales → Delivery routes) stay put after a refresh instead of going back to the first one" }
+  ] },
   { v: "2026-11-12.1", title: { zh: "扫描 / 导入：照片和文件一格一格显示", en: "Scan / import: photos and files shown as thumbnails" }, items: [
     { k: "better", zh: "拍的照片、选的文件显示成缩略图，可以拍很多次、一次选多个，每个右上角 × 就能删", en: "Photos and files show as thumbnails; take as many as you like, pick several at once, tap × to remove one" },
     { k: "better", zh: "粘贴文字的框会跟着内容长高，不用一开始就滑动", en: "The paste box grows with the text, so you don't have to scroll right away" }

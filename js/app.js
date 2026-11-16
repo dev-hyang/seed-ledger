@@ -58,14 +58,41 @@ function noorgScreen(){
       <button type="button" class="choice" data-act="open-joinorg"><b>${esc(t("用邀请码加入别人的店"))}</b><small>${esc(t("向店的创建者要邀请码或邀请链接；批准后才能进入"))}</small></button></div>
     <div class="actions" style="justify-content:center"><button class="btn ghost-danger" data-act="sign-out">${esc(t("退出登录"))}</button></div></div>`;
 }
+/* 网址记住当前页（#/sales/trips、#/stock/flow）：刷新、收藏后还停在这一页（含子页）；四个姊妹应用同一套做法。
+   没带 # 打开时仍用本机记住的页签（LS_PREFIX.tab）。只用 replaceState，不往浏览器历史里加条目。登录回跳时 # 后面是 Supabase 的令牌，那时不动。 */
+const SUBS = { sales: ["list", "collect", "trips"], stock: ["inv", "flow", "brand", "pool"] };   // 第一个是默认子页
+function readRoute(hash = location.hash){
+  const m = /^#\/(\w+)(?:\/(\w+))?$/.exec(hash);
+  if (!m || !TABS.some(x => x[0] === m[1])) return null;
+  return { tab: m[1], sub: SUBS[m[1]] && SUBS[m[1]].includes(m[2]) ? m[2] : null };
+}
+let routeHash = null;   // 上一次写进 / 读出网址的 #；不一样 = 外面改的（手动输入、收藏、浏览器后退），以网址为准
+function restoreRoute(){
+  routeHash = location.hash; const r = readRoute(); if (!r) return false;
+  S.tab = r.tab; if (SUBS[r.tab]) S.sub[r.tab] = r.sub || SUBS[r.tab][0];
+  saveJSON(LS_PREFIX + ".tab", r.tab); return true;
+}
+function syncRoute(){
+  if (location.hash.includes("=") && !location.hash.startsWith("#/")) return;
+  const sub = SUBS[S.tab] && S.sub[S.tab] && S.sub[S.tab] !== SUBS[S.tab][0] ? "/" + S.sub[S.tab] : "";
+  const h = `#/${TABS.some(x => x[0] === S.tab) ? S.tab : TABS[0][0]}${sub}`;
+  if (location.hash !== h) try { history.replaceState(history.state, "", location.pathname + location.search + h); } catch (e) {}
+  routeHash = location.hash;
+}
+function adoptRoute(){ if (routeHash === null || location.hash === routeHash || !readRoute()) return false; restoreRoute(); resetPage(); closeAll(); return true; }
+window.addEventListener("hashchange", () => { if (adoptRoute()) { render(); window.scrollTo(0, 0); } });
+restoreRoute();
+
 function render(){
   if (!S.ready) return;
+  if (adoptRoute()) window.scrollTo(0, 0);
   if (S.cloud === "noorg") { chrome(); $("#nav").hidden = true; $("#main").innerHTML = noorgScreen(); return; }
   if (S.cloud === "pending") { chrome(); $("#nav").hidden = true; $("#main").innerHTML = pendingScreen(); return; }
   $("#nav").hidden = false;
   const main = $("#main"), keep = snapFields(main), y = window.scrollY;   // 重画前记下页面里没保存的输入、焦点和光标（搜索框、筛选里的日期等）
   chrome();
   main.innerHTML = banner() + (TABS.find(x => x[0] === S.tab) || TABS[0])[2]();
+  syncRoute();
   restoreFields(main, keep);
   window.scrollTo(0, y);
   document.documentElement.lang = locale();
