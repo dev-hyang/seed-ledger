@@ -6,7 +6,6 @@ import { initCloud } from "./core/sync.js";
 import { $, esc, toast, saveJSON, debounce } from "./core/util.js";
 import { t, LOCALES, locale, setLocale } from "./core/i18n.js";
 import { LS_PREFIX, CLOUD_CONFIGURED, APP_VERSION } from "./config.js";
-import { MODULES } from "./modules.js";
 import { ACT, FORMS, CHG, INP } from "./ui/actions.js";
 import { show, back, closeAll, refresh, formData, sheetOpen, askYes, snapFields, restoreFields } from "./ui/kit.js";
 import { renderHome } from "./ui/home.js";
@@ -155,13 +154,13 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.ser
 window.addEventListener("online", bgRender);
 window.addEventListener("offline", bgRender);
 
-/* 发布后的头几分钟，浏览器可能把新的 index.html 和缓存里的旧模块混在一起：版本不一致就强制重抓所有模块并刷新一次（每个版本只做一次，防循环） */
+/* 发布后的头几分钟，浏览器可能把新的 index.html 和缓存里的旧 dist/app.js 混在一起（共享块的文件名带哈希，不会混）：版本不一致就强制重抓入口文件并刷新一次（每个版本只做一次，防循环） */
 async function healStaleModules(){
   const want = (document.querySelector('meta[name="app-version"]') || {}).content;
   if (!want || want === APP_VERSION) return false;
   const key = LS_PREFIX + ".reloaded." + want;
   try { if (sessionStorage.getItem(key)) return false; sessionStorage.setItem(key, "1"); } catch (e) { return false; }
-  await Promise.all(MODULES.map(u => fetch("js/" + u, { cache: "reload" }).catch(() => null)));
+  await fetch("dist/app.js?v=" + want, { cache: "reload" }).catch(() => null);
   location.reload(); return true;
 }
 initPrivacy({ toast });
