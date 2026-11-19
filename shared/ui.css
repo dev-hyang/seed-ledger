@@ -1,0 +1,83 @@
+/* 【副本】母版在 home-pantry/shared/ui.css；改了母版要同步到这里（baby-log / shepherd 的副本同理）。本站的颜色变量对应在 app.css 的 :root 里（「共享控件的语义变量」那一段）。 */
+/* 共享控件样式（母版在 home-pantry/shared/；将来各姊妹站各留一份副本，改了母版要同步，副本文件头要有这条提醒）。
+ * 约定：类名统一 ui- 前缀；变体用 data-* 属性表达（size / tone / shape / …），一个控件配多个维度，不堆组合类名。
+ * 颜色全部读各应用已有的变量（--ok、--out、--muted …），后面的值是没有这些变量时的兜底，深色模式跟着各应用走。
+ * 目前只有图鉴页（styleguide.html）加载它，主应用还没接入。
+ *
+ * 控件与维度：
+ *   ui-badge  data-tone: neutral | ok | warn | caution | danger | accent   data-size: sm | md(默认) | lg
+ *             data-shape: text(默认) | dot | count   data-icon="dot"（左侧小圆点）   data-outline（描边，透明底）
+ *   ui-bell   data-size: sm | md(默认) | lg   里面放 svg 和一个 ui-badge（data-shape="count|dot"）；data-ring 响一下
+ *   ui-hint   data-tip="提示文字"   data-tip-pos: top(默认) | bottom   data-tip-align: center(默认) | start | end */
+
+/* ── 徽标 ── */
+.ui-badge {
+  --b-fg: var(--muted, #55695f); --b-bg: var(--surface-2, #e3ebe4);
+  display: inline-flex; align-items: center; gap: 4px; box-sizing: border-box;
+  padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 18px;
+  white-space: nowrap; color: var(--b-fg); background: var(--b-bg);
+}
+.ui-badge[data-tone="ok"]      { --b-fg: var(--ok, #23704a);   --b-bg: var(--ok-bg, #dff1e6); }
+.ui-badge[data-tone="warn"]    { --b-fg: var(--low, #a6510a);  --b-bg: var(--low-bg, #fdeed9); }
+.ui-badge[data-tone="caution"] { --b-fg: var(--soon, #7a5b00); --b-bg: var(--soon-bg, #fbf2c9); }
+.ui-badge[data-tone="danger"]  { --b-fg: var(--out, #b42318);  --b-bg: var(--out-bg, #fde7e4); }
+.ui-badge[data-tone="accent"]  { --b-fg: var(--exp, #74389a);  --b-bg: var(--exp-bg, #f0e4f7); }
+.ui-badge[data-size="sm"] { padding: 0 6px; font-size: 11px; line-height: 16px; }
+.ui-badge[data-size="lg"] { padding: 2px 11px; font-size: 13px; line-height: 20px; }
+.ui-badge[data-outline] { background: transparent; box-shadow: inset 0 0 0 1px currentColor; }
+.ui-badge[data-icon="dot"]::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+/* 圆点：只表示「有新的」，没有文字（文字要写在 aria-label 里） */
+.ui-badge[data-shape="dot"] { width: 10px; height: 10px; min-width: 0; padding: 0; gap: 0; font-size: 0; background: var(--b-fg); }
+/* 数字：实心小圆，默认红色；超过上限的「99+」由调用方写进文字里 */
+.ui-badge[data-shape="count"] {
+  min-width: 18px; height: 18px; padding: 0 5px; justify-content: center; font-size: 11px; line-height: 18px;
+  font-variant-numeric: tabular-nums; color: #fff; background: var(--b-fg);
+}
+.ui-badge[data-shape="count"]:not([data-tone]) { --b-fg: var(--out, #b42318); }
+.ui-badge[data-shape="count"][data-size="lg"] { min-width: 22px; height: 22px; font-size: 12px; line-height: 22px; }
+.ui-badge[data-shape="count"][data-size="sm"] { min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; line-height: 16px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ui-badge[data-shape="count"]:not([data-soft]) { color: var(--surface, #1b2521); } }
+:root[data-theme="dark"] .ui-badge[data-shape="count"]:not([data-soft]) { color: var(--surface, #1b2521); }   /* 深色模式下各色变浅，数字改深色才看得清 */
+/* 浅色底数字（data-soft）：「已选 3 个」这类中性计数，不抢眼；颜色用语气的浅底 + 深字 */
+.ui-badge[data-shape="count"][data-soft] { color: var(--b-fg); background: var(--b-bg); }
+.ui-badge[hidden] { display: none; }   /* display: inline-flex 会盖掉 hidden 属性，这里补回来 */
+
+/* ── 铃铛（提醒入口）：外框是按钮，大小 sm / md / lg；手机点按区域至少 44px ── */
+.ui-bell {
+  --bell-box: 36px; --bell-icon: 20px;
+  position: relative; display: inline-grid; place-items: center; box-sizing: border-box; flex: none;
+  width: var(--bell-box); height: var(--bell-box); padding: 0; border: 0; border-radius: 50%;
+  background: transparent; color: var(--ink, #1e3a32); cursor: pointer; font: inherit;
+}
+.ui-bell[data-size="sm"] { --bell-box: 32px; --bell-icon: 16px; }
+.ui-bell[data-size="lg"] { --bell-box: 48px; --bell-icon: 28px; }
+.ui-bell svg { width: var(--bell-icon); height: var(--bell-icon); }
+.ui-bell:hover { background: var(--surface-2, #e3ebe4); }
+.ui-bell:focus-visible, .ui-hint:focus-visible { outline: 2px solid var(--focus, #1f6feb); outline-offset: 2px; }
+@media (pointer: coarse) { .ui-bell { width: max(var(--bell-box), 44px); height: max(var(--bell-box), 44px); } }
+/* 角标贴在铃铛右上角（默认）；data-anchor="top-left" 贴左上角 */
+.ui-bell > .ui-badge { position: absolute; top: 0; right: 0; transform: translate(25%, -15%); }
+.ui-bell > .ui-badge[data-shape="dot"] { top: 18%; right: 18%; transform: none; box-shadow: 0 0 0 2px var(--surface, #fff); }
+.ui-bell > .ui-badge[data-anchor="top-left"] { right: auto; left: 0; transform: translate(-25%, -15%); }
+.ui-bell > .ui-badge[data-shape="dot"][data-anchor="top-left"] { right: auto; left: 18%; transform: none; }
+.ui-bell[data-ring] svg { transform-origin: 50% 8%; animation: ui-ring 1.1s ease-in-out 1; }
+@keyframes ui-ring { 0%, 100% { transform: rotate(0); } 15% { transform: rotate(14deg); } 30% { transform: rotate(-12deg); } 45% { transform: rotate(9deg); } 60% { transform: rotate(-6deg); } 75% { transform: rotate(3deg); } }
+@media (prefers-reduced-motion: reduce) { .ui-bell[data-ring] svg { animation: none; } }
+
+/* ── 提示（hint / tooltip）：小问号按钮，电脑悬停、键盘聚焦、手机点一下都会出提示；文字来自 data-tip ── */
+.ui-hint {
+  position: relative; display: inline-grid; place-items: center; box-sizing: border-box; flex: none; vertical-align: middle;
+  width: 20px; height: 20px; padding: 0; border: 1px solid var(--line, #cfdcd2); border-radius: 50%;
+  background: var(--surface, #fff); color: var(--muted, #55695f); font: 700 12px/1 var(--font, system-ui); cursor: help;
+}
+.ui-hint::before { content: ""; position: absolute; inset: -12px; }   /* 点按区域扩到 44px，不改变外观 */
+.ui-hint[data-tip]::after {
+  content: attr(data-tip); position: absolute; z-index: 30; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  width: max-content; max-width: min(240px, 70vw); padding: 6px 10px; border-radius: 8px; box-sizing: border-box;
+  background: var(--ink, #1e3a32); color: var(--bg, #eef3ee); font-size: 13px; font-weight: 400; line-height: 1.5; text-align: left; white-space: pre-line;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .18); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .12s;
+}
+.ui-hint:hover::after, .ui-hint:focus::after, .ui-hint:focus-visible::after { opacity: 1; visibility: visible; }
+.ui-hint[data-tip-pos="bottom"]::after { bottom: auto; top: calc(100% + 8px); }
+.ui-hint[data-tip-align="start"]::after { left: 0; transform: none; }   /* 靠屏幕左边的提示：左对齐，避免被切掉 */
+.ui-hint[data-tip-align="end"]::after { left: auto; right: 0; transform: none; }

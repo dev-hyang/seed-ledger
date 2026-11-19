@@ -1,6 +1,9 @@
 /* 发布日志（更多 → 发布日志；新版本第一次打开起，概览页顶上提示最多 5 次）。每次发布加一条，和版本号同一个 commit（最新在前）。
    写给店主看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。界面在 js/ui/releases-ui.js（和姊妹应用同一份）。 */
 export const RELEASES = [
+  { v: "2026-11-19.2", title: { zh: "小标签统一成共用的徽标样式", en: "Small labels now use the shared badge style" }, items: [
+    { k: "better", zh: "各页的小标签（已收款、欠款、角色、待处理数字等）换成和其他应用一致的徽标样式，颜色按本站色板", en: "Small labels (paid, owing, role, to-do count and so on) now use the same badge style as the other apps, in this app's own colors" }
+  ] },
   { v: "2026-11-19.1", title: { zh: "修复：发新版后旧页面切换语言偶尔失败", en: "Fix: switching language on an already-open page could fail after an update" }, items: [
     { k: "fix", zh: "应用更新后，之前就开着的页面切换英文 / 繁體偶尔下载失败；现在会自动刷新一次换成新版，不用手动刷新", en: "After an update, a page that was already open could fail to switch to English / Traditional Chinese; it now refreshes itself once to get the new version" }
   ] },

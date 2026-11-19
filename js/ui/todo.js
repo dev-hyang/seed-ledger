@@ -62,7 +62,7 @@ function todoSection(m, year){
   const open = sessionOpen ?? (urgent ? true : storedOpen() ?? true);
   const first = describe(items[0]).title;
   const head = `<h3 class="todo-h"><button type="button" class="todo-toggle" data-act="todo-toggle" aria-expanded="${open}" aria-controls="todoBody">
-      <span class="todo-ttl">${esc(t("待处理"))}</span><span class="badge ${urgent ? "bad" : "warn"}">${total}</span>
+      <span class="todo-ttl">${esc(t("待处理"))}</span><span class="ui-badge" data-shape="count" data-tone="${urgent ? "danger" : "caution"}">${total}</span>
       ${open ? "" : `<span class="todo-peek">${esc(t("最急：{x}", { x: first }))}</span>`}<span class="todo-chev" aria-hidden="true"></span></button></h3>`;
   if (!open) return `<section class="card todo-card is-closed" aria-label="${esc(t("待处理"))}">${head}</section>`;
   const sum = collect.customers ? `<p class="todo-sum">💰 ${esc(t("待催账 {n} 位客户，共 {a}", { n: collect.customers, a: money(collect.amount) }))} <button type="button" class="link" data-act="goto" data-tab="sales" data-sub="collect">${esc(t("去催账 ›"))}</button></p>` : "";

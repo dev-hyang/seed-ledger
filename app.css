@@ -9,6 +9,14 @@
   --c-cost:#c98a2b;--c-other:#8c97a3;--c-profit:#2c7548;--shadow:0 1px 3px rgba(20,40,25,.08);--radius:14px;--radius-sm:10px;
   --font:system-ui,-apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC","Segoe UI",sans-serif;
   --chev:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  /* 共享控件（shared/ui.css）读的语义变量：对应到本站自己的色板，深色模式跟着色板变。
+     文字色往墨色靠一点，保证在浅底上对比度 ≥ 4.5:1 */
+  --ok:color-mix(in srgb,var(--good) 75%,var(--ink)); --ok-bg:color-mix(in srgb,var(--good) 13%,var(--surface));
+  --out:color-mix(in srgb,var(--bad) 75%,var(--ink)); --out-bg:color-mix(in srgb,var(--bad) 13%,var(--surface));
+  --low:color-mix(in srgb,var(--warn) 75%,var(--ink)); --low-bg:color-mix(in srgb,var(--warn) 13%,var(--surface));
+  --soon:var(--low); --soon-bg:var(--low-bg);
+  --exp:color-mix(in srgb,var(--brand) 75%,var(--ink)); --exp-bg:color-mix(in srgb,var(--brand) 13%,var(--surface));
+  --surface-2:var(--soft); --focus:var(--brand);
 }
 @media (prefers-color-scheme:dark){:root{
   --bg:#0f1712;--surface:#17211b;--ink:#e7efe9;--muted:#9fb2a5;--line:#2c3b2f;--soft:#1e2b22;
@@ -162,15 +170,13 @@ a{color:var(--brand)}
 .row:hover:not(.static){background:var(--soft)}
 .row-main{display:flex;flex-direction:column;min-width:0;flex:1}
 .row-main b{font-size:16px;overflow:hidden;text-overflow:ellipsis}
-.row-main .badge{align-self:flex-start;margin:2px 0}   /* 同名等小标签不要被拉成整行 */
+.row-main .ui-badge{align-self:flex-start;margin:2px 0}   /* 同名等小标签不要被拉成整行 */
 .row-side{display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:right;flex:none;font-variant-numeric:tabular-nums}
 .row-go{flex:none;color:var(--muted);font-size:22px;line-height:1}
 /* 一行里有操作按钮（成员、表决）：手机上按钮换到下一行，整行排开 */
 .row.wrap .row-side{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px}
 .row-side select{width:auto;min-width:150px;min-height:38px;font-size:14px}
 @media (max-width:560px){.row.wrap{flex-wrap:wrap}.row.wrap .row-side{width:100%;justify-content:flex-start}.row.wrap .row-side select{flex:1 1 180px}}
-.badge{display:inline-block;font-size:12.5px;line-height:1.5;padding:0 8px;border-radius:999px;background:var(--soft);color:var(--muted);border:1px solid var(--line);white-space:nowrap}
-.badge.good{color:var(--good);border-color:var(--good)}.badge.warn{color:var(--warn);border-color:var(--warn)}.badge.bad{color:var(--bad);border-color:var(--bad)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow);min-width:0}
 .card-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-bottom:8px}
 .card-head h3{margin:0}

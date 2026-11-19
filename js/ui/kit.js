@@ -114,7 +114,8 @@ function formData(form){
 }
 
 /* ---------- 展示 ---------- */
-const badge = (text_, kind = "") => `<span class="badge ${kind}">${esc(text_)}</span>`;
+const BADGE_TONE = { good: "ok", warn: "caution", bad: "danger" };   // 旧的 kind → 共用徽标 ui-badge 的 tone
+const badge = (text_, kind = "") => `<span class="ui-badge" data-tone="${BADGE_TONE[kind] || "neutral"}">${esc(text_)}</span>`;
 /** 空状态：一句话说现在是什么情况，hint 说下一步怎么做，action 是一个按钮 */
 const empty = (msg, action = "", hint = "") => `<div class="empty"><p>${esc(t(msg))}</p>${hint ? `<small>${esc(t(hint))}</small>` : ""}${action}</div>`;
 /** 视图切换（行记录 / 时间线 这类）：一组按钮，按下的那个高亮；opts: [[value, 中文标签]]，data 是附加的 data-* */
