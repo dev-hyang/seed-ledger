@@ -278,7 +278,7 @@ FORMS.settings = async d => {
   if (d.newSeason) seasons.push({ id: newId(), name: d.newSeason });
   setPageSize(d.pageSize);   // 每页条数是本机偏好，存 localStorage，不进同步的设置（先存，只读成员存不了共享设置也不影响它）
   await saveSettings({ name: d.name, currency: d.currency, fx: d.fx > 0 ? d.fx : 0.14, unit: d.unit, seasons, perKm: d.perKm ?? 1.2, villageHopKm: d.villageHopKm ?? 2, laborPerTrip: d.laborPerTrip ?? 0, maskPhone: !!d.maskPhone });
-  if (d.lang !== locale()) setLocale(d.lang);
+  if (d.lang !== locale()) await setLocale(d.lang);
   back(); notify();
 };
 const townForm = x => ({ title: t(x ? "修改镇" : "添加镇"), body: `<form id="f" data-form="town" data-id="${x?.id || ""}">${fld("镇名", text("name", x?.name, { req: true }))}${fld("离门店（公里）", num("distKm", x?.distKm, { req: true, min: 0 }))}${fld("方向", select("dir", DIRS.map(d => [d, t(d)]), x?.dir))}</form>`,

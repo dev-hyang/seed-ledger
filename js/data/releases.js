@@ -1,6 +1,10 @@
 /* 发布日志（更多 → 发布日志；新版本第一次打开起，概览页顶上提示最多 5 次）。每次发布加一条，和版本号同一个 commit（最新在前）。
    写给店主看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。界面在 js/ui/releases-ui.js（和姊妹应用同一份）。 */
 export const RELEASES = [
+  { v: "2026-11-18.2", title: { zh: "打开更快：英文和繁體词典按需下载", en: "Opens faster: English and Traditional data load only when used" }, items: [
+    { k: "better", zh: "用简体时不再下载英文和繁體的词典，打开更快、更省流量", en: "Simplified Chinese no longer downloads the English and Traditional data, so it opens faster" },
+    { k: "better", zh: "英文和繁體界面、切换语言都和以前一样", en: "English and Traditional UI and language switching work as before" }
+  ] },
   { v: "2026-11-18.1", title: { zh: "打开更快：程序文件打包发布", en: "Opens faster: app files are now bundled" }, items: [
     { k: "better", zh: "程序文件合并后再下载，第一次打开和网络慢的时候更快", en: "App files are bundled into one download, so the first open and slow connections are faster" },
     { k: "better", zh: "页面和操作都没有变", en: "Pages and actions are unchanged" }

@@ -133,7 +133,7 @@ document.addEventListener("submit", e => {
 });
 document.addEventListener("change", e => {
   const el = e.target;
-  if (el.id === "lang") { setLocale(el.value); render(); return; }
+  if (el.id === "lang") { setLocale(el.value).then(render); return; }
   if (el.dataset.file === "import") { guard(() => importFile(el.files[0])); return; }
   const name = el.dataset.change; if (!name) return;
   const fn = CHG[name]; if (!fn) return;

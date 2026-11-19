@@ -6,8 +6,6 @@
    币种和单位：数据永远以「人民币、斤」存储；录入框也固定是 ¥ 和斤（避免来回换算产生误差）。
    显示（列表、报表、导出、打印）按偏好换算：简体 / 繁體默认 ¥ + 斤；English 默认美元（按设置里的汇率）+ 斤，单位可改 kg / lb。 */
 import { LS_PREFIX } from "../config.js";
-import { s2tChars } from "../data/s2t.js";
-import { EN } from "../data/i18n-en.js";
 
 const LOCALES = [["zh-CN", "简体"], ["zh-TW", "繁體"], ["en", "English"]];
 const KEY = LS_PREFIX + ".locale";
@@ -18,7 +16,14 @@ const TW_PHRASES = [["数据库", "資料庫"], ["服务器", "伺服器"], ["�
   ["界面", "介面"], ["支持", "支援"], ["链接", "連結"], ["邮箱", "電子郵件"], ["密码", "密碼"], ["退出", "登出"], ["保存", "儲存"], ["打印", "列印"], ["导出", "匯出"], ["导入", "匯入"],
   ["云端", "雲端"], ["质量", "品質"], ["屏幕", "螢幕"], ["注册", "註冊"], ["搜索", "搜尋"], ["复制", "複製"], ["日历", "日曆"], ["软件", "軟體"], ["合伙人", "合夥人"], ["库存", "庫存"],
   ["账务", "帳務"], ["账", "帳"], ["赊账", "賒帳"], ["催账", "討帳"], ["发票", "發票"]].sort((a, b) => b[0].length - a[0].length);
+/* 语言数据按需下载：简体用户两个都不下载。English 才要字典，繁體才要字表。
+   模块顶层 await：下面的 import() 在 i18n.js 求值完成前就读完，所以所有引用 t() 的模块第一次渲染前数据已就绪（不会闪一下简体）。 */
 const twCache = new Map();
+let EN = {}, s2tChars = x => x, enP = null, twP = null;
+const loadEN = () => (enP ||= import("../data/i18n-en.js").then(m => { EN = m.EN; }).catch(e => { enP = null; throw e; }));
+const loadTW = () => (twP ||= import("../data/s2t.js").then(m => { s2tChars = m.s2tChars; twCache.clear(); }).catch(e => { twP = null; throw e; }));
+const loadFor = l => l === "en" ? loadEN() : l === "zh-TW" ? loadTW() : Promise.resolve();
+try { await loadFor(cur); } catch (e) { /* 离线且这个语言的数据没缓存过：退回显示简体，不让整个应用起不来 */ }
 function s2t(s){
   s = String(s); if (twCache.has(s)) return twCache.get(s);
   let o = s; for (const [a, b] of TW_PHRASES) if (o.includes(a)) o = o.split(a).join(b);
@@ -34,7 +39,7 @@ function t(key, vars){
   return s;
 }
 const locale = () => cur;
-function setLocale(l){ if (!LOCALES.some(x => x[0] === l)) return; cur = l; try { localStorage.setItem(KEY, l); } catch (e) {} applyLang(); }
+async function setLocale(l){ if (!LOCALES.some(x => x[0] === l)) return; try { await loadFor(l); } catch (e) { return; } cur = l; try { localStorage.setItem(KEY, l); } catch (e) {} applyLang(); }
 function applyLang(){ document.documentElement.lang = cur; document.title = t("稻种账本"); }
 
 /* ---- 币种 / 单位 ---- */
