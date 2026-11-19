@@ -5,6 +5,7 @@
 
    币种和单位：数据永远以「人民币、斤」存储；录入框也固定是 ¥ 和斤（避免来回换算产生误差）。
    显示（列表、报表、导出、打印）按偏好换算：简体 / 繁體默认 ¥ + 斤；English 默认美元（按设置里的汇率）+ 斤，单位可改 kg / lb。 */
+import { importFresh } from "./lazy-reload.js";
 import { LS_PREFIX } from "../config.js";
 
 const LOCALES = [["zh-CN", "简体"], ["zh-TW", "繁體"], ["en", "English"]];
@@ -20,8 +21,8 @@ const TW_PHRASES = [["数据库", "資料庫"], ["服务器", "伺服器"], ["�
    模块顶层 await：下面的 import() 在 i18n.js 求值完成前就读完，所以所有引用 t() 的模块第一次渲染前数据已就绪（不会闪一下简体）。 */
 const twCache = new Map();
 let EN = {}, s2tChars = x => x, enP = null, twP = null;
-const loadEN = () => (enP ||= import("../data/i18n-en.js").then(m => { EN = m.EN; }).catch(e => { enP = null; throw e; }));
-const loadTW = () => (twP ||= import("../data/s2t.js").then(m => { s2tChars = m.s2tChars; twCache.clear(); }).catch(e => { twP = null; throw e; }));
+const loadEN = () => (enP ||= importFresh(() => import("../data/i18n-en.js")).then(m => { EN = m.EN; }).catch(e => { enP = null; throw e; }));
+const loadTW = () => (twP ||= importFresh(() => import("../data/s2t.js")).then(m => { s2tChars = m.s2tChars; twCache.clear(); }).catch(e => { twP = null; throw e; }));
 const loadFor = l => l === "en" ? loadEN() : l === "zh-TW" ? loadTW() : Promise.resolve();
 try { await loadFor(cur); } catch (e) { /* 离线且这个语言的数据没缓存过：退回显示简体，不让整个应用起不来 */ }
 function s2t(s){
