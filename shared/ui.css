@@ -81,3 +81,15 @@
 .ui-hint[data-tip-pos="bottom"]::after { bottom: auto; top: calc(100% + 8px); }
 .ui-hint[data-tip-align="start"]::after { left: 0; transform: none; }   /* 靠屏幕左边的提示：左对齐，避免被切掉 */
 .ui-hint[data-tip-align="end"]::after { left: auto; right: 0; transform: none; }
+/* 角标形态（data-mode="sup"，infoTip 的默认）：缩在它说明的文字右上角，不占行也不占列；data-size: sm(13px) | md(15px，默认) | lg(18px)
+ * 挑大小看旁边文字：小字 → sm，正文 → md，标题 → lg。data-mode="inline" 才是独立占位的圆形按钮（sm 16 / md 20 / lg 24px）。 */
+.ui-hint[data-mode="sup"] {
+  --h: 15px; width: var(--h); height: var(--h); margin-left: 2px; position: relative; top: -.6em; vertical-align: baseline;
+  font-size: calc(var(--h) * .64); background: var(--surface-2, #e3ebe4); border-color: transparent;
+}
+.ui-hint[data-mode="sup"][data-size="sm"] { --h: 13px; }
+.ui-hint[data-mode="sup"][data-size="lg"] { --h: 18px; }
+.ui-hint[data-mode="sup"]::before { inset: -14px; }   /* 角标小，点按区域放大到约 44px */
+.ui-hint[data-mode="inline"][data-size="sm"] { width: 16px; height: 16px; font-size: 10px; }
+.ui-hint[data-mode="inline"][data-size="lg"] { width: 24px; height: 24px; font-size: 14px; }
+

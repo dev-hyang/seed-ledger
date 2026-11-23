@@ -1,6 +1,9 @@
 /* 发布日志（更多 → 发布日志；新版本第一次打开起，概览页顶上提示最多 5 次）。每次发布加一条，和版本号同一个 commit（最新在前）。
    写给店主看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。界面在 js/ui/releases-ui.js（和姊妹应用同一份）。 */
 export const RELEASES = [
+  { v: "2026-11-23.1", title: { zh: "共用的小提示控件多了「右上角角标」样式", en: "Shared info-tip control gains a corner-badge style" }, items: [
+    { k: "better", zh: "共用的小 i 提示新增贴在文字右上角的小角标形态（小 / 中 / 大三种）；这个应用里现有的提示外观不变", en: "The shared info tip gains a small badge style at the top-right of text (small / medium / large); existing tips in this app look the same" },
+  ] },
   { v: "2026-11-19.2", title: { zh: "小标签统一成共用的徽标样式", en: "Small labels now use the shared badge style" }, items: [
     { k: "better", zh: "各页的小标签（已收款、欠款、角色、待处理数字等）换成和其他应用一致的徽标样式，颜色按本站色板", en: "Small labels (paid, owing, role, to-do count and so on) now use the same badge style as the other apps, in this app's own colors" }
   ] },
