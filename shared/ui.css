@@ -93,3 +93,28 @@
 .ui-hint[data-mode="inline"][data-size="sm"] { width: 16px; height: 16px; font-size: 10px; }
 .ui-hint[data-mode="inline"][data-size="lg"] { width: 24px; height: 24px; font-size: 14px; }
 
+/* ── 箭头 / 行 / 可选项 / 弹窗变量 / 数字框（2026-11-24.41 起从 styles.css 搬来；--r-md / --r-sm 没定义时用兜底值）── */
+/* 箭头（统一写法 <span class="ui-chev" aria-hidden="true">›</span>）：右指 › 表示「进去」，父级 [open] 时各处再按需要转 90°；
+   data-dir="down" 是 ▾ 下拉箭头（收起时转 -90°，大小跟文字）。各处的位置 / 间距规则仍写在各自的容器下。 */
+.ui-chev { flex: none; color: var(--muted); font-size: 20px; line-height: 1; transition: transform .15s; }
+.ui-chev[data-dir="down"] { font-size: inherit; transition-duration: .2s; }
+@media (prefers-reduced-motion: reduce) { .ui-chev { transition: none; } }
+/* 搜索框：去掉 iOS / Safari 自带的药丸外观，圆角、边框、高度和其他输入框一致（高度仍跟旁边的下拉对齐，不单独加高） */
+input[type="search"] { -webkit-appearance: none; appearance: none; }
+/* 记录行的公共外观（<li class="ui-row" data-variant="record|detail">）：实线分隔、最后一行不画线、最小高 56px（detail 键值行 44px，点按区不低于 44px）。
+   列的排法（grid / flex）各行自己定，写在各自的类名下；以后菜单行、键值行、卡片行也逐个换到这里。 */
+.ui-row { box-sizing: border-box; min-height: 56px; border-bottom: 1px solid var(--line); }
+.ui-row:last-child { border-bottom: 0; }
+.ui-row[data-variant="detail"] { min-height: 44px; }
+.ui-row[data-variant="card"] { min-height: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md, 10px); background: var(--surface); }   /* 卡片行：自带一圈边框，最后一个也要边框 */
+/* 底部弹窗的外观变量：ask-dlg（手机上底部弹出的对话框）和 .fam-sheet（长按菜单、选人）共用，改这里两边一起变 */
+:root { --sheet-r: 18px; --sheet-shade: rgba(0, 0, 0, .4); --sheet-shadow: 0 -8px 28px rgba(0, 0, 0, .22); }
+/* 可选的一行（下拉选项、目录项、底部弹窗里的选项共用：<… class="ui-opt">）：点按区不低于 44px，悬停 / 键盘高亮 surface-2，
+   当前项 ok-bg + 加粗（is-cur 或 aria-current），禁用半透明。字号、内边距、边框这些各用处自己定。 */
+.ui-opt { box-sizing: border-box; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; border: 0; border-radius: var(--r-sm, 8px); background: none; color: var(--ink); font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
+.ui-opt:hover, .ui-opt.is-hl { background: var(--surface-2); }
+.ui-opt.is-cur, .ui-opt[aria-current="page"] { background: var(--ok-bg); font-weight: 700; }
+.ui-opt.is-off, .ui-opt:disabled { opacity: .45; cursor: default; }
+.ui-opt:focus-visible { outline: 3px solid var(--focus); outline-offset: -2px; }
+/* 数字 / 金额框（js/core/ui-num.js 的 num() 生成 data-num）：等宽数字，位数对得齐；盒子大小不变，仍跟其他输入框一致 */
+input[data-num] { font-variant-numeric: tabular-nums; }
