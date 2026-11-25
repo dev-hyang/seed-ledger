@@ -253,11 +253,14 @@ a{color:var(--brand)}
 @media (min-width:700px){.sheet{margin:auto;border-radius:20px}}
 .sheet-in{display:flex;flex-direction:column;max-height:92dvh}
 .sheet-head{display:flex;align-items:center;gap:4px;padding:4px 4px 4px 16px;border-bottom:1px solid var(--line)}
-.sheet-head .x[data-act=back]{margin-left:-12px}
 .sheet-head h2{flex:1;min-width:0;font-size:17.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sheet-body{overflow-y:auto;overflow-x:hidden;padding:14px 16px 18px;flex:1;-webkit-overflow-scrolling:touch}
 /* 底部按钮：主按钮在最后（最右 / 手机上最宽）；手机上每一行都排满，不会东一个西一个 */
 .sheet-foot{padding:10px 16px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--surface)}
+.sheet-in > .ui-formbar.sheet-foot{position:static;margin:0;padding:10px 16px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--surface);flex:none}   /* 弹层自己的底部条：不用 ui-formbar 的贴视口底部，留在弹层底 */
+.sheet-foot .foot-close{flex:1 1 100%;order:99}   /* 详情页：「关闭」另起一整行，放在操作按钮下面 */
+.sheet-head{justify-content:space-between;padding-right:8px}
+.sheet-head .ui-more > summary{width:44px;height:44px}
 
 /* 表单：标签在上（深色、加粗），说明在下（灰色小字）；输入框高 44；分组用带小标题的框 */
 .fld{display:block;margin-bottom:14px;min-width:0}

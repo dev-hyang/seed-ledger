@@ -282,7 +282,7 @@ FORMS.settings = async d => {
   back(); notify();
 };
 const townForm = x => ({ title: t(x ? "修改镇" : "添加镇"), body: `<form id="f" data-form="town" data-id="${x?.id || ""}">${fld("镇名", text("name", x?.name, { req: true }))}${fld("离门店（公里）", num("distKm", x?.distKm, { req: true, min: 0 }))}${fld("方向", select("dir", DIRS.map(d => [d, t(d)]), x?.dir))}</form>`,
-  foot: `${x ? btn("删除", "del", { cls: "danger", data: { kind: "town", id: x.id } }) : ""}<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("保存"))}</button>` });
+  menu: x ? [{ label: "删除", act: "del", data: { kind: "town", id: x.id } }] : null, foot: `<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("保存"))}</button>` });
 ACT["town-new"] = () => show(() => townForm());
 ACT["town-edit"] = el => show(() => townForm(byId("town", el.dataset.id)));
 FORMS.town = async (d, f) => { const old = f.dataset.id ? byId("town", f.dataset.id) : null; await save("town", { ...(old || {}), id: old?.id, name: d.name, distKm: d.distKm, dir: d.dir }); back(); };

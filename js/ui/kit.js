@@ -4,6 +4,8 @@
 import { $, esc, today } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { ACT, CHG } from "./actions.js";
+import { isCancelBtn } from "../shared/ui-acts.js";
+import { formMenu } from "../shared/ui-form.js";
 
 const stack = [];
 const dlg = () => $("#sheet");
@@ -13,13 +15,38 @@ function paint(){
   const top = stack[stack.length - 1], d = dlg();
   if (!top) { shown = null; if (d.open) d.close(); return; }
   const same = shown === top && d.open, keep = same ? snapFields(d) : top.keep, y = same ? d.querySelector(".sheet-body")?.scrollTop || 0 : top.y || 0;
-  const { title, body, foot } = top.fn();
-  d.innerHTML = `<div class="sheet-in"><div class="sheet-head">${stack.length > 1 ? `<button class="x" data-act="back" aria-label="${esc(t("返回"))}">‹</button>` : ""}<h2 id="sheetTitle">${esc(title)}</h2><button class="x" data-act="close" aria-label="${esc(t("关闭"))}">×</button></div>
-    <div class="sheet-body">${body}</div>${foot ? `<div class="ui-acts sheet-foot">${foot}</div>` : ""}</div>`;
+  const { title, body, foot, menu } = top.fn();
+  d.innerHTML = `<div class="sheet-in"><div class="sheet-head"><h2 id="sheetTitle">${esc(title)}</h2>${menuHtml(menu)}</div>
+    <div class="sheet-body">${body}</div>${footHtml(foot)}</div>`;
   if (!d.open) d.showModal();
   d.querySelector(".sheet-body").scrollTop = y;
   restoreFields(d, keep);   // 重画 / 返回到这一层：把还没保存的输入、焦点和光标放回去
   top.keep = null; shown = top;
+}
+/* ---------- 弹层的外壳：页头只有标题和（可选的）右上角 ⋯ 菜单，没有顶部的 × / ‹；退出靠底部的「取消」/「关闭」 ----------
+   menu：不常用的操作（删除）放页头 ⋯：[{ label, act, data, tone }]。
+   foot：各页面写的按钮串，这里统一收成底部操作条：
+   · 有「取消」类按钮的（表单、向导、确认框）→ ui-formbar：取消在前、主按钮在后；有「上一步」的是 wizard，其余是 edit；
+     向导各步没写取消的，补一个「取消」（以前靠顶部 ×）；
+   · 没有取消的（详情页：只有「打印 / 修改」这类操作）→ 保持原来的按钮条，另起一整行补一个「关闭」；
+   · 没有 foot 的 → 只有一个「关闭」。 */
+const attrsOf = (o = {}) => Object.entries(o).map(([k, v]) => `data-${k}="${esc(v)}"`).join(" ");
+const menuHtml = menu => formMenu((menu || []).filter(Boolean).map(m => ({ label: t(m.label), tone: m.tone || "danger", attrs: `data-act="${esc(m.act)}" ${attrsOf(m.data)}` })), { label: t("更多操作") });
+const ROLE_ORDER = { cancel: 0, back: 1, extra: 2, save: 3 };
+function footHtml(foot){
+  const leave = stack.length > 1 ? "back" : "close";
+  const cancelHtml = label => `<button type="button" class="ui-btn" data-tone="ghost" data-act="${leave}">${esc(t(label))}</button>`;
+  if (!foot) return `<div class="ui-formbar sheet-foot" data-variant="edit">${cancelHtml("关闭").replace('class="ui-btn"', 'class="ui-btn" data-role="cancel"')}</div>`;
+  const box = document.createElement("div"); box.innerHTML = foot;
+  const btns = [...box.querySelectorAll(":scope > .ui-btn, :scope > button")];
+  const isForm = btns.some(b => isCancelBtn(b) || b.hasAttribute("form") || b.dataset.act === "wz-back");   // 表单 / 向导 / 确认框；否则是详情页
+  if (!isForm) return `<div class="ui-acts sheet-foot">${foot}<button type="button" class="ui-btn foot-close" data-tone="ghost" data-act="${leave}">${esc(t("关闭"))}</button></div>`;
+  if (!btns.some(isCancelBtn)) box.insertAdjacentHTML("afterbegin", cancelHtml("取消"));
+  const all = [...box.querySelectorAll(":scope > .ui-btn, :scope > button")];
+  const role = b => isCancelBtn(b) ? "cancel" : b.dataset.act === "wz-back" ? "back" : (["primary", "danger-solid"].includes(b.dataset.tone) || b.hasAttribute("form")) ? "save" : "extra";
+  all.forEach((b, i) => { b.dataset.role = role(b); b.dataset.i = i; });
+  all.sort((a, b) => ROLE_ORDER[a.dataset.role] - ROLE_ORDER[b.dataset.role] || a.dataset.i - b.dataset.i).forEach(b => { delete b.dataset.i; box.append(b); });
+  return `<div class="ui-formbar sheet-foot" data-variant="${all.some(b => b.dataset.role === "back") ? "wizard" : "edit"}">${box.innerHTML}</div>`;
 }
 /** 打开新的一层之前，记下当前这一层填了一半的内容和滚动位置（例如 设置 → 添加镇 → 返回，设置里改了的店名还在） */
 function stash(){

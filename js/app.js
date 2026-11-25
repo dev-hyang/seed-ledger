@@ -21,6 +21,7 @@ import { initPrivacy, moneyEye } from "./core/privacy.js";
 import { initReleases, releasePageHTML } from "./ui/releases-ui.js";
 import { RELEASES } from "./data/releases.js";
 import "./ui/scan.js";
+import { watchFormMenus } from "./shared/ui-form.js"; watchFormMenus();   // 弹层页头 ⋯ 菜单：点外面 / Esc 关上
 
 const ICON = {
   home: '<path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/>', sales: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/>', customers: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-4 3-6 6.5-6s5.900 2 6.500 6M16 5a3.500 3.500 0 010 6.500M18 14c2 .6 3.300 2.400 3.500 6"/>',

@@ -1,0 +1,32 @@
+/* 【副本】母版在 home-pantry/shared/ui-form.css；改了母版要同步到这里。 */
+/* 共享控件：表单底部操作条 ui-formbar 和表单页头的 ⋯ 菜单 ui-more（2026-11-25）。母版在 home-pantry/shared/；姊妹站接入时各留一份副本（第一行加「【副本】」提醒），改了母版要同步。
+ * 读 shared/ui.css 的 ui-btn / ui-opt，以及各站 :root 里的 --surface / --line / --out / --sheet-shadow（都有兜底值）。
+ * ui-formbar  data-variant：
+ *   edit    整页新建 / 编辑：取消（左）· 保存（右），贴在视口底部（手机上等宽并排，电脑上取消靠左、保存靠右，按钮不拉满）
+ *   wizard  分步流程：取消 · 上一步 · 下一步（最后一步换成 保存 / 确认）；位置和 edit 一样
+ *   dialog  弹窗里的小表单：取消 · 确认；不贴底（弹窗自己决定位置）
+ *   inline  设置页 / 详情页里的一块小表单：保存 · 取消；不贴底，跟在区块后面
+ *   按钮的 data-role（cancel / back / extra / next / save）只用来排样式；顺序由 ui-form.js 的 formBar() 保证。
+ *   --fb-pad：页面左右内边距（默认 16px，贴底条要抵消它才能铺满整宽）。
+ * ui-more  页头右上角的 ⋯ 菜单：删除、「加到…」这类不常用的操作收在这里（<details>，不用脚本也能开合；ui-form.js 的 watchFormMenus() 负责点外面 / Esc 关上）。 */
+.ui-formbar { --fb-pad: 16px; display: flex; align-items: center; gap: 8px; box-sizing: border-box; }
+.ui-formbar > .ui-btn { flex: 1 1 0; min-width: 0; justify-content: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-inline: 10px; }
+.ui-formbar > .ui-btn[data-tone="primary"] { flex-grow: 1.4; }
+.ui-formbar[data-variant="edit"], .ui-formbar[data-variant="wizard"] { position: sticky; bottom: 0; z-index: 5; margin: 16px calc(-1 * var(--fb-pad)) 0; padding: 10px var(--fb-pad) calc(10px + env(safe-area-inset-bottom, 0px)); background: var(--surface, #fff); border-top: 1px solid var(--line, #d5ddd6); }
+.ui-formbar[data-variant="dialog"], .ui-formbar[data-variant="inline"] { position: static; margin: 12px 0 0; padding: 0; border: 0; background: none; }
+@media (min-width: 641px) {
+  .ui-formbar > .ui-btn, .ui-formbar > .ui-btn[data-tone="primary"] { flex: 0 0 auto; min-width: 104px; padding-inline: 18px; }
+  .ui-formbar > .ui-btn[data-role="cancel"] { margin-right: auto; }
+  .ui-formbar[data-variant="inline"] { justify-content: flex-end; }
+  .ui-formbar[data-variant="inline"] > .ui-btn[data-role="cancel"] { margin-right: 0; }
+}
+.ui-formbar [hidden] { display: none !important; }
+
+.ui-more { position: relative; flex: none; }
+.ui-more > summary { list-style: none; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; width: 44px; height: 44px; border-radius: 50%; color: var(--ink, #1b2a22); font-size: 22px; line-height: 1; cursor: pointer; user-select: none; }
+.ui-more > summary::-webkit-details-marker { display: none; }
+.ui-more > summary:hover, .ui-more[open] > summary { background: var(--surface-2, #eef2ee); }
+.ui-more > summary:focus-visible { outline: 3px solid var(--focus, #2f6b4f); outline-offset: 1px; }
+.ui-more-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 30; box-sizing: border-box; min-width: 180px; max-width: calc(100vw - 32px); padding: 6px; display: grid; gap: 2px; background: var(--surface, #fff); border: 1px solid var(--line, #d5ddd6); border-radius: var(--r-md, 10px); box-shadow: var(--sheet-shadow, 0 8px 24px rgba(0, 0, 0, .18)); }
+.ui-more-menu > .ui-opt { width: 100%; text-align: left; font: inherit; cursor: pointer; }
+.ui-more-menu > .ui-opt[data-tone="danger"] { color: var(--out, #b3402a); }

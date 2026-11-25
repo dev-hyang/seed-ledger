@@ -77,7 +77,7 @@ function customerForm(c){
       ${fld("默认价格档", seg("tier", [["retail", t("零售价")], ["wholesale", t("批发价")]], tierOf(c?.tier)), t("记销售单时按这个档预选单价，随时可改"))}
       ${fld("详细地址", text("address", c?.address, { max: 120 }))}${fld("备注", area("note", c?.note))}
       <small>${esc(t("只填做生意必要的信息。客户个人信息请妥善保管，导出的文件不要随意转发。"))}</small></form>`,
-    foot: `${c ? btn("删除", "customer-del", { cls: "danger", data: { id: c.id } }) : ""}<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("保存"))}</button>` };
+    menu: c ? [{ label: "删除", act: "customer-del", data: { id: c.id } }] : null, foot: `<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("保存"))}</button>` };
 }
 ACT["customer-new"] = () => show(() => customerForm());
 ACT["customer-edit"] = el => show(() => customerForm(byId("customer", el.dataset.id)));

@@ -1,6 +1,10 @@
 /* 发布日志（更多 → 发布日志；新版本第一次打开起，概览页顶上提示最多 5 次）。每次发布加一条，和版本号同一个 commit（最新在前）。
    写给店主看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。界面在 js/ui/releases-ui.js（和姊妹应用同一份）。 */
 export const RELEASES = [
+  { v: "2026-11-25.1", title: { zh: "弹窗：顶部不再有 × 和 ‹，删除收进右上角 ⋯", en: "Dialogs: no × or ‹ at the top; Delete moved to the ⋯ menu" }, items: [
+    { k: "better", zh: "弹出的页面顶部不再有「×」「‹」：表单和确认框底部是「取消」「保存」，查看页底部有一个「关闭」。登录向导每一步也多了「取消」。", en: "Pop-up pages no longer have × or ‹ at the top: forms and confirmations have Cancel / Save at the bottom, view pages have a Close button, and every step of the sign-in wizard has Cancel." },
+    { k: "better", zh: "「删除」不常用，改放在右上角的 ⋯ 菜单里，不会再误点。", en: "Delete is rarely used, so it now lives in the ⋯ menu at the top right to avoid accidental taps." },
+  ] },
   { v: "2026-11-24.7", title: { zh: "箭头统一成共用控件", en: "Arrows now use the shared arrow control" }, items: [
     { k: "better", zh: "列表行右边的箭头、待办折叠的小三角、发布日志的箭头，换成和爱家小助手同一个箭头控件（界面几乎不变）。", en: "The arrows on list rows, the to-do fold caret and the release-notes arrow now use the same control as Home Pantry (nearly no visible change)." },
   ] },

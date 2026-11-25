@@ -53,7 +53,7 @@ function tripPage(){
     <p class="hint">${esc(t("这一趟的人工 + 车费会按数量分摊到每张单，计入各自的成本。"))}</p>
     <div class="ai-box"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="ai-route" ${sel.length < 2 ? "disabled" : ""}>✨ ${esc(t("AI 路线建议"))}</button><div data-ai class="ai-out"></div></div>`;
   return { title: t(plan.id ? "修改这一趟" : "安排一趟送货"), body,
-    foot: `${plan.id ? btn("删除", "trip-del", { cls: "danger" }) : ""}<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" data-act="trip-save">${esc(t("保存"))}</button>` };
+    menu: plan.id ? [{ label: "删除", act: "trip-del" }] : null, foot: `<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" data-act="trip-save">${esc(t("保存"))}</button>` };
 }
 INP["trip-date"] = el => { plan.date = el.value; }; INP["trip-name"] = el => { plan.name = el.value; };
 INP["trip-vehicle"] = el => { plan.vehicle = +el.value || 0; }; INP["trip-labor"] = el => { plan.labor = +el.value || 0; };

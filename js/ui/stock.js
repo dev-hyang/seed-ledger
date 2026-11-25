@@ -74,7 +74,7 @@ function flowForm(type, rec){
       ${fld(isP ? "进货价（¥/斤）" : "退货折价（¥/斤）", num("unitCost", rec?.unitCost, { req: true, min: 0 }), t(isP ? "种子公司给的价格" : "退回时种子公司按多少钱抵扣，通常和进货价一样"))}
       ${fld("记入哪一年", num("year", rec?.year ?? new Date(d).getFullYear(), { req: true, step: 1 }), t("跨年卖的货，按这一季归到哪一年"))}
       ${fld("备注", area("note", rec?.note))}</form>`,
-    foot: `${rec ? btn("删除", "del", { cls: "danger", data: { kind: isP ? "purchase" : "sreturn", id: rec.id } }) : ""}<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("保存"))}</button>` };
+    menu: rec ? [{ label: "删除", act: "del", data: { kind: isP ? "purchase" : "sreturn", id: rec.id } }] : null, foot: `<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("保存"))}</button>` };
 }
 ACT["purchase-new"] = () => show(() => flowForm("purchase"));
 ACT["return-new"] = () => show(() => flowForm("return"));
@@ -119,7 +119,7 @@ function brandForm(b){
       <div class="grid3">${fld(t("{y} 年进货价（¥/斤）", { y }), num("buy", p.buy, { min: 0 }))}${fld(t("{y} 年零售价（¥/斤）", { y }), num("retail", p.retail, { min: 0 }))}${fld(t("{y} 年批发价（¥/斤）", { y }), num("wholesale", p.wholesale, { min: 0 }), t("可不填，不填就按零售价"))}</div>
       ${b ? `<label class="chk"><input type="checkbox" name="inactive" ${b.active === false ? "checked" : ""}> ${esc(t("停用（不再出现在进货、销售的选择里）"))}</label>` : ""}
       ${fld("备注", area("note", b?.note))}</form>`,
-    foot: `${b ? btn("删除", "del", { cls: "danger", data: { kind: "brand", id: b.id } }) : ""}<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("保存"))}</button>` };
+    menu: b ? [{ label: "删除", act: "del", data: { kind: "brand", id: b.id } }] : null, foot: `<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("保存"))}</button>` };
 }
 ACT["brand-new"] = () => show(() => brandForm());
 ACT["brand-edit"] = el => show(() => brandForm(byId("brand", el.dataset.id)));
@@ -165,7 +165,7 @@ function supplierForm(s){
         <div class="grid2">${fld("退货比例达到（%）", num("minRatioPct", s?.rule?.minRatioPct, { min: 0 }))}${fld("按退货金额收（%）", num("feePct", s?.rule?.feePct, { min: 0 }))}</div>
         <small>${esc(t("例如：拿 5000 斤退 4000 斤（80%），公司可能收一笔手续费。设了规则，退货后会给出建议金额；不设也行，手续费手动填。"))}</small></fieldset>
       ${fld("备注", area("note", s?.note))}</form>`,
-    foot: `${s ? btn("删除", "del", { cls: "danger", data: { kind: "supplier", id: s.id } }) : ""}<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("保存"))}</button>` };
+    menu: s ? [{ label: "删除", act: "del", data: { kind: "supplier", id: s.id } }] : null, foot: `<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("保存"))}</button>` };
 }
 ACT["supplier-new"] = () => show(() => supplierForm());
 ACT["supplier-edit"] = el => show(() => supplierForm(byId("supplier", el.dataset.id)));
