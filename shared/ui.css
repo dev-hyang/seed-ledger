@@ -145,3 +145,66 @@ input[data-num] { font-variant-numeric: tabular-nums; }
   .ui-acts > .ui-btn:only-child { flex: 1 1 100%; }
   .ui-acts > .ui-btn:first-child:nth-last-child(2):has(+ .ui-btn), .ui-acts > .ui-btn:first-child:nth-last-child(2) + .ui-btn { flex: 1 1 0; margin-right: 0; }
 }
+
+/* ── 下拉控件：单选可搜索 .ssel（ui-select.js）· 多选 .msel（ui-select-multi.js）· 可输入 .sug-in（ui-suggest.js） ──
+ * 颜色读 --sel-accent（选中 / 聚焦边框色，默认取各站的 --pine，姊妹站在自己的 :root 里改成自己的主色）和 --line / --surface / --ink / --muted。
+ * 底部弹窗（.sel-sheet）借用各站已有的 .ask-dlg / .ask-form 弹窗外观。 */
+:root { --sel-accent: var(--pine, #2f6f4e); }
+/* 可搜索的下拉（shared/ui-select.js）：原 select 藏起来；输入框长得和 select 一样（当前选项 + 右边小箭头），点进去原位打字筛选，列表贴在下面 */
+.ssel-native { position: absolute !important; opacity: 0; width: 1px !important; height: 1px !important; min-width: 0 !important; max-width: 1px !important; min-height: 0; padding: 0; margin: 0; border: 0; overflow: hidden; clip-path: inset(50%); pointer-events: none; }   /* 页面上别的 select 宽度规则（如筛选栏 width:100%）不能把它撑开，否则整页出现横向滚动条 */
+.ssel { position: relative; min-width: 0; }
+.ssel::after { content: ""; position: absolute; right: 14px; top: 50%; width: 7px; height: 7px; margin-top: -5px; border-right: 2px solid var(--muted, #6b6b63); border-bottom: 2px solid var(--muted, #6b6b63); transform: rotate(45deg); pointer-events: none; transition: transform .15s; }
+.ssel.is-open::after { transform: rotate(-135deg); margin-top: -2px; }
+.ssel-in { width: 100%; box-sizing: border-box; padding-right: 32px; text-overflow: ellipsis; cursor: pointer; }
+.ssel.is-open .ssel-in { border-color: var(--sel-accent); cursor: text; }
+.ssel-in::placeholder { color: var(--ink, #222); opacity: .6; font-weight: 500; }   /* 打开时当前选项变成占位文字：看得见，但一打字就被替换 */
+.ssel-list { position: absolute; left: 0; min-width: min(300px, calc(100vw - 28px)); width: 100%; top: calc(100% + 4px); z-index: 30; max-height: min(300px, 45vh); overflow-y: auto; overscroll-behavior: contain; padding: 4px; border: 1px solid var(--line, #ddd8cc); border-radius: var(--r-md, 12px); background: var(--surface, #fff); box-shadow: 0 10px 28px rgba(0, 0, 0, .18); }
+.ssel.is-up .ssel-list { top: auto; bottom: calc(100% + 4px); }
+.ssel.is-right .ssel-list { left: auto; right: 0; }
+/* 分组标题（大类，例如「💼 工作收入」）：比选项大、加粗、上面一条分隔线；组里的小类缩进、常规字重 */
+.ssel-grp { margin-top: 4px; padding: 10px 10px 4px; font-size: 15px; font-weight: 600; color: var(--ink, #222); border-top: 1px solid var(--line, #ddd8cc); cursor: default; }
+.ssel-list > .ssel-grp:first-child { margin-top: 0; border-top-color: transparent; }
+.ssel-opt.in-grp { padding-left: 26px; font-weight: 400; }
+.ssel-opt.in-grp.is-cur { font-weight: 700; }
+.ssel-opt { padding: 9px 10px; font-size: 14px; font-weight: 400; }   /* 高度、悬停、当前项、禁用态在 .ui-opt */
+.ssel-opt[hidden], .ssel-grp[hidden], .ssel-list[hidden] { display: none; }
+.ssel-empty { padding: 12px 10px; font-size: 13px; }
+/* 触屏的长下拉：一个和下拉框一样的按钮，点了从底部弹出「搜索 + 清单」面板（shared/ui-select.js） */
+.ssel-btn { position: relative; display: block; box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; min-height: 40px; padding: 9px 34px 9px 12px; border: 1px solid var(--line, #ddd8cc); border-radius: var(--r-sm, 8px); background: var(--surface, #fff); color: var(--ink, #222); font: inherit; font-size: 16px; font-weight: 500; line-height: inherit; text-align: left; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }   /* 和普通输入框同一个盒子：宽度含内边距和边框，不越界 */
+.ssel-btn::after { content: ""; position: absolute; right: 14px; top: 50%; width: 7px; height: 7px; margin-top: -5px; border-right: 2px solid var(--muted, #6b6b63); border-bottom: 2px solid var(--muted, #6b6b63); transform: rotate(45deg); pointer-events: none; }   /* 和 .ssel 同一个小箭头 */
+.ssel-btn:focus-visible { outline: 3px solid var(--focus, #2f6f4e); outline-offset: 2px; }
+.sel-sheet .ask-form { gap: 8px; }
+.sel-sheet-q { box-sizing: border-box; width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line, #ddd8cc); border-radius: 10px; font-size: 16px; background: var(--surface, #fff); color: var(--ink, #222); }
+.sel-sheet-list { position: static !important; display: block !important; max-height: none !important; flex: 1 1 auto; min-height: 120px; overflow-y: auto; border: 1px solid var(--line-soft, #e8e4da); border-radius: 10px; box-shadow: none !important; }
+.sel-sheet-list .ssel-opt { min-height: 44px; display: flex; align-items: center; padding: 6px 14px; }
+.sel-sheet-list .ssel-opt.is-cur { font-weight: 700; background: color-mix(in srgb, var(--sel-accent) 10%, var(--surface, #fff)); }
+.sel-sheet-list .ssel-grp { padding: 8px 14px 4px; }
+.sel-sheet-list .ssel-opt[hidden], .sel-sheet-list .ssel-grp[hidden] { display: none; }
+.sel-sheet { overflow: hidden; }
+.sel-sheet .ask-form { height: min(80vh, 640px); overflow: hidden; }
+@media (max-width: 640px) { .sel-sheet .ask-form { height: min(80vh, 640px); } }
+/* 多选下拉（shared/ui-select-multi.js）：外壳和单选可搜索下拉同一套（.ssel / .ssel-in / .ssel-list），面板里是勾选行 + 底部「清除 / 完成」 */
+.msel .ssel-in { padding-right: 62px; }
+.msel .ssel-in.is-empty { color: var(--muted, #6b6b63); }
+.msel .msel-n { position: absolute; right: 34px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+.msel .msel-n[hidden] { display: none; }
+.msel .msel-list { width: max-content; min-width: 100%; max-width: min(480px, calc(100vw - 28px)); padding: 0;   /* 电脑：面板按最长选项加宽，一行放不下才省略 */
+   display: flex; flex-direction: column; max-height: min(340px, 50vh); overflow: hidden; }
+.msel-opts { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px; }
+.msel-opt, .form-grid .msel-opt { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 10px; font-size: 14px; font-weight: 400; cursor: pointer; }   /* .form-grid label 是上下排 + 粗体，这里要勾选框和文字同一行 */
+.msel-opt input[type="checkbox"] { flex: none; margin: 0; }
+.msel-opt > span { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }   /* 选项不换行，太长用省略号（悬停看全名） */
+.msel-opt[hidden], .msel .msel-list[hidden] { display: none; }
+.msel-foot { flex: none; display: flex; justify-content: flex-end; gap: 8px; padding: 8px; border-top: 1px solid var(--line, #ddd8cc); background: var(--surface, #fff); }
+.msel-list.sel-sheet-list { max-height: min(52vh, 420px); display: block; overflow: hidden; padding: 0; }
+.msel-list.sel-sheet-list .msel-opts { max-height: min(52vh, 420px); }
+/* 手机的底部面板：没有悬停，长名字不用省略号，最多折成两行；勾选框对齐第一行 */
+.sel-sheet-list .msel-opt { align-items: flex-start; padding-top: 10px; padding-bottom: 10px; }
+.sel-sheet-list .msel-opt input[type="checkbox"] { margin-top: 1px; }
+.sel-sheet-list .msel-opt > span { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+
+/* 可输入的下拉（shared/ui-suggest.js）：输入框右边一个小箭头，建议面板是全局的 fixed 列表（位置由 JS 算） */
+.sug-in { padding-right: 32px; background-repeat: no-repeat; background-position: right 12px center; background-size: 12px 8px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%238a8f87' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E"); }
+.sug-in:focus { border-color: var(--sel-accent); }
+.sug-list { position: fixed; z-index: 70; min-width: 0; max-width: calc(100vw - 16px); }
