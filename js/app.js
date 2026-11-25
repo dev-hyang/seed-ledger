@@ -1,4 +1,5 @@
 import "./core/autosize.js";   // AI 输入框会自己长高（姊妹应用同一套）
+import { watchActs } from "./shared/ui-acts.js"; watchActs();   // 按钮条：取消靠前、主按钮靠后（shared/ui.css 的 ui-acts）
 /* ============ 入口：导航、渲染、事件分发 ============
    页面模块只负责「返回 HTML」和「往 ACT / FORMS / CHG / INP 登记处理函数」；这里用事件委托统一分发，不给每个按钮单独绑事件。 */
 import { S, subscribe, canWrite } from "./core/state.js";

@@ -15,7 +15,7 @@ function paint(){
   const same = shown === top && d.open, keep = same ? snapFields(d) : top.keep, y = same ? d.querySelector(".sheet-body")?.scrollTop || 0 : top.y || 0;
   const { title, body, foot } = top.fn();
   d.innerHTML = `<div class="sheet-in"><div class="sheet-head">${stack.length > 1 ? `<button class="x" data-act="back" aria-label="${esc(t("返回"))}">‹</button>` : ""}<h2 id="sheetTitle">${esc(title)}</h2><button class="x" data-act="close" aria-label="${esc(t("关闭"))}">×</button></div>
-    <div class="sheet-body">${body}</div>${foot ? `<div class="sheet-foot">${foot}</div>` : ""}</div>`;
+    <div class="sheet-body">${body}</div>${foot ? `<div class="ui-acts sheet-foot">${foot}</div>` : ""}</div>`;
   if (!d.open) d.showModal();
   d.querySelector(".sheet-body").scrollTop = y;
   restoreFields(d, keep);   // 重画 / 返回到这一层：把还没保存的输入、焦点和光标放回去
