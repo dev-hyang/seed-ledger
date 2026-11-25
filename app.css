@@ -17,6 +17,7 @@
   --soon:var(--low); --soon-bg:var(--low-bg);
   --exp:color-mix(in srgb,var(--brand) 75%,var(--ink)); --exp-bg:color-mix(in srgb,var(--brand) 13%,var(--surface));
   --surface-2:var(--soft); --focus:var(--brand);
+  --btn-primary-bg:var(--brand); --btn-primary-ink:var(--on-brand); --btn-r:12px;   /* 主按钮：品牌色；圆角和本站一致 */
 }
 @media (prefers-color-scheme:dark){:root{
   --bg:#0f1712;--surface:#17211b;--ink:#e7efe9;--muted:#9fb2a5;--line:#2c3b2f;--soft:#1e2b22;

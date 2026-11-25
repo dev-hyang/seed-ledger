@@ -121,22 +121,27 @@ input[data-num] { font-variant-numeric: tabular-nums; }
 
 /* ── 按钮 ui-btn / 按钮条 ui-acts（2026-11-24.43）──
  * 标准高度：默认 40px（字 15px）、小号 34px（字 13px），高度算上边框（border-box）；上下内边距只给折行留空，高度由 --btn-h 决定。
- * ui-btn  data-size: md(默认) | sm   data-tone: neutral(默认) | primary | ghost | danger
+ * ui-btn  data-size: md(默认) | sm   data-tone: neutral(默认) | primary | ghost | danger（描边） | danger-solid（实心红） | dark | soft（浅芥末底）
  *   手机 / 触屏上小号的视觉高度不变，点按区域靠透明的 ::after 向外延伸到 ≥44px（上下各 6px）。
+ * 本站可在 :root 里设：--btn-primary-bg / --btn-primary-ink（主按钮底色 / 字色，默认芥末色）、--btn-r（圆角，默认 99px 胶囊）。
  * ui-acts 一组按钮：一个靠右；两个 = 第一个（取消）靠左、第二个（保存）靠右；三个及以上全靠右（删除放最左）；手机（≤480px）两个并排等宽、一个占满一行。 */
 :root { --btn-h: 40px; --btn-h-sm: 34px; }
-.ui-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box; position: relative; min-height: var(--btn-h); padding: 6px 16px; border: 1px solid transparent; border-radius: 99px; background: var(--surface-2, #e3ebe4); color: var(--ink, #1b2a22); font: inherit; font-size: 15px; font-weight: 600; line-height: 1.2; text-decoration: none; cursor: pointer; }
+.ui-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box; position: relative; min-height: var(--btn-h); padding: 6px 16px; border: 1px solid transparent; border-radius: var(--btn-r, 99px); background: var(--surface-2, #e3ebe4); color: var(--ink, #1b2a22); font: inherit; font-size: 15px; font-weight: 600; line-height: 1.35; text-decoration: none; cursor: pointer; }
 .ui-btn[data-size="sm"] { min-height: var(--btn-h-sm); padding: 4px 14px; font-size: 13px; font-weight: 500; }
-.ui-btn[data-tone="primary"] { background: var(--mustard, var(--ok, #2f6b4f)); color: var(--mustard-ink, #fff); }
+.ui-btn[data-tone="primary"] { background: var(--btn-primary-bg, var(--mustard, var(--ok, #2f6b4f))); color: var(--btn-primary-ink, var(--mustard-ink, #fff)); }
 .ui-btn[data-tone="ghost"] { background: transparent; border-color: var(--line, #d5ddd6); }
 .ui-btn[data-tone="danger"] { background: transparent; color: var(--out, #b3402a); border-color: currentColor; }
+.ui-btn[data-tone="danger-solid"] { background: var(--out, #b3402a); color: #fff; }
+.ui-btn[data-tone="dark"] { background: var(--ink, #1b2a22); color: var(--bg, #fff); }
+.ui-btn[data-tone="soft"] { background: color-mix(in srgb, var(--mustard, var(--ok, #2f6b4f)) 38%, var(--surface, #fff)); color: var(--ink, #1b2a22); }
+.ui-btn[data-tone="soft"]:hover { background: color-mix(in srgb, var(--mustard, var(--ok, #2f6b4f)) 55%, var(--surface, #fff)); filter: none; }
 .ui-btn:hover { filter: brightness(.97); }
 .ui-btn:disabled { opacity: .5; cursor: not-allowed; }
 .ui-btn:focus-visible { outline: 3px solid var(--focus, #2f6b4f); outline-offset: 2px; }
 @media (max-width: 640px), (pointer: coarse) { .ui-btn[data-size="sm"]::after { content: ""; position: absolute; inset: -6px 0; } .ui-btn:not([data-size="sm"])::after { content: ""; position: absolute; inset: -2px 0; } }
 .ui-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
-.ui-acts > :first-child:nth-last-child(2) { margin-right: auto; }
+.ui-acts > .ui-btn:first-child:nth-last-child(2):has(+ .ui-btn) { margin-right: auto; }   /* 只有「两个按钮」才分到两头；按钮 + 一句话、按钮 + 链接仍然靠右 */
 @media (max-width: 480px) {
-  .ui-acts > :only-child { flex: 1 1 100%; }
-  .ui-acts > :first-child:nth-last-child(2), .ui-acts > :nth-child(2):last-child { flex: 1 1 0; margin-right: 0; }
+  .ui-acts > .ui-btn:only-child { flex: 1 1 100%; }
+  .ui-acts > .ui-btn:first-child:nth-last-child(2):has(+ .ui-btn), .ui-acts > .ui-btn:first-child:nth-last-child(2) + .ui-btn { flex: 1 1 0; margin-right: 0; }
 }
