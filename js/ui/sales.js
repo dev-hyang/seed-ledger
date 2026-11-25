@@ -65,9 +65,9 @@ function listView(){
   const st = S.filters.saleStatus || "", q = (S.filters.saleQ || "").trim(), rows = visibleSales(), pg = paged("sales", rows);   // 合计、全选都按完整的 rows，只渲染前几页
   const live_ = rows.filter(s => s.status !== "void"), sum = r2(live_.reduce((a, s) => a + s.net, 0)), owe = r2(live_.reduce((a, s) => a + Math.max(s.balance, 0), 0)), marked = live_.filter(s => s.chase && chaseable(s)).length;
   const bar = ro() || !rows.length ? "" : selMode
-    ? `<div class="batchbar" role="toolbar" aria-label="${esc(t("批量操作"))}"><div class="bb-head"><b>${esc(t("已选 {n} 张", { n: sel.size }))}</b><button class="btn sm" data-act="sales-select-done">${esc(t("完成"))}</button></div>
-        <div class="bb-acts"><button class="btn sm" data-act="sales-select-all">${esc(t("全选未结清"))}</button><button class="btn sm primary" data-act="batch-chase" ${sel.size ? "" : "disabled"}>🚩 ${esc(t("标记待催账"))}</button>
-        <button class="btn sm" data-act="batch-unchase" ${sel.size ? "" : "disabled"}>${esc(t("取消标记"))}</button><button class="btn sm" data-act="batch-due" ${sel.size ? "" : "disabled"}>${esc(t("设约定收款日"))}</button></div>
+    ? `<div class="batchbar" role="toolbar" aria-label="${esc(t("批量操作"))}"><div class="bb-head"><b>${esc(t("已选 {n} 张", { n: sel.size }))}</b><button class="ui-btn" data-size="sm" data-tone="ghost" data-act="sales-select-done">${esc(t("完成"))}</button></div>
+        <div class="bb-acts"><button class="ui-btn" data-size="sm" data-tone="ghost" data-act="sales-select-all">${esc(t("全选未结清"))}</button><button class="ui-btn" data-size="sm" data-tone="primary" data-act="batch-chase" ${sel.size ? "" : "disabled"}>🚩 ${esc(t("标记待催账"))}</button>
+        <button class="ui-btn" data-size="sm" data-tone="ghost" data-act="batch-unchase" ${sel.size ? "" : "disabled"}>${esc(t("取消标记"))}</button><button class="ui-btn" data-size="sm" data-tone="ghost" data-act="batch-due" ${sel.size ? "" : "disabled"}>${esc(t("设约定收款日"))}</button></div>
         <p class="hint">${esc(t("勾选下面的单，再点上面的按钮。"))}</p></div>`
     : "";
   const selBtn = ro() || !rows.length || selMode ? "" : `<button class="link" data-act="sales-select">☑ ${esc(t("批量选择"))}</button>`;
@@ -94,7 +94,7 @@ const withoutChase = ({ chase, chaseAt, ...rest }) => rest;
 ACT["batch-chase"] = async () => { await batchSave((s, v) => chaseable(v) && !s.chase ? { ...s, chase: true, chaseAt: today() } : null, "已标记 {n} 张待催账"); sel.clear(); };
 ACT["batch-unchase"] = async () => { await batchSave(s => s.chase ? withoutChase(s) : null, "已取消 {n} 张的催账标记"); sel.clear(); };
 ACT["batch-due"] = () => show(() => ({ title: t("设约定收款日"), body: `<form id="f" data-form="batchdue"><p class="lead">${esc(t("给选中的 {n} 张销售单统一设约定收款日", { n: sel.size }))}</p>${fld("约定收款日", date("dueOn", ""))}<p class="hint">${esc(t("到期前 3 天起进概览的催账提醒；已结清的会跳过。"))}</p></form>`,
-  foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("保存"))}</button>` }));
+  foot: `<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("保存"))}</button>` }));
 FORMS.batchdue = async d => { await batchSave((s, v) => chaseable(v) ? { ...s, dueOn: d.dueOn } : null, "已给 {n} 张设了约定收款日"); sel.clear(); back(); };
 ACT["chase-toggle"] = async el => {
   const s = byId("sale", el.dataset.id); if (!s) return;
@@ -143,7 +143,7 @@ function saleForm(s){
       <fieldset class="box"><legend>${esc(t("卖了什么"))}</legend>
       ${fld("价格档", seg("tier", [["retail", t("零售价")], ["wholesale", t("批发价")]], tier), t("选了品种会自动填单价，可以再改"))}
       <div class="lines">${firstLines.map(lineRow).join("")}</div>
-      <button type="button" class="btn sm" data-act="sale-line-add">${esc(t("＋ 再加一个品种"))}</button>
+      <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="sale-line-add">${esc(t("＋ 再加一个品种"))}</button>
       <div class="total-bar"><span>${esc(t("货款合计"))}</span><b data-total>${esc(money(0))}</b></div>
       <small>${esc(t("「私下价」只有你自己看得到，不会印在给客户的单子上。"))}</small></fieldset>
       ${edit ? "" : `<fieldset class="box"><legend>${esc(t("怎么付钱"))}</legend>${fld("售卖方式", seg("mode", MODES.map(([k, l]) => [k, t(l)]), s?.mode || "cash"))}
@@ -156,7 +156,7 @@ function saleForm(s){
       <fieldset class="box"><legend>${esc(t("其它（可不填）"))}</legend>
       ${fld("约定收款日（赊账时可填）", date("dueOn", s?.dueOn || "", { req: false }), t("到期前 3 天起进概览的催账提醒"))}
       ${fld("备注", area("note", s?.note))}</fieldset></form>`,
-    foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("保存"))}</button>` };
+    foot: `<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("保存"))}</button>` };
 }
 ACT["sale-new"] = () => show(() => saleForm());
 ACT["sale-edit"] = el => show(() => saleForm(model().saleM.get(el.dataset.id)));
@@ -260,14 +260,14 @@ ACT.delivered = async el => { const s = byId("sale", el.dataset.id); if (!s) ret
 ACT["pay-del"] = el => ask(t("撤销这笔收款？"), t("记录会保留在审计日志里。"), () => remove("pay", el.dataset.id), "撤销");
 ACT["adj-del"] = el => ask(t("撤销这条调整？"), t("应收会恢复。记录会保留在审计日志里。"), () => remove("adj", el.dataset.id), "撤销");
 ACT["sale-void"] = el => show(() => ({ title: t("作废销售单"), body: `<p class="lead">${esc(t("作废的单不计入销售、库存和利润，但记录和原因永久保留，可供查账。"))}</p><form id="f" data-form="void" data-id="${el.dataset.id}">${fld("作废原因", text("reason", "", { req: true, max: 120 }))}</form>`,
-  foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn danger" form="f">${esc(t("作废"))}</button>` }));
+  foot: `<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="danger-solid" form="f">${esc(t("作废"))}</button>` }));
 FORMS.void = async (d, f) => { const s = byId("sale", f.dataset.id); await save("sale", { ...s, status: "void", voidReason: d.reason, voidAt: today() }); back(); };
 
 /* ---------- 收款 ---------- */
 ACT["pay-new"] = el => show(() => { const s = model().saleM.get(el.dataset.id);
   return { title: t("收款"), body: `<form id="f" data-form="pay" data-sale="${s.id}"><p class="lead">${esc(customerName(s.customerId))} · ${esc(t("欠款"))} <b class="neg">${esc(money(Math.max(s.balance, 0)))}</b></p>
     ${fld("日期", date("date", today(), { past: true }))}${fld("金额（¥）", num("amount", s.balance > EPS ? r2(s.balance) : "", { req: true, min: 0 }))}${fld("方式", select("method", METHODS.map(([k, l]) => [k, t(l)]), "cash", { blank: false }))}${fld("备注", area("note"))}</form>`,
-    foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("保存"))}</button>` }; });
+    foot: `<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("保存"))}</button>` }; });
 FORMS.pay = async (d, f) => { await save("pay", { saleId: f.dataset.sale, date: d.date, amount: d.amount, method: d.method, note: d.note }); back(); };
 
 /* ---------- 催账：议价 / 折上折 / 核销 ----------
@@ -300,8 +300,8 @@ function collectForm(id){
       <div data-show="writeoff" hidden>${fld("核销金额（¥）", num("wo", r2(Math.max(s.balance, 0)), { min: 0 }))}</div>
       ${fld("原因 / 备注", area("reason", "", { ph: "例如 客户反映发芽率一般，同意让利" }))}
       <div class="preview" data-preview></div>
-      <div class="ai-box"><button type="button" class="btn sm" data-act="ai-negotiate" data-id="${id}">✨ ${esc(t("AI 议价建议"))}</button><div data-ai class="ai-out"></div><small>${esc(t("AI 只看金额和客户等级（不含姓名电话），用你自己的 key；不可用也不影响记账，利润已按成本和送货算好。"))}</small></div></form>`,
-    foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("记录"))}</button>` };
+      <div class="ai-box"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="ai-negotiate" data-id="${id}">✨ ${esc(t("AI 议价建议"))}</button><div data-ai class="ai-out"></div><small>${esc(t("AI 只看金额和客户等级（不含姓名电话），用你自己的 key；不可用也不影响记账，利润已按成本和送货算好。"))}</small></div></form>`,
+    foot: `<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("记录"))}</button>` };
 }
 function readUnitPrices(f){ return [...f.querySelectorAll("[data-uprice]")].map(el => el.value === "" ? undefined : +el.value); }
 function collectInput(f, d = {}){

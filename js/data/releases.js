@@ -1,6 +1,10 @@
 /* 发布日志（更多 → 发布日志；新版本第一次打开起，概览页顶上提示最多 5 次）。每次发布加一条，和版本号同一个 commit（最新在前）。
    写给店主看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。界面在 js/ui/releases-ui.js（和姊妹应用同一份）。 */
 export const RELEASES = [
+  { v: "2026-11-24.5", title: { zh: "所有按钮换成统一的按钮控件", en: "All buttons now use the shared button control" }, items: [
+    { k: "better", zh: "全站按钮换成和爱家小助手同一个按钮控件：默认 40px、小号 34px，手机上点按区域仍不小于 44px（以前 36 到 44px 不等）。", en: "Every button now uses the same control as Home Pantry: 40 px default, 34 px small, with a tap area still at least 44 px on phones (it used to range from 36 to 44 px)." },
+    { k: "fix", zh: "如果哪个页面的按钮看起来不对（颜色、大小、位置），请告诉我，这次是整体替换。", en: "If a button looks wrong on any page (colour, size, position), please tell me; this was a wholesale replacement." },
+  ] },
   { v: "2026-11-24.4", title: { zh: "共用样式表多了按钮变量", en: "Shared stylesheet gains button variables" }, items: [
     { k: "better", zh: "同步共用按钮样式，并设置本站主按钮用品牌色、圆角 12px（界面不变，下一版起按钮换成共用控件）。", en: "Synced the shared button style and set the primary button to the brand colour with 12 px corners (no visible change; buttons move to the shared control next)." },
   ] },

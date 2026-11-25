@@ -35,8 +35,8 @@ function chrome(){
   document.body.classList.toggle("is-offline", S.cloud === "offline");
 }
 function banner(){
-  if (S.cloud === "signedout" && CLOUD_CONFIGURED) return `<div class="banner"><span>${esc(t("登录后数据会同步给合伙人，并在多台设备间保持一致。"))}</span><button class="btn sm primary" data-act="open-login">${esc(t("登录 / 注册"))}</button></div>`;
-  if (S.cloud === "noorg") return `<div class="banner"><span>${S.joinMsg ? `<b class="neg">${esc(S.joinMsg)}</b> ` : ""}${esc(t("还没有经销商账本：创建一个，或用邀请码加入合伙人的账本。"))}</span><button class="btn sm primary" data-tab="more">${esc(t("去设置"))}</button></div>`;
+  if (S.cloud === "signedout" && CLOUD_CONFIGURED) return `<div class="banner"><span>${esc(t("登录后数据会同步给合伙人，并在多台设备间保持一致。"))}</span><button class="ui-btn" data-size="sm" data-tone="primary" data-act="open-login">${esc(t("登录 / 注册"))}</button></div>`;
+  if (S.cloud === "noorg") return `<div class="banner"><span>${S.joinMsg ? `<b class="neg">${esc(S.joinMsg)}</b> ` : ""}${esc(t("还没有经销商账本：创建一个，或用邀请码加入合伙人的账本。"))}</span><button class="ui-btn" data-size="sm" data-tone="primary" data-tab="more">${esc(t("去设置"))}</button></div>`;
   if (S.cloud === "pending") return `<div class="banner warn"><span>${esc(t("已申请加入，等待创建者批准。"))}</span></div>`;
   if (S.cloud === "offline") return `<div class="banner warn"><span>${esc(t("现在离线：可以照常录入，恢复网络后自动同步。"))}</span></div>`;
   if (S.role === "viewer") return `<div class="banner"><span>${esc(t("你是只读成员，只能查看。"))}</span></div>`;
@@ -47,7 +47,7 @@ function pendingScreen(){
   return `<div class="card pending" role="status"><h1>⏳ ${esc(t("等待批准"))}</h1>
     <p class="lead">${esc(t("你已提交加入申请。创建者或合伙人批准后，这里会自动进入账本（每隔几秒自动检查一次）。"))}</p>
     <p class="hint">${esc(t("批准前你只能看到这个状态，看不到账本里的任何信息。批准后是「只读成员」，要录入请联系创建者设为录入员或合伙人。"))}</p>
-    <div class="actions"><button class="btn primary" data-act="pending-check">${esc(t("立即检查"))}</button><button class="btn ghost-danger" data-act="sign-out">${esc(t("退出登录"))}</button></div></div>`;
+    <div class="actions"><button class="ui-btn" data-tone="primary" data-act="pending-check">${esc(t("立即检查"))}</button><button class="ui-btn" data-tone="danger" data-act="sign-out">${esc(t("退出登录"))}</button></div></div>`;
 }
 /** 已登录但还没有店：二选一——创建自己的店，或用邀请码加入别人的店（免邮箱账号只能加入，不能创建） */
 function noorgScreen(){
@@ -55,7 +55,7 @@ function noorgScreen(){
   return `<div class="card pending" role="status"><h1>${esc(t("你想怎么开始？"))}</h1>${S.joinMsg ? `<p class="neg" role="alert">${esc(S.joinMsg)}</p>` : ""}
     <div class="choices">${anon ? "" : `<button type="button" class="choice" data-act="open-createorg"><b>${esc(t("创建我自己的店"))}</b><small>${esc(t("你是创建者：可以邀请别人、管理成员"))}</small></button>`}
       <button type="button" class="choice" data-act="open-joinorg"><b>${esc(t("用邀请码加入别人的店"))}</b><small>${esc(t("向店的创建者要邀请码或邀请链接；批准后才能进入"))}</small></button></div>
-    <div class="actions" style="justify-content:center"><button class="btn ghost-danger" data-act="sign-out">${esc(t("退出登录"))}</button></div></div>`;
+    <div class="actions" style="justify-content:center"><button class="ui-btn" data-tone="danger" data-act="sign-out">${esc(t("退出登录"))}</button></div></div>`;
 }
 /* 网址记住当前页（#/sales/trips、#/stock/flow）：刷新、收藏后还停在这一页（含子页）；四个姊妹应用同一套做法。
    没带 # 打开时仍用本机记住的页签（LS_PREFIX.tab）。只用 replaceState，不往浏览器历史里加条目。登录回跳时 # 后面是 Supabase 的令牌，那时不动。 */

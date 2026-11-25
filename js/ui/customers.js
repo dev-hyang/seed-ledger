@@ -55,7 +55,7 @@ function customerPage(id){
       ${p.good.length ? `<ul class="bul">${p.good.map(r => `<li class="pos">${esc(t(r))}</li>`).join("")}</ul>` : ""}
       ${s.concessionPct > 0 ? `<p class="hint">${esc(t("催账时让利合计占货款 {p}%（议价 {a}，折上折 {b}）", { p: s.concessionPct, a: money(s.negotiated), b: money(s.discounted) }))}</p>` : ""}
       ${p.guard.length ? `<h4>${esc(t("建议的保障措施"))}</h4><ul class="bul">${p.guard.map(g => `<li>${esc(t(g))}</li>`).join("")}</ul>` : ""}
-      <div class="ai-box"><button class="btn sm" data-act="ai-customer" data-id="${id}">✨ ${esc(t("AI 写成建议"))}</button><div data-ai class="ai-out"></div></div>
+      <div class="ai-box"><button class="ui-btn" data-size="sm" data-tone="ghost" data-act="ai-customer" data-id="${id}">✨ ${esc(t("AI 写成建议"))}</button><div data-ai class="ai-out"></div></div>
       <small class="disc">${esc(t("以上只是根据交易记录的风险提示，不构成法律意见；重大纠纷请咨询律师，并保留全部单据。"))}</small></div>
     <h3 class="grp">${esc(t("销售历史"))}</h3>${sales.length ? lifeBlock(customerLifecycle(sales), { viewKey: "custLife", showSale: true, emptyMsg: "还没有交易。", pageKey: "custLife", newestFirst: true }) : empty("还没有交易。")}`;
   return { title: c.name, body, foot: `${btn("打印对账单", "print-customer", { cls: "primary", data: { id } })}${ro() ? "" : btn("修改", "customer-edit", { data: { id } })}` };
@@ -77,7 +77,7 @@ function customerForm(c){
       ${fld("默认价格档", seg("tier", [["retail", t("零售价")], ["wholesale", t("批发价")]], tierOf(c?.tier)), t("记销售单时按这个档预选单价，随时可改"))}
       ${fld("详细地址", text("address", c?.address, { max: 120 }))}${fld("备注", area("note", c?.note))}
       <small>${esc(t("只填做生意必要的信息。客户个人信息请妥善保管，导出的文件不要随意转发。"))}</small></form>`,
-    foot: `${c ? btn("删除", "customer-del", { cls: "danger", data: { id: c.id } }) : ""}<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("保存"))}</button>` };
+    foot: `${c ? btn("删除", "customer-del", { cls: "danger", data: { id: c.id } }) : ""}<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("保存"))}</button>` };
 }
 ACT["customer-new"] = () => show(() => customerForm());
 ACT["customer-edit"] = el => show(() => customerForm(byId("customer", el.dataset.id)));

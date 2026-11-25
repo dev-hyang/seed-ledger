@@ -38,7 +38,7 @@ function filterUI(key, c){
   const dropdowns = (c.fields || []).filter(f => f.type !== "range").map(sel).join("") + (c.sort ? sel({ ...c.sort, label: c.sort.label || "排序", blank: false }) : "");
   const panel = open ? `<div class="fbar" id="${id}">
       ${dropdowns ? `<div class="fbar-row">${dropdowns}</div>` : ""}${(c.fields || []).filter(f => f.type === "range").map(range).join("")}${c.extra || ""}
-      <div class="fbar-foot"><button type="button" class="btn sm" data-act="fb-reset" data-fb="${esc(key)}" ${n ? "" : "disabled"}>${esc(t("重置"))}</button><button type="button" class="btn sm primary" data-act="fb-done" data-fb="${esc(key)}">${esc(t("完成"))}</button></div></div>` : "";
+      <div class="fbar-foot"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="fb-reset" data-fb="${esc(key)}" ${n ? "" : "disabled"}>${esc(t("重置"))}</button><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-act="fb-done" data-fb="${esc(key)}">${esc(t("完成"))}</button></div></div>` : "";
   return `<div class="fb">
     <div class="fb-row"><button type="button" class="fb-btn${n ? " on" : ""}" data-act="fb-toggle" data-fb="${esc(key)}" aria-expanded="${open}" aria-controls="${id}">${ICON}<span>${esc(t(c.sort ? "筛选 · 排序" : "筛选"))}</span>${n ? `<b class="fb-n">${n}</b>` : ""}</button>${c.search || ""}</div>
     ${n ? `<div class="fb-chips">${chips.map(x => `<button type="button" class="fb-chip" data-act="fb-clear" data-fb="${esc(key)}" data-k="${esc(x.id)}" aria-label="${esc(t("去掉条件：{x}", { x: x.text }))}"><span>${esc(x.text)}</span><i aria-hidden="true">✕</i></button>`).join("")}</div>` : ""}

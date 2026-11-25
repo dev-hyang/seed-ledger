@@ -43,7 +43,7 @@ function card(it, write){
   const d = describe(it), more = it.done && write;
   return `<li class="todo-item tone-${it.tone}"><span class="todo-ic" aria-hidden="true">${ICON[it.kind] || "•"}</span>
     <div class="todo-main"><b>${esc(d.title)}</b>${d.sub ? `<small>${esc(d.sub)}</small>` : ""}</div>
-    <div class="todo-acts"><button type="button" class="btn sm ${it.tone === "bad" ? "primary" : ""}" ${attrs(it.act)}>${esc(t(d.label))}</button>${more ? `<details class="todo-more"><summary aria-label="${esc(t("更多操作"))}">⋯</summary><div class="todo-pop"><button type="button" class="btn sm" ${attrs(it.done)}>${esc(t("已送达"))}</button></div></details>` : ""}</div></li>`;
+    <div class="todo-acts"><button type="button" class="ui-btn" data-size="sm" data-tone="${it.tone === "bad" ? "primary" : "ghost"}" ${attrs(it.act)}>${esc(t(d.label))}</button>${more ? `<details class="todo-more"><summary aria-label="${esc(t("更多操作"))}">⋯</summary><div class="todo-pop"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" ${attrs(it.done)}>${esc(t("已送达"))}</button></div></details>` : ""}</div></li>`;
 }
 
 /* 展开 / 收起：有逾期（红色）的默认展开；否则按这台设备上次的选择。收起时标题行仍显示条数和最急的一条 */

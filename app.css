@@ -72,7 +72,7 @@ a{color:var(--brand)}
 .ypick{display:inline-flex;align-items:center;gap:8px;margin:0;font-size:14px;color:var(--muted)}
 .ypick select{width:auto;min-height:40px;font-size:15px;color:var(--ink)}
 .page-acts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
-.page-acts .btn{min-width:0}
+.page-acts .ui-btn{min-width:0}
 @media (max-width:640px){.page-acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.page-acts .wide{grid-column:1 / -1}}
 .subtabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--line)}
 .subtabs button{flex:none;min-height:44px;padding:0 14px;border:0;background:none;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer;font-size:15px;line-height:1.2}
@@ -86,16 +86,7 @@ a{color:var(--brand)}
 
 /* 按钮：高 44（小号 38），圆角一致；主按钮绿色实心，每块区域只有一个 */
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
-@media (max-width:640px){.actions .btn{flex:1 1 auto}}
-.btn{min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-align:center;line-height:1.2;font-size:15.5px;text-decoration:none}
-.btn:hover:not(:disabled){border-color:var(--brand)}
-.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--on-brand);font-weight:600}
-.btn.primary:hover:not(:disabled){filter:brightness(1.06)}
-.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
-.btn.ghost-danger{color:var(--bad);border-color:var(--bad)}
-.btn.sm{min-height:38px;padding:0 12px;font-size:14px;border-radius:var(--radius-sm)}
-.btn.tile{min-height:56px;font-size:16px}
-.btn:disabled{opacity:.5;cursor:not-allowed}
+@media (max-width:640px){.actions .ui-btn{flex:1 1 auto}}
 .link{border:0;background:none;color:var(--brand);padding:6px 0;cursor:pointer;font-size:14.5px;text-align:left}
 .link:hover{text-decoration:underline;text-underline-offset:3px}
 .card-more{display:flex;justify-content:flex-end;margin-top:4px}
@@ -105,7 +96,7 @@ a{color:var(--brand)}
 .x:disabled{opacity:.35;cursor:default}
 .x.sm{width:36px;height:36px;font-size:19px}
 .more-row{display:flex;justify-content:center;margin:12px 0 4px}
-.more-row .btn{border-radius:999px;min-width:160px}
+.more-row .ui-btn{min-width:160px}
 .list-head{display:flex;justify-content:space-between;align-items:center;gap:4px 12px;flex-wrap:wrap;margin:0 0 8px}
 .list-head .hint{margin:0;flex:1 1 200px}
 .list-head .link{min-height:40px}
@@ -145,14 +136,14 @@ a{color:var(--brand)}
 .fbar-quick{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .fbar-quick .chip{min-height:34px;padding:0 12px;font-size:13.5px}
 .fbar-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
-.fbar-foot .btn{min-width:88px}
+.fbar-foot .ui-btn{min-width:88px}
 @media (max-width:640px){
   .fb-btn{padding:0 12px;font-size:14.5px}
   .fbar{padding:10px 12px;gap:10px}
   .fbar-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   .fbar .ff select{font-size:14.5px;padding-left:9px;padding-right:26px;background-position:calc(100% - 14px) 52%,calc(100% - 9px) 52%}
   .fbar-dates{flex-basis:100%;max-width:none}
-  .fbar-foot .btn{flex:1 1 0}
+  .fbar-foot .ui-btn{flex:1 1 0}
 }
 .segbtn{display:inline-flex;max-width:100%;border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface);margin:0 0 10px}
 .segbtn button{border:0;background:none;min-height:38px;padding:0 16px;font-size:14px;color:var(--muted);cursor:pointer;white-space:nowrap}
@@ -188,7 +179,7 @@ a{color:var(--brand)}
 .empty{text-align:center;color:var(--muted);padding:26px 16px;margin:0 0 12px;border:1px dashed var(--line);border-radius:var(--radius);background:var(--surface)}
 .empty p{margin:0 0 4px;font-size:15.5px;color:var(--ink)}
 .empty small{margin:0 auto;max-width:420px}
-.empty .btn{margin-top:12px}
+.empty .ui-btn{margin-top:12px}
 .priv{color:var(--warn)}
 .bul{padding-left:20px;margin:4px 0}
 .menu .row-main small{white-space:normal}
@@ -210,7 +201,7 @@ a{color:var(--brand)}
 .steps li{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);counter-increment:st}
 .steps li::before{content:counter(st);flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--brand);color:var(--on-brand);font-weight:700;font-size:14px}
 .steps span{flex:1 1 180px;min-width:0}
-.steps .btn{flex:none}
+.steps .ui-btn{flex:none}
 
 /* 数字块：手机 2 列，电脑 4 列 */
 .kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:14px}
@@ -268,8 +259,8 @@ a{color:var(--brand)}
 .sheet-body{overflow-y:auto;overflow-x:hidden;padding:14px 16px 18px;flex:1;-webkit-overflow-scrolling:touch}
 /* 底部按钮：主按钮在最后（最右 / 手机上最宽）；手机上每一行都排满，不会东一个西一个 */
 .sheet-foot{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;padding:10px 16px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--surface)}
-.sheet-foot .btn.primary{order:9}
-@media (max-width:640px){.sheet-foot .btn{flex:1 1 auto;padding:0 12px;font-size:15px}.sheet-foot .btn.primary{flex-grow:2}}
+.sheet-foot .ui-btn[data-tone="primary"]{order:9}
+@media (max-width:640px){.sheet-foot .ui-btn{flex:1 1 auto}.sheet-foot .ui-btn[data-tone="primary"]{flex-grow:2}}
 
 /* 表单：标签在上（深色、加粗），说明在下（灰色小字）；输入框高 44；分组用带小标题的框 */
 .fld{display:block;margin-bottom:14px;min-width:0}
@@ -414,7 +405,7 @@ dialog[open]~.toast{z-index:1000}
 .todo-main b{font-size:15px;line-height:1.35}
 .todo-main small{font-size:12.5px}
 .todo-acts{display:flex;align-items:center;gap:2px;flex:none}
-.todo-acts .btn.sm{min-height:36px;padding:0 10px;font-size:13.5px;white-space:nowrap}
+.todo-acts .ui-btn[data-size="sm"]{white-space:nowrap}
 .todo-more{position:relative}
 .todo-more summary{list-style:none;display:grid;place-items:center;width:32px;height:36px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:18px}
 .todo-more summary::-webkit-details-marker{display:none}
@@ -423,7 +414,7 @@ dialog[open]~.toast{z-index:1000}
 .todo-empty{margin:0 2px 2px;color:var(--good)}
 .todo-sum{display:flex;gap:4px 8px;align-items:center;flex-wrap:wrap;margin:0 2px 8px;font-size:14px}
 .todo-sum .link{min-height:36px}
-@media (max-width:420px){.todo-item{gap:8px;padding-left:8px}.todo-ic{font-size:17px}.todo-acts .btn.sm{padding:0 8px}}
+@media (max-width:420px){.todo-item{gap:8px;padding-left:8px}.todo-ic{font-size:17px}}
 
 /* 登录向导：选择卡片、步骤进度点 */
 .choices{display:grid;gap:10px;margin:8px 0 14px}

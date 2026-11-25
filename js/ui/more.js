@@ -76,13 +76,13 @@ function wizardPage(){
   if (!wz.path) return { title: t("登录 / 注册"), body: `<p class="lead">${esc(t("你想怎么开始？"))}</p>
     <div class="choices"><button type="button" class="choice" data-act="wz-start" data-p="invite"><b>${esc(t("我有邀请码：加入别人的店"))}</b><small>${esc(t("不用邮箱和密码，填邀请码和名字就能申请加入"))}</small></button>
       <button type="button" class="choice" data-act="wz-start" data-p="email"><b>${esc(t("用邮箱登录或注册"))}</b><small>${esc(t("可以创建自己的店，也可以加入别人的店；已有账号直接登录"))}</small></button></div>`,
-    foot: `<button class="btn" data-act="close">${esc(t("取消"))}</button>` };
+    foot: `<button class="ui-btn" data-tone="ghost" data-act="close">${esc(t("取消"))}</button>` };
   const steps = wzSteps(), cur = steps[wz.step], last = wz.step === steps.length - 1, ui = STEP_UI[cur](wz.d);
   const dots = `<p class="small muted wz-prog" aria-label="${esc(t("第 {n} 步，共 {m} 步", { n: wz.step + 1, m: steps.length }))}">${steps.map((_, i) => `<i class="${i === wz.step ? "on" : i < wz.step ? "done" : ""}"></i>`).join("")} ${esc(t("第 {n} 步 / 共 {m} 步", { n: wz.step + 1, m: steps.length }))}</p>`;
-  const back = `<button type="button" class="btn" data-act="wz-back">${esc(t("上一步"))}</button>`;
+  const back = `<button type="button" class="ui-btn" data-tone="ghost" data-act="wz-back">${esc(t("上一步"))}</button>`;
   const foot = wz.path === "email" && last
-    ? `${back}<button type="button" class="btn primary" data-act="wz-login">${esc(t("登录"))}</button><button type="button" class="btn" data-act="wz-signup">${esc(t("注册"))}</button><button type="button" class="btn" data-act="wz-resend">${esc(t("重发确认邮件"))}</button>`
-    : `${back}<button class="btn primary" form="f">${esc(last ? t("完成并申请加入") : t("下一步"))}</button>`;
+    ? `${back}<button type="button" class="ui-btn" data-tone="primary" data-act="wz-login">${esc(t("登录"))}</button><button type="button" class="ui-btn" data-tone="ghost" data-act="wz-signup">${esc(t("注册"))}</button><button type="button" class="ui-btn" data-tone="ghost" data-act="wz-resend">${esc(t("重发确认邮件"))}</button>`
+    : `${back}<button class="ui-btn" data-tone="primary" form="f">${esc(last ? t("完成并申请加入") : t("下一步"))}</button>`;
   return { title: t(ui.title), body: `<form id="f" data-form="wz">${dots}${ui.body}${msgBox}</form>`, foot };
 }
 ACT["open-login"] = () => { const k = cloud.peekInvite(); wz = { path: k ? "invite" : null, step: 0, d: { invite: k?.code || "", name: k?.display || "" } }; show(wizardPage); };
@@ -142,7 +142,7 @@ ACT["sign-out"] = async () => { await cloud.signOut(); };
 ACT["pending-check"] = async () => { await cloud.recheck(); toast(S.cloud === "pending" ? t("还没批准，请耐心等一下") : t("已批准，正在进入")); };
 ACT["sync-now"] = () => cloud.sync();
 const orgForm = (title, name, label, hint, kind) => ({ title: t(title), body: `<form id="f" data-form="${kind}">${fld(label, text(name, "", { req: true }))}${fld("你的名字（合伙人看得到）", text("display", "", { req: true, max: 40 }))}${hint ? `<p class="hint">${esc(t(hint))}</p>` : ""}${kind === "joinorg" ? `<p class="hint ai-out" data-authmsg role="status"></p>` : ""}
-  ${kind === "createorg" && live("sale").length + live("purchase").length ? `<label class="chk"><input type="checkbox" name="adopt" checked> ${esc(t("把这台设备上已经录入的数据一起放进新账本"))}</label>` : ""}</form>`, foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("确定"))}</button>` });
+  ${kind === "createorg" && live("sale").length + live("purchase").length ? `<label class="chk"><input type="checkbox" name="adopt" checked> ${esc(t("把这台设备上已经录入的数据一起放进新账本"))}</label>` : ""}</form>`, foot: `<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("确定"))}</button>` });
 ACT["open-createorg"] = () => show(() => orgForm("创建经销商账本", "name", "店名 / 账本名称", "你将成为创建者，可以邀请合伙人、批准加入、设置权限。", "createorg"));
 ACT["open-joinorg"] = () => show(() => orgForm("用邀请码加入", "code", "邀请码", "向店的创建者要邀请码（或邀请链接）。创建者或合伙人会在「更多 → 成员与邀请」里看到你的申请并批准。批准前你只能看到「等待批准」，看不到任何数据；批准后是只读成员，要录入由创建者设为录入员或合伙人。", "joinorg"));
 FORMS.createorg = async d => { try { await cloud.createOrg(d.name, d.display, d.adopt); closeAll(); } catch (e) { toast(t("创建失败：") + (e.message || e)); } };
@@ -188,7 +188,7 @@ function membersPage({ team, invite }){
     const sel = p.manage && !self
       ? `<select data-change="member-role" data-u="${esc(m.user_id)}" aria-label="${esc(t("角色"))}">${opts.map(r => `<option value="${r}" ${m.role === r ? "selected" : ""}>${esc(t(ROLE[r]))}</option>`).join("")}</select>`
       : badge(t(ROLE[m.role] || m.role), m.role === "owner" ? "good" : "");
-    const rm = p.approve && !self ? (removing.has(m.user_id) ? badge(t("移出表决中"), "warn") : `<button class="btn sm ghost-danger" data-act="member-rm" data-u="${esc(m.user_id)}">${esc(t("申请移出"))}</button>`) : "";
+    const rm = p.approve && !self ? (removing.has(m.user_id) ? badge(t("移出表决中"), "warn") : `<button class="ui-btn" data-size="sm" data-tone="danger" data-act="member-rm" data-u="${esc(m.user_id)}">${esc(t("申请移出"))}</button>`) : "";
     return sel + rm;
   };
   const vote = r => {
@@ -196,20 +196,20 @@ function membersPage({ team, invite }){
     const title = r.kind === "partner" ? t("{n} 申请成为合伙人", { n: nameOf(r.target_user) }) : t("申请移出成员 {n}", { n: nameOf(r.target_user) });
     const prog = pr.voters.length ? t("已同意 {a}/{b}（要全体同意）", { a: pr.agreed, b: pr.voters.length }) : t("已同意 {a} 人（要全体同意）", { a: pr.agreed });
     return `<li class="vote"><div class="row static wrap"><span class="row-main"><b>${esc(title)}</b><small>${esc(prog)}${p.approve && target?.contact ? " · " + esc(t("联系方式：{c}", { c: target.contact })) : ""}${pr.mine ? " · " + esc(pr.mine.approve ? t("你已同意") : t("你已拒绝")) : ""}</small></span>
-      <span class="row-side">${canVote ? `<button class="btn sm primary" data-act="vote-yes" data-r="${esc(r.id)}">${esc(t("同意"))}</button><button class="btn sm ghost-danger" data-act="vote-no" data-r="${esc(r.id)}">${esc(t("拒绝"))}</button>` : ""}${mineReq ? `<button class="btn sm" data-act="request-cancel" data-r="${esc(r.id)}">${esc(t("撤回"))}</button>` : ""}</span></div>
+      <span class="row-side">${canVote ? `<button class="ui-btn" data-size="sm" data-tone="primary" data-act="vote-yes" data-r="${esc(r.id)}">${esc(t("同意"))}</button><button class="ui-btn" data-size="sm" data-tone="danger" data-act="vote-no" data-r="${esc(r.id)}">${esc(t("拒绝"))}</button>` : ""}${mineReq ? `<button class="ui-btn" data-size="sm" data-tone="ghost" data-act="request-cancel" data-r="${esc(r.id)}">${esc(t("撤回"))}</button>` : ""}</span></div>
       ${canVote && r.kind === "partner" ? `<details class="hint"><summary>${esc(t("合伙人的权益和责任（表决前请确认）"))}</summary>${rightsHTML()}</details>` : ""}</li>`;
   };
   const mineOrVote = open.filter(r => progress(team, r).voters.includes(me) || r.requested_by === me || r.target_user === me);
   return { title: t("成员与邀请"),
     body: `${p.approve ? `<div class="card"><p class="meta">${esc(t("邀请码"))}</p><p class="code">${esc(invite?.code || "—")}</p>
         <p class="hint">${esc(inviteLine(invite))}</p>
-        <div class="actions"><button class="btn sm" data-act="invite-copy" data-code="${esc(invite?.code || "")}">${esc(t("复制"))}</button><button class="btn sm" data-act="invite-link" data-code="${esc(invite?.code || "")}">${esc(t("复制邀请链接"))}</button>
-          ${p.manage ? `<button class="btn sm" data-act="invite-reset">${esc(t("重新生成（7 天）"))}</button>${invite?.closed ? "" : `<button class="btn sm ghost-danger" data-act="invite-close">${esc(t("关闭邀请"))}</button>`}` : ""}</div>
+        <div class="actions"><button class="ui-btn" data-size="sm" data-tone="ghost" data-act="invite-copy" data-code="${esc(invite?.code || "")}">${esc(t("复制"))}</button><button class="ui-btn" data-size="sm" data-tone="ghost" data-act="invite-link" data-code="${esc(invite?.code || "")}">${esc(t("复制邀请链接"))}</button>
+          ${p.manage ? `<button class="ui-btn" data-size="sm" data-tone="ghost" data-act="invite-reset">${esc(t("重新生成（7 天）"))}</button>${invite?.closed ? "" : `<button class="ui-btn" data-size="sm" data-tone="danger" data-act="invite-close">${esc(t("关闭邀请"))}</button>`}` : ""}</div>
         <p class="hint">${esc(t("凭邀请码加入的人要先经过批准；批准后是「只读」。要录入由创建者设为录入员；要当合伙人，本人申请并经创建者和全体合伙人同意。"))}</p></div>` : ""}
-      ${S.role === "viewer" || S.role === "staff" ? `<div class="card"><h3>${esc(t("成为合伙人"))}</h3>${myPartnerReq ? `<p class="hint">${esc(t("你的申请已提交，等待创建者和全体合伙人同意。"))}</p>` : `<p class="hint">${esc(t("合伙人能批准新成员、参与表决。申请需要创建者和所有合伙人全部同意。"))}${anon ? " " + esc(t("免邮箱账号要先留下邮箱或电话。")) : ""}</p><button class="btn primary" data-act="partner-apply">${esc(t("申请成为合伙人"))}</button>`}</div>` : ""}
+      ${S.role === "viewer" || S.role === "staff" ? `<div class="card"><h3>${esc(t("成为合伙人"))}</h3>${myPartnerReq ? `<p class="hint">${esc(t("你的申请已提交，等待创建者和全体合伙人同意。"))}</p>` : `<p class="hint">${esc(t("合伙人能批准新成员、参与表决。申请需要创建者和所有合伙人全部同意。"))}${anon ? " " + esc(t("免邮箱账号要先留下邮箱或电话。")) : ""}</p><button class="ui-btn" data-tone="primary" data-act="partner-apply">${esc(t("申请成为合伙人"))}</button>`}</div>` : ""}
       ${team.pending.length && p.approve ? `<h3 class="grp">${esc(t("等你批准（{n}）", { n: team.pending.length }))}</h3><p class="hint">${esc(t("认识这个人再批准：批准后他能看到账本里的全部数据（只读）。不认识就拒绝，并重新生成邀请码。"))}</p>
         <ul class="list">${team.pending.map(m => `<li><div class="row static wrap"><span class="row-main"><b>${esc(m.name || "?")}</b><small>${esc(t("申请时间"))} ${esc(String(m.created_at || "").slice(0, 10))}${m.contact ? " · " + esc(t("联系方式：{c}", { c: m.contact })) : ""}</small></span>
-          <span class="row-side"><button class="btn sm primary" data-act="member-approve" data-u="${esc(m.user_id)}">${esc(t("批准"))}</button><button class="btn sm ghost-danger" data-act="member-reject" data-u="${esc(m.user_id)}">${esc(t("拒绝"))}</button></span></div></li>`).join("")}</ul>` : ""}
+          <span class="row-side"><button class="ui-btn" data-size="sm" data-tone="primary" data-act="member-approve" data-u="${esc(m.user_id)}">${esc(t("批准"))}</button><button class="ui-btn" data-size="sm" data-tone="danger" data-act="member-reject" data-u="${esc(m.user_id)}">${esc(t("拒绝"))}</button></span></div></li>`).join("")}</ul>` : ""}
       ${mineOrVote.length ? `<h3 class="grp">${esc(t("待表决"))}</h3><ul class="list">${mineOrVote.map(vote).join("")}</ul>` : ""}
       <h3 class="grp">${esc(t("成员"))}</h3>
       <ul class="list">${active.map(m => `<li><div class="row static wrap"><span class="row-main"><b>${esc(m.name || "?")}${m.user_id === me ? " " + esc(t("（我）")) : ""}</b>${m.contact && p.approve ? `<small>${esc(m.contact)}</small>` : ""}</span><span class="row-side">${roleBox(m)}</span></div></li>`).join("")}</ul>
@@ -222,7 +222,7 @@ function partnerForm(){
       ${anon ? fld("联系方式（邮箱或电话，必填）", text("contact", mine?.contact || "", { max: 80, req: true }), t("免邮箱账号申请合伙人必须留下联系方式；只有创建者和合伙人看得到。")) : fld("联系方式（邮箱或电话，可选）", text("contact", mine?.contact || "", { max: 80 }))}
       <label class="chk"><input type="checkbox" name="ack"> ${esc(t("我已知晓以上权益和责任，并同意由创建者和全体合伙人表决"))}</label>
       <p class="hint ai-out" data-authmsg role="status"></p></form>`,
-    foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("提交申请"))}</button>` };
+    foot: `<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("提交申请"))}</button>` };
 }
 ACT["partner-apply"] = () => show(partnerForm);
 FORMS.partner = async (d, f) => {
@@ -268,9 +268,9 @@ function settingsPage(){
     ${fld("列表每页显示", select("pageSize", PAGE_SIZES.map(n => [n, t("{n} 条", { n })]), pageSize(), { blank: false }), esc(t("只对这台设备生效；没设过时手机 10 条、电脑 20 条。更多的点「继续加载」。")))}
     <h3 class="grp">${esc(t("镇与距离"))}</h3><p class="hint">${esc(t("填每个镇离门店多少公里、在哪个方向，路线规划用它来估算。"))}</p>
     <ul class="list tight">${towns.map(x => `<li><button type="button" class="row" data-act="town-edit" data-id="${x.id}"><span class="row-main"><b>${esc(x.name)}</b></span><span class="row-side"><small>${esc(x.distKm)} km · ${esc(x.dir ? t(x.dir) : "—")}</small></span></button></li>`).join("")}</ul>
-    <button type="button" class="btn sm" data-act="town-new">${esc(t("＋ 添加镇"))}</button>
+    <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="town-new">${esc(t("＋ 添加镇"))}</button>
     <p class="hint center">${esc(t("稻种账本"))} · ${esc(t("版本"))} v${esc(APP_VERSION)}</p></form>`,
-    foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("保存"))}</button>` };
+    foot: `<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("保存"))}</button>` };
 }
 ACT["open-settings"] = () => show(settingsPage);
 FORMS.settings = async d => {
@@ -282,7 +282,7 @@ FORMS.settings = async d => {
   back(); notify();
 };
 const townForm = x => ({ title: t(x ? "修改镇" : "添加镇"), body: `<form id="f" data-form="town" data-id="${x?.id || ""}">${fld("镇名", text("name", x?.name, { req: true }))}${fld("离门店（公里）", num("distKm", x?.distKm, { req: true, min: 0 }))}${fld("方向", select("dir", DIRS.map(d => [d, t(d)]), x?.dir))}</form>`,
-  foot: `${x ? btn("删除", "del", { cls: "danger", data: { kind: "town", id: x.id } }) : ""}<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" form="f">${esc(t("保存"))}</button>` });
+  foot: `${x ? btn("删除", "del", { cls: "danger", data: { kind: "town", id: x.id } }) : ""}<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("保存"))}</button>` });
 ACT["town-new"] = () => show(() => townForm());
 ACT["town-edit"] = el => show(() => townForm(byId("town", el.dataset.id)));
 FORMS.town = async (d, f) => { const old = f.dataset.id ? byId("town", f.dataset.id) : null; await save("town", { ...(old || {}), id: old?.id, name: d.name, distKm: d.distKm, dir: d.dir }); back(); };
@@ -303,7 +303,7 @@ function aiForm(){
       ${s.borrowed ? `<p class="hint">${esc(t("这里用的是你在爱家小助手里填的 key。"))}</p>` : ""}
       <p class="hint">${esc(t("发出去的只有脱敏后的数字摘要（金额、等级、镇村名），不含客户姓名、电话、详细地址。"))}</p>
       <div class="ai-out" data-aitest></div></form>`,
-    foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn" data-act="ai-test">${esc(t("测试连接"))}</button><button class="btn primary" form="f">${esc(t("保存"))}</button>` };
+    foot: `<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="ghost" data-act="ai-test">${esc(t("测试连接"))}</button><button class="ui-btn" data-tone="primary" form="f">${esc(t("保存"))}</button>` };
 }
 ACT["open-ai"] = () => show(aiForm);
 INP.ai = (el, f) => {   // 换服务商：更新说明、默认模型提示、自定义地址框
@@ -375,7 +375,7 @@ ACT["open-conflicts"] = async () => {
 
 /* ---------- 备份与恢复 ---------- */
 ACT["open-backup"] = () => show(() => ({ title: t("备份与恢复"), body: `<p class="lead">${esc(t("导出的文件包含客户个人信息和账务，请妥善保管，不要发到公开的地方。"))}</p>
-  <div class="actions">${btn("导出全部数据", "backup-export", { cls: "primary" })}${ro() ? "" : `<label class="btn">${esc(t("导入备份"))}<input type="file" accept="application/json,.json" data-file="import" hidden></label>`}</div><p class="hint">${esc(t("导入只会新增或覆盖同 ID 的记录，不会删除现有数据；每一条都会留痕。"))}</p>` }));
+  <div class="actions">${btn("导出全部数据", "backup-export", { cls: "primary" })}${ro() ? "" : `<label class="ui-btn" data-tone="ghost">${esc(t("导入备份"))}<input type="file" accept="application/json,.json" data-file="import" hidden></label>`}</div><p class="hint">${esc(t("导入只会新增或覆盖同 ID 的记录，不会删除现有数据；每一条都会留痕。"))}</p>` }));
 ACT["backup-export"] = async () => {
   const rows = (await db.getAll("records", S.org)).map(r => ({ kind: r.kind, id: r.id, data: r.data, deleted: r.deleted }));
   downloadText(`seed-ledger-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ app: "seed-ledger", version: 1, at: new Date().toISOString(), records: rows }));

@@ -51,9 +51,9 @@ function tripPage(){
       ${dirs.length > 1 ? `<p class="hint">${esc(t("这几家分布在 {n} 个方向：{d}。顺路的放一趟，反方向的可以考虑另一趟。", { n: dirs.length, d: dirs.map(g => g.dir + "（" + g.stops.length + "）").join("、") }))}</p>` : ""}` : ""}
     <div class="grid2">${fld("车费（¥）", num("vehicle", plan.vehicle || "", { min: 0 }).replace('name="vehicle"', 'name="vehicle" data-input="trip-vehicle"'), cmp ? `<button type="button" class="link" data-act="trip-est">${esc(t("用估算 {a}", { a: money(r2(km * opts().perKm)) }))}</button>` : "")}${fld("人工（¥）", num("labor", plan.labor || "", { min: 0 }).replace('name="labor"', 'name="labor" data-input="trip-labor"'))}</div>
     <p class="hint">${esc(t("这一趟的人工 + 车费会按数量分摊到每张单，计入各自的成本。"))}</p>
-    <div class="ai-box"><button type="button" class="btn sm" data-act="ai-route" ${sel.length < 2 ? "disabled" : ""}>✨ ${esc(t("AI 路线建议"))}</button><div data-ai class="ai-out"></div></div>`;
+    <div class="ai-box"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="ai-route" ${sel.length < 2 ? "disabled" : ""}>✨ ${esc(t("AI 路线建议"))}</button><div data-ai class="ai-out"></div></div>`;
   return { title: t(plan.id ? "修改这一趟" : "安排一趟送货"), body,
-    foot: `${plan.id ? btn("删除", "trip-del", { cls: "danger" }) : ""}<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn primary" data-act="trip-save">${esc(t("保存"))}</button>` };
+    foot: `${plan.id ? btn("删除", "trip-del", { cls: "danger" }) : ""}<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" data-act="trip-save">${esc(t("保存"))}</button>` };
 }
 INP["trip-date"] = el => { plan.date = el.value; }; INP["trip-name"] = el => { plan.name = el.value; };
 INP["trip-vehicle"] = el => { plan.vehicle = +el.value || 0; }; INP["trip-labor"] = el => { plan.labor = +el.value || 0; };

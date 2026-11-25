@@ -120,7 +120,9 @@ const badge = (text_, kind = "") => `<span class="ui-badge" data-tone="${BADGE_T
 const empty = (msg, action = "", hint = "") => `<div class="empty"><p>${esc(t(msg))}</p>${hint ? `<small>${esc(t(hint))}</small>` : ""}${action}</div>`;
 /** 视图切换（行记录 / 时间线 这类）：一组按钮，按下的那个高亮；opts: [[value, 中文标签]]，data 是附加的 data-* */
 const segBtns = (opts, cur, act, data = {}, label = "") => `<div class="segbtn" role="group"${label ? ` aria-label="${esc(t(label))}"` : ""}>${opts.map(([k, l]) => `<button type="button" aria-pressed="${k === cur}" data-act="${act}" data-k="${esc(k)}" ${Object.entries(data).map(([a, v]) => `data-${a}="${esc(v)}"`).join(" ")}>${esc(t(l))}</button>`).join("")}</div>`;
-const btn = (label, act, o = {}) => `<button type="button" class="btn ${o.cls || ""}" data-act="${act}" ${Object.entries(o.data || {}).map(([k, v]) => `data-${k}="${esc(v)}"`).join(" ")} ${o.disabled ? "disabled" : ""}>${o.raw ? label : esc(t(label))}</button>`;
+/** 按钮的 class 参数（旧写法 "primary wide" / "sm ghost-danger"…）→ 共用按钮控件的 class + data-size / data-tone */
+const btnAttrs = (cls = "") => { const ks = cls.split(/ +/).filter(Boolean); const tone = ks.includes("primary") ? "primary" : ks.includes("danger") ? "danger-solid" : ks.includes("ghost-danger") ? "danger" : "ghost"; return `class="ui-btn ${ks.filter((x) => !["primary", "danger", "ghost-danger", "sm"].includes(x)).join(" ")}"${ks.includes("sm") ? ' data-size="sm"' : ""} data-tone="${tone}"`; };
+const btn = (label, act, o = {}) => `<button type="button" ${btnAttrs(o.cls)} data-act="${act}" ${Object.entries(o.data || {}).map(([k, v]) => `data-${k}="${esc(v)}"`).join(" ")} ${o.disabled ? "disabled" : ""}>${o.raw ? label : esc(t(label))}</button>`;
 const kv = (k, v, cls = "") => `<div class="kv ${cls}"><span>${esc(t(k))}</span><b>${v}</b></div>`;
 
 /** 页面里的分页导航：电脑上是一排标签，手机上是一个带小标题的下拉（两种都渲染，CSS 按宽度只显示一种）。
@@ -137,7 +139,7 @@ export { show, replace, back, closeAll, refresh, sheetOpen, paint, snapFields, r
 let yes = null;
 function ask(title, msg, onYes, label = "确定"){
   yes = onYes;
-  show(() => ({ title, body: `<p class="lead">${esc(msg)}</p>`, foot: `<button class="btn" data-act="back">${esc(t("取消"))}</button><button class="btn danger" data-act="ask-yes">${esc(t(label))}</button>` }));
+  show(() => ({ title, body: `<p class="lead">${esc(msg)}</p>`, foot: `<button class="ui-btn" data-tone="ghost" data-act="back">${esc(t("取消"))}</button><button class="ui-btn" data-tone="danger-solid" data-act="ask-yes">${esc(t(label))}</button>` }));
 }
 const askYes = async () => { const f = yes; yes = null; back(); if (f) await f(); };
 export { ask, askYes };

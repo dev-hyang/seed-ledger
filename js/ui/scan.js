@@ -36,7 +36,7 @@ function inputBody(){
   const thumbs = sc.files.map((f, i) => `<span class="scan-thumb">${f.images?.[0]?.url ? `<img src="${f.images[0].url}" alt="${esc(f.name)}">` : `<span class="scan-doc"><span aria-hidden="true">📄</span><small>${esc(f.name)}</small></span>`}${f.images && f.images.length > 1 ? `<span class="scan-badge">${f.images.length}</span>` : ""}<button type="button" class="scan-del" data-act="scan-file-del" data-i="${i}" aria-label="${esc(t("移除这个文件"))}">×</button></span>`).join("");
   const adds = sc.files.length < MAX_FILES ? `<label class="scan-add">📷 ${esc(t("拍照"))}<input type="file" accept="image/*" capture="environment" data-change="scan-files"></label><label class="scan-add">📁 ${esc(t("选文件 / 相册"))}<input type="file" accept="${ACCEPT}" multiple data-change="scan-files"></label>` : "";
   return `<p class="hint">${esc(t("销售单、送货单、手抄账本的一页、客户对账表、微信 / 支付宝收款截图都行。识别出来先是草稿，你核对后才入库。"))}</p>
-    ${ready ? "" : `<div class="banner warn"><span>${esc(t("需要先设置 AI（用你自己的 key）。"))}</span><button type="button" class="btn sm primary" data-act="open-ai">${esc(t("设置 AI"))}</button></div>`}
+    ${ready ? "" : `<div class="banner warn"><span>${esc(t("需要先设置 AI（用你自己的 key）。"))}</span><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-act="open-ai">${esc(t("设置 AI"))}</button></div>`}
     <div class="scan-thumbs">${thumbs}${adds}</div>
     <p class="hint">${esc(t("支持：图片、PDF、Excel（xlsx / xls）、CSV / 文本。最多 {n} 个。", { n: MAX_FILES }))}</p>
     ${sc.reading ? `<p class="hint" role="status">${esc(t("正在读取文件…"))}</p>` : ""}
@@ -46,7 +46,7 @@ function inputBody(){
     ${sc.error ? `<p class="neg" role="alert">${esc(sc.error)}</p>` : ""}`;
 }
 const canRun = () => aiReady() && consent() && !sc.busy && !sc.reading && (sc.files.length || sc.text.trim());
-const inputFoot = () => `<button class="btn" data-act="close">${esc(t("取消"))}</button><button class="btn primary" data-act="scan-run" ${canRun() ? "" : "disabled"}>${esc(sc.busy ? t("正在识别…（几十秒）") : t("识别"))}</button>`;
+const inputFoot = () => `<button class="ui-btn" data-tone="ghost" data-act="close">${esc(t("取消"))}</button><button class="ui-btn" data-tone="primary" data-act="scan-run" ${canRun() ? "" : "disabled"}>${esc(sc.busy ? t("正在识别…（几十秒）") : t("识别"))}</button>`;
 
 const customerOpts = () => sortBy(live("customer"), c => c.name).map(c => `<option value="${esc(c.id)}">${esc(customerLabel(c, { mask: S.settings.maskPhone }))}</option>`).join("");
 const brandOpts = () => S.settings.seasons.map(s => { const bs = sortBy(live("brand").filter(b => b.seasonId === s.id && b.active !== false), b => b.name); return bs.length ? `<optgroup label="${esc(t(s.name))}">${bs.map(b => `<option value="${esc(b.id)}">${esc(b.name)}</option>`).join("")}</optgroup>` : ""; }).join("");
@@ -67,7 +67,7 @@ function reviewBody(){
   const on = sc.drafts.filter(d => d.on).length, cOpts = customerOpts(), bOpts = brandOpts();
   return `<p class="hint">${esc(t("共读到 {n} 笔，已勾选 {m} 笔。逐笔核对，不对的直接改；不想导入的取消勾选。", { n: sc.drafts.length, m: on }))}</p>
     ${sc.error ? `<p class="neg" role="alert">${esc(sc.error)}</p>` : ""}
-    <div class="actions"><button class="btn sm" data-act="scan-chase-all" data-v="1">🚩 ${esc(t("全部标记待催账"))}</button><button class="btn sm" data-act="scan-chase-all" data-v="0">${esc(t("全部取消标记"))}</button></div>
+    <div class="actions"><button class="ui-btn" data-size="sm" data-tone="ghost" data-act="scan-chase-all" data-v="1">🚩 ${esc(t("全部标记待催账"))}</button><button class="ui-btn" data-size="sm" data-tone="ghost" data-act="scan-chase-all" data-v="0">${esc(t("全部取消标记"))}</button></div>
     ${newBrandBanner()}
     ${filterUI("scan", { state: SV, fields: [{ k: "show", label: "只看", opts: [["on", t("已勾选的")], ["off", t("没勾选的")], ["dup", t("疑似重复")], ["warn", t("需要核对的")]] }],
       sort: { k: "sort", def: "new", opts: [["new", t("日期：最新的在前")], ["old", t("日期：最早的在前")], ["doc", t("按读到的顺序")]] } })}
@@ -115,7 +115,7 @@ function newBrandBanner(){
     <label class="ff"><span>${esc(t("统一设置种子公司"))}</span><select data-change="scan-nb-all"><option value="">—</option>${supplierOpts("")}</select></label></div>`;
 }
 const reviewFoot = () => { const n = sc.drafts.filter(d => d.on).length;
-  return `<button class="btn" data-act="scan-back">${esc(t("返回重新识别"))}</button><button class="btn primary" data-act="scan-import" ${n ? "" : "disabled"}>${esc(t("导入 {n} 笔", { n }))}</button>`; };
+  return `<button class="ui-btn" data-tone="ghost" data-act="scan-back">${esc(t("返回重新识别"))}</button><button class="ui-btn" data-tone="primary" data-act="scan-import" ${n ? "" : "disabled"}>${esc(t("导入 {n} 笔", { n }))}</button>`; };
 
 /* ---------- 事件 ---------- */
 ACT["scan-open"] = () => { reset(); show(scanPage, true); };
