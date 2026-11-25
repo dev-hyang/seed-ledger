@@ -163,7 +163,7 @@ a{color:var(--brand)}
 .row-main b{font-size:16px;overflow:hidden;text-overflow:ellipsis}
 .row-main .ui-badge{align-self:flex-start;margin:2px 0}   /* 同名等小标签不要被拉成整行 */
 .row-side{display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:right;flex:none;font-variant-numeric:tabular-nums}
-.row-go{flex:none;color:var(--muted);font-size:22px;line-height:1}
+.row .ui-chev{font-size:22px}
 /* 一行里有操作按钮（成员、表决）：手机上按钮换到下一行，整行排开 */
 .row.wrap .row-side{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px}
 .row-side select{width:auto;min-width:150px;min-height:38px;font-size:14px}
@@ -389,10 +389,9 @@ dialog[open]~.toast{z-index:1000}
 .todo-toggle{width:100%;min-height:44px;display:flex;align-items:center;gap:8px;padding:0 2px;border:0;background:none;cursor:pointer;text-align:left;font:inherit;font-weight:700}
 .todo-ttl{flex:none}
 .todo-peek{flex:1;min-width:0;font-size:13.5px;font-weight:400;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.todo-chev{flex:none;margin-left:auto;width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-2px) rotate(45deg);transition:transform .15s}
-.todo-toggle[aria-expanded=true] .todo-chev{transform:translateY(2px) rotate(-135deg)}
-.todo-toggle:hover .todo-chev{border-color:var(--ink)}
-@media (prefers-reduced-motion:reduce){.todo-chev{transition:none}}
+.todo-toggle .ui-chev{margin-left:auto}
+.todo-toggle[aria-expanded=true] .ui-chev{transform:rotate(180deg)}
+.todo-toggle:hover .ui-chev{color:var(--ink)}
 .todos{list-style:none;margin:2px 0 0;padding:0;display:grid;gap:6px}
 .todo-item{display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 8px 6px 10px;border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:10px;background:var(--surface)}
 .todo-item.tone-bad{border-left-color:var(--bad)}.todo-item.tone-warn{border-left-color:var(--warn)}

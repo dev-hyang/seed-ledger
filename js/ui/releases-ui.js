@@ -57,7 +57,7 @@ function releaseBadgeHTML(){
   const tag = /^\s*href=/.test(C.open) ? "a" : "button";
   return `<div class="rl-badge" role="status">
     <${tag} ${tag === "button" ? 'type="button" ' : ""}class="rl-badge-main" ${C.open} data-rl="open" aria-label="${esc(`${tx("badge")} ${C.version}：${tx("see")}`)}">
-      <span class="rl-pill">${esc(tx("badge"))}</span><span class="rl-badge-txt"><b class="rl-num">${esc(C.version)}</b> <span class="rl-badge-first">${esc(first)}${esc(more)}</span></span><span class="rl-badge-go" aria-hidden="true">›</span>
+      <span class="rl-pill">${esc(tx("badge"))}</span><span class="rl-badge-txt"><b class="rl-num">${esc(C.version)}</b> <span class="rl-badge-first">${esc(first)}${esc(more)}</span></span><span class="ui-chev" aria-hidden="true">›</span>
     </${tag}><button type="button" class="rl-x" data-rl="dismiss" aria-label="${esc(tx("dismiss"))}" title="${esc(tx("dismiss"))}">✕</button></div>`;
 }
 
@@ -156,7 +156,7 @@ function injectCSS(){
 .rl-pill{flex:none;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--rl-accent,#3b6ea5);color:var(--surface);white-space:nowrap}
 .rl-badge-txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rl-badge-first{color:var(--muted)}
-.rl-badge-go{flex:none;font-size:20px;line-height:1;color:var(--rl-accent,#3b6ea5)}
+.rl-badge .ui-chev{color:var(--rl-accent,#3b6ea5)}
 .rl-x{all:unset;box-sizing:border-box;flex:none;display:grid;place-items:center;width:44px;color:var(--muted);font-size:14px;cursor:pointer;border-left:1px solid color-mix(in srgb,var(--rl-accent,#3b6ea5) 25%,var(--line))}
 .rl-x:hover{color:var(--ink);background:color-mix(in srgb,var(--rl-accent,#3b6ea5) 12%,transparent)}
 .rl-num{font-variant-numeric:tabular-nums;font-weight:700}

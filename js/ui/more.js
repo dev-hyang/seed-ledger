@@ -25,13 +25,13 @@ function renderMore(){
     <section class="card"><h3>${esc(t("账户与同步"))}</h3>${accountBlock()}</section>
     <section class="card"><h3>${esc(t("金额显示"))}</h3>${moneyModeHTML()}<p class="hint" style="margin:8px 0 0">${esc(t("遮挡：金额模糊，点一下看 10 秒，适合在外面。常显示：适合在家；页面在后台超过 30 分钟会自动切回遮挡。顶栏的眼睛也能切换（双击或长按）。"))}</p></section>
     <ul class="list menu">
-      <li><button class="row" data-act="open-settings"><span class="row-main"><b>${esc(t("设置"))}</b><small>${esc(t("语言、币种、单位、季节名称、送货参数、镇与距离"))}</small></span><span class="row-go" aria-hidden="true">›</span></button></li>
-      <li><button class="row" data-act="open-ai"><span class="row-main"><b>${esc(t("AI 助手"))}</b><small>${esc(aiReady() ? t("已设置：") + t(providerOf(aiSettings().provider).name) : t("还没设置（可选）：议价、客户建议、送货路线"))}</small></span><span class="row-go" aria-hidden="true">›</span></button></li>
-      ${perms(S.role).approve ? `<li><button class="row" data-act="open-audit"><span class="row-main"><b>${esc(t("审计日志"))}</b><small>${esc(t("谁在什么时候新增、修改、删除了什么"))}</small></span><span class="row-go" aria-hidden="true">›</span></button></li>` : ""}
-      ${mem && perms(S.role).approve ? `<li><button class="row" data-act="open-members"><span class="row-main"><b>${esc(t("成员与邀请"))}</b><small>${esc(t(S.role === "owner" ? "邀请码、批准申请、改角色" : "邀请码、批准申请"))}</small></span><span class="row-go" aria-hidden="true">›</span></button></li>` : ""}
-      <li><button class="row" data-act="open-conflicts"><span class="row-main"><b>${esc(t("同步冲突"))}</b><small>${esc(t("两个人同时改了同一条记录时，被放弃的那份留在这里"))}</small></span><span class="row-go" aria-hidden="true">›</span></button></li>
-      <li><button class="row" data-act="open-releases"><span class="row-main"><b>${esc(t("发布日志"))}</b><small>${esc(t("每次更新了什么"))} · v${esc(APP_VERSION)}</small></span><span class="row-go" aria-hidden="true">›</span></button></li>
-      <li><button class="row" data-act="open-backup"><span class="row-main"><b>${esc(t("备份与恢复"))}</b><small>${esc(t("导出 / 导入全部数据（JSON）"))}</small></span><span class="row-go" aria-hidden="true">›</span></button></li></ul>
+      <li><button class="row" data-act="open-settings"><span class="row-main"><b>${esc(t("设置"))}</b><small>${esc(t("语言、币种、单位、季节名称、送货参数、镇与距离"))}</small></span><span class="ui-chev" aria-hidden="true">›</span></button></li>
+      <li><button class="row" data-act="open-ai"><span class="row-main"><b>${esc(t("AI 助手"))}</b><small>${esc(aiReady() ? t("已设置：") + t(providerOf(aiSettings().provider).name) : t("还没设置（可选）：议价、客户建议、送货路线"))}</small></span><span class="ui-chev" aria-hidden="true">›</span></button></li>
+      ${perms(S.role).approve ? `<li><button class="row" data-act="open-audit"><span class="row-main"><b>${esc(t("审计日志"))}</b><small>${esc(t("谁在什么时候新增、修改、删除了什么"))}</small></span><span class="ui-chev" aria-hidden="true">›</span></button></li>` : ""}
+      ${mem && perms(S.role).approve ? `<li><button class="row" data-act="open-members"><span class="row-main"><b>${esc(t("成员与邀请"))}</b><small>${esc(t(S.role === "owner" ? "邀请码、批准申请、改角色" : "邀请码、批准申请"))}</small></span><span class="ui-chev" aria-hidden="true">›</span></button></li>` : ""}
+      <li><button class="row" data-act="open-conflicts"><span class="row-main"><b>${esc(t("同步冲突"))}</b><small>${esc(t("两个人同时改了同一条记录时，被放弃的那份留在这里"))}</small></span><span class="ui-chev" aria-hidden="true">›</span></button></li>
+      <li><button class="row" data-act="open-releases"><span class="row-main"><b>${esc(t("发布日志"))}</b><small>${esc(t("每次更新了什么"))} · v${esc(APP_VERSION)}</small></span><span class="ui-chev" aria-hidden="true">›</span></button></li>
+      <li><button class="row" data-act="open-backup"><span class="row-main"><b>${esc(t("备份与恢复"))}</b><small>${esc(t("导出 / 导入全部数据（JSON）"))}</small></span><span class="ui-chev" aria-hidden="true">›</span></button></li></ul>
     <p class="hint center">${esc(t("稻种账本"))} · <button type="button" class="vlink" data-act="open-releases" aria-label="${esc(t("发布日志"))}">${esc(t("版本"))} v${esc(APP_VERSION)}</button> · ${esc(t("只提供交易记录和风险提示，不构成法律意见。"))}</p>`;
 }
 

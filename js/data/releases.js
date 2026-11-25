@@ -1,6 +1,9 @@
 /* 发布日志（更多 → 发布日志；新版本第一次打开起，概览页顶上提示最多 5 次）。每次发布加一条，和版本号同一个 commit（最新在前）。
    写给店主看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。界面在 js/ui/releases-ui.js（和姊妹应用同一份）。 */
 export const RELEASES = [
+  { v: "2026-11-24.7", title: { zh: "箭头统一成共用控件", en: "Arrows now use the shared arrow control" }, items: [
+    { k: "better", zh: "列表行右边的箭头、待办折叠的小三角、发布日志的箭头，换成和爱家小助手同一个箭头控件（界面几乎不变）。", en: "The arrows on list rows, the to-do fold caret and the release-notes arrow now use the same control as Home Pantry (nearly no visible change)." },
+  ] },
   { v: "2026-11-24.6", title: { zh: "表单底部的按钮：取消靠左、保存靠右", en: "Form buttons: Cancel on the left, Save on the right" }, items: [
     { k: "better", zh: "弹窗和筛选条底部的按钮换成和爱家小助手同一个按钮条控件：取消靠前、主按钮靠后，手机上并排等宽。", en: "Buttons at the bottom of sheets and filter bars now use the same control as Home Pantry: Cancel first, the main action last, equal width side by side on phones." },
   ] },
