@@ -133,7 +133,7 @@ input[data-num] { font-variant-numeric: tabular-nums; }
 .ui-btn:hover { filter: brightness(.97); }
 .ui-btn:disabled { opacity: .5; cursor: not-allowed; }
 .ui-btn:focus-visible { outline: 3px solid var(--focus, #2f6b4f); outline-offset: 2px; }
-@media (max-width: 640px), (pointer: coarse) { .ui-btn[data-size="sm"]::after { content: ""; position: absolute; inset: -6px 0; } }
+@media (max-width: 640px), (pointer: coarse) { .ui-btn[data-size="sm"]::after { content: ""; position: absolute; inset: -6px 0; } .ui-btn:not([data-size="sm"])::after { content: ""; position: absolute; inset: -2px 0; } }
 .ui-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
 .ui-acts > :first-child:nth-last-child(2) { margin-right: auto; }
 @media (max-width: 480px) {
