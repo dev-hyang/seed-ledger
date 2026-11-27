@@ -208,3 +208,70 @@ input[data-num] { font-variant-numeric: tabular-nums; }
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%238a8f87' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E"); }
 .sug-in:focus { border-color: var(--sel-accent); }
 .sug-list { position: fixed; z-index: 70; min-width: 0; max-width: calc(100vw - 16px); }
+
+/* ── 视图切换 ui-seg（2026-11-26）：一排互斥按钮切换同一页的两三个视图（今日 / 回顾、列表 / 日历…）──
+ * <div class="ui-seg" role="group" aria-label="…" data-fill><button aria-pressed="true">回顾</button><button aria-pressed="false">打卡</button></div>
+ * data-fill：占满一行、按钮等宽（手机用）；省略 = 按内容宽。选中色读 --btn-primary-bg / --btn-primary-ink，圆角读 --ctl-r。手机上点按区域靠 ::after 延伸到 ≥44px。 */
+.ui-seg { display: inline-flex; max-width: 100%; padding: 3px; gap: 2px; box-sizing: border-box; border: 1px solid var(--line); border-radius: var(--ctl-r, 12px); background: var(--surface-2, var(--bg)); }
+.ui-seg[data-fill] { display: flex; width: 100%; }
+.ui-seg > button { position: relative; flex: 1 1 auto; min-height: 36px; padding: 0 14px; border: 0; border-radius: calc(var(--ctl-r, 12px) - 3px); background: transparent; color: var(--muted, inherit); font: inherit; font-size: 14px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.ui-seg[data-fill] > button { flex: 1 1 0; min-width: 0; }
+.ui-seg > button[aria-pressed="true"] { background: var(--btn-primary-bg, var(--ink)); color: var(--btn-primary-ink, var(--surface)); }
+.ui-seg > button:focus-visible { outline: 3px solid var(--focus, #1f6feb); outline-offset: 1px; }
+@media (pointer: coarse), (max-width: 640px) { .ui-seg > button::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: max(100%, 44px); transform: translateY(-50%); } }
+
+/* ── 视图切换 ui-vsw（shared/ui-viewsw.js；外观取自爱家小助手「物品 / 分类」切换，2026-11-26）──
+ * 靠右的深色圆角按钮「[切换图标] 当前视图名」，点开选，选完收起。主色读 --btn-primary-bg / --btn-primary-ink。
+ * 外面包一层 .ui-vsw-bar（靠右、下面留 10px）；放在页头 / 工具条的 flex 行里时自己 margin-left:auto 靠右。 */
+.ui-vsw-bar { display: flex; justify-content: flex-end; margin: 0 0 10px; }
+.ui-vsw { position: relative; margin-left: auto; }
+.ui-vsw > summary { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 12px 0 10px; border: 0; border-radius: 10px; background: var(--btn-primary-bg, var(--ink)); color: var(--btn-primary-ink, var(--surface)); font-size: 13.5px; font-weight: 600; line-height: 1; cursor: pointer; list-style: none; box-sizing: border-box; }
+.ui-vsw > summary::before { content: ""; position: absolute; inset: -7px -4px; }   /* 看起来 30px 高，点按区域仍是 44px */
+.ui-vsw > summary::-webkit-details-marker { display: none; }
+.ui-vsw > summary:hover, .ui-vsw[open] > summary { filter: brightness(1.12); }
+.ui-vsw > summary:focus-visible { outline: 3px solid var(--focus, #1f6feb); outline-offset: 2px; }
+.ui-vsw-ic { flex: none; fill: currentColor; opacity: .85; }
+.ui-vsw-cur { white-space: nowrap; }
+.ui-vsw-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 128px; display: grid; gap: 2px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, .16); }
+.ui-vsw-item { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 12px; border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; font-size: 14px; text-align: left; white-space: nowrap; cursor: pointer; }
+.ui-vsw-item:hover, .ui-vsw-item:focus-visible { background: var(--surface-2, var(--bg)); }
+.ui-vsw-item[aria-checked="true"] { background: var(--surface-2, var(--bg)); font-weight: 600; }
+.ui-vsw-ok { margin-left: auto; font-size: 13px; }
+
+/* ── 折叠目录树 ui-tree（shared/ui-tree.js；外观取自爱家小助手的嵌套目录，2026-11-26）──
+ * 按大类折叠：点文字去这一页，点右边的 › 展开 / 收起，同一层只展开一个；当前页打 ✓，当前页所在的大类文字用强调色（--sel-accent）。 */
+.ui-tree { display: flex; flex-direction: column; }
+.ui-tree-row { display: flex; align-items: stretch; }
+.ui-tree-item { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
+.ui-tree-item:hover, .ui-tree-item:focus-visible { background: var(--surface-2, var(--bg)); }
+.ui-tree-item[aria-current="page"] { background: var(--surface-2, var(--bg)); color: var(--sel-accent, inherit); }
+.ui-tree-item.has-cur { color: var(--sel-accent, inherit); }
+.ui-tree-lbl { flex: 1 1 auto; min-width: 0; }
+.ui-tree-ck { flex: none; font-weight: 700; }
+.ui-tree-tg { flex: none; width: 44px; border: 0; border-radius: 8px; background: none; color: var(--muted, inherit); font: inherit; font-size: 20px; line-height: 1; cursor: pointer; }
+.ui-tree-tg:hover, .ui-tree-tg:focus-visible { background: var(--surface-2, var(--bg)); }
+.ui-tree-tg > span { display: inline-block; transition: transform .15s; }
+.ui-tree-tg[aria-expanded="true"] > span { transform: rotate(90deg); }
+.ui-tree-kids { margin-left: 14px; padding-left: 4px; border-left: 2px solid var(--line); }
+.ui-tree-kids[hidden] { display: none; }
+.ui-tree-kids .ui-tree-item { font-weight: 500; }
+
+/* ── 进度虚线条 ui-dashbar（shared/ui-dashbar.js，2026-11-27）──
+ * 一排短横条：当前那条亮（--ink）。默认不带序号（今天页卡片切换）；data-numbered 左边多一句「2 / 5」；条上带 data-done 的是已完成（--ok）。
+ * 可点的横条是 <button>（点按区域 28×28，手机 ≥44px 宽由 ::before 延伸）；不可点的是 <i>。 */
+.ui-dashbar { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 4px 0 0; }
+.ui-dashbar[data-numbered] { justify-content: flex-start; margin: 6px 0 10px; }
+.ui-dashbar-n { flex: none; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ui-dashbar-bars { display: flex; gap: 2px; }
+.ui-dashbar[data-fill] { width: 100%; }
+.ui-dashbar[data-fill] .ui-dashbar-bars { flex: 1 1 auto; }
+.ui-dashbar[data-fill] .ui-dash { flex: 1 1 0; }
+.ui-dash { all: unset; box-sizing: border-box; position: relative; display: grid; place-items: center; width: 28px; height: 28px; }
+button.ui-dash { cursor: pointer; }
+i.ui-dash { height: 12px; }
+.ui-dash::after { content: ""; width: 18px; max-width: 100%; height: 6px; border-radius: 3px; background: var(--line); }
+.ui-dashbar[data-fill] .ui-dash::after { width: 100%; }
+.ui-dash[data-done]::after { background: var(--ok, var(--ink)); }
+.ui-dash[aria-current="true"]::after { background: var(--ink, #1D2733); }
+.ui-dash:focus-visible { outline: 2px solid var(--focus, #1f6feb); border-radius: 6px; }
+@media (pointer: coarse), (max-width: 640px) { button.ui-dash::before { content: ""; position: absolute; top: 50%; left: -2px; right: -2px; height: 44px; transform: translateY(-50%); } }
