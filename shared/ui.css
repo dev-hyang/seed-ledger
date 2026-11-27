@@ -321,3 +321,26 @@ i.ui-dash { height: 12px; }
 
 /* 视图切换按钮前面的小字「切换」：提示这里可以切换（shared/ui-viewsw.js） */
 .ui-vsw-hint { font-size: 11px; font-weight: 500; opacity: .75; }
+
+/* ── 进度虚线条的轮播变体（2026-11-27.9）：‹ 横条 › ⚙，当前那条走满 = 自动换下一张；放在 data-dash-host 容器里，手停在上面 / 菜单开着就暂停 ── */
+.ui-dashbar { position: relative; min-height: 32px; }
+.ui-dashbar[data-nav] { gap: 10px; }
+.ui-dash-nav { display: grid; place-items: center; flex: none; width: 32px; height: 32px; padding: 0 0 2px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--ink); font: inherit; font-size: 20px; line-height: 1; cursor: pointer; position: relative; }
+.ui-dash-nav:hover { border-color: var(--ink); }
+.ui-dash-nav:focus-visible { outline: 2px solid var(--focus, #1f6feb); outline-offset: 2px; }
+@media (pointer: coarse), (max-width: 640px) { .ui-dash-nav::after { content: ""; position: absolute; inset: -6px; } }
+.ui-dashbar[data-nav] .ui-dash[aria-current="true"] { width: 42px; }
+.ui-dash.is-run::after { background: linear-gradient(var(--ink, #1D2733), var(--ink, #1D2733)) no-repeat left center / 0% 100%, var(--line); animation: ui-dash-prog var(--dur, 10s) linear forwards; }
+.ui-dashbar-bars.is-off .ui-dash.is-run::after { animation: none; background: var(--ink, #1D2733); }
+@keyframes ui-dash-prog { to { background-size: 100% 100%; } }
+[data-dash-host]:hover .ui-dash.is-run::after, [data-dash-host]:focus-within .ui-dash.is-run::after, [data-dash-host]:has(.ui-dash-gear[open]) .ui-dash.is-run::after { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .ui-dash.is-run::after { animation: none; background: var(--ink, #1D2733); } }
+.ui-dash-gear { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
+.ui-dash-gear > summary { list-style: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: 15px; cursor: pointer; position: relative; }
+.ui-dash-gear > summary::-webkit-details-marker { display: none; }
+.ui-dash-gear > summary::after { content: ""; position: absolute; inset: -6px; }
+.ui-dash-menu { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 20; display: grid; gap: 2px; min-width: 150px; padding: 6px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0, 0, 0, .16); }
+.ui-dash-menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+.ui-dash-opt { all: unset; box-sizing: border-box; display: block; min-height: 44px; padding: 12px; border-radius: 8px; font-size: 14px; cursor: pointer; color: var(--ink); }
+.ui-dash-opt:hover, .ui-dash-opt:focus-visible { background: var(--surface-2, rgba(0, 0, 0, .06)); }
+.ui-dash-opt[aria-pressed="true"] { font-weight: 700; }
