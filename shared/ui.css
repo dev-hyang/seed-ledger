@@ -275,3 +275,32 @@ i.ui-dash { height: 12px; }
 .ui-dash[aria-current="true"]::after { background: var(--ink, #1D2733); }
 .ui-dash:focus-visible { outline: 2px solid var(--focus, #1f6feb); border-radius: 6px; }
 @media (pointer: coarse), (max-width: 640px) { button.ui-dash::before { content: ""; position: absolute; top: 50%; left: -2px; right: -2px; height: 44px; transform: translateY(-50%); } }
+
+/* ── 记录列表 ui-reclist（shared/ui-reclist.js；外观取自宝宝日志的「今天 / 记录」列表，2026-11-27）──
+ * 列表：时间 · 色块 · 内容 · 右边按钮；时间轴：时间 · 圆点（带图标）· 卡片（左边一条色边），圆点之间一条竖线。每行的颜色用 --c。 */
+.ui-recbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 14px 0 6px; }
+.ui-recbar-l { min-width: 0; flex: 1 1 auto; }
+.ui-recbar .ui-vsw { margin-left: 0; flex: none; }
+.ui-rec { display: grid; grid-template-columns: 52px 10px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 4px; border-bottom: 1px solid var(--line); }
+.ui-rec-t { font-size: 15px; font-variant-numeric: tabular-nums; padding-top: 1px; }
+.ui-rec-c { width: 10px; height: 10px; border-radius: 3px; margin-top: 7px; background: var(--c); }
+.ui-rec-main { all: unset; box-sizing: border-box; display: block; min-width: 0; cursor: pointer; font-size: 15px; }
+.ui-rec-main:disabled { cursor: default; }
+.ui-rec-main:focus-visible { outline: 2px solid var(--focus, #1f6feb); outline-offset: 2px; border-radius: 6px; }
+.ui-rec-s { display: inline; }
+.ui-rec-n { font-size: 13px; color: var(--muted); }
+.ui-rec-note { display: block; }
+.ui-rec-note[data-tone="warn"] { color: var(--out, #b3412f); }
+.ui-rec-acts { display: flex; gap: 6px; align-items: flex-start; flex-wrap: wrap; justify-content: flex-end; }
+.ui-rec.flash, .ui-anode.flash .ui-anode-card { animation: ui-rec-flash 2.6s ease-out; }
+@keyframes ui-rec-flash { 0%, 45% { background: var(--soon-bg, #fff3cf); } 100% { background: transparent; } }
+.ui-axis { position: relative; margin: 6px 0 12px; }
+.ui-axis::before { content: ""; position: absolute; left: 61px; top: 14px; bottom: 14px; width: 2px; background: var(--line); border-radius: 1px; }
+.ui-anode { display: grid; grid-template-columns: 46px 30px minmax(0, 1fr); gap: 0 10px; align-items: start; padding: 2px 0; position: relative; }
+.ui-anode-t { font-size: 14px; text-align: right; padding-top: 5px; font-variant-numeric: tabular-nums; }
+.ui-anode-dot { position: relative; z-index: 1; width: 30px; height: 30px; border-radius: 50%; background: var(--c); display: flex; align-items: center; justify-content: center; font-size: 15px; line-height: 1; box-shadow: 0 0 0 4px var(--bg); }
+.ui-anode-card { display: flex; gap: 8px; align-items: flex-start; justify-content: space-between; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 10px; padding: 7px 12px; box-sizing: border-box; }
+.ui-anode-card .ui-rec-main { flex: 1 1 auto; }
+.ui-agap { padding: 2px 0 2px 94px; font-size: 12px; color: var(--muted); line-height: 1.2; }
+.ui-agap span::before { content: "↓ "; }
+@media (max-width: 640px) { .ui-rec { grid-template-columns: 46px 10px minmax(0, 1fr); } .ui-rec-acts { grid-column: 3; justify-content: flex-start; margin-top: 2px; } .ui-anode-card { flex-wrap: wrap; } }
