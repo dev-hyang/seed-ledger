@@ -304,3 +304,20 @@ i.ui-dash { height: 12px; }
 .ui-agap { padding: 2px 0 2px 94px; font-size: 12px; color: var(--muted); line-height: 1.2; }
 .ui-agap span::before { content: "↓ "; }
 @media (max-width: 640px) { .ui-rec { grid-template-columns: 46px 10px minmax(0, 1fr); } .ui-rec-acts { grid-column: 3; justify-content: flex-start; margin-top: 2px; } .ui-anode-card { flex-wrap: wrap; } }
+
+/* ── 记录列表的补充（2026-11-27.3）：两个视图的小药丸 ui-pill2、整行悬停、左滑删除的行 ── */
+.ui-pill2 { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; flex: none; padding: 3px; border-radius: 999px; background: var(--surface-2, var(--bg)); }
+.ui-pill2 > button { position: relative; border: 0; background: none; border-radius: 999px; min-height: 36px; padding: 0 14px; cursor: pointer; font: inherit; font-size: 14px; color: var(--muted, inherit); white-space: nowrap; }
+.ui-pill2 > button[aria-pressed="true"] { background: var(--surface); color: var(--ink, inherit); font-weight: 700; box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+.ui-pill2 > button:focus-visible { outline: 2px solid var(--focus, #1f6feb); outline-offset: 1px; }
+@media (pointer: coarse), (max-width: 640px) { .ui-pill2 > button::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: max(100%, 44px); transform: translateY(-50%); } }
+.ui-rec[data-edit], .ui-anode[data-edit] { cursor: pointer; }
+.ui-rec[data-edit]:hover { background: var(--surface-2, transparent); }
+.ui-anode[data-edit]:hover .ui-anode-card { background: var(--surface-2, var(--surface)); }
+/* 整行可点：行里主按钮的 ::after 铺满整行（点时间、色块也算），行右边的按钮 / 条在它上面 */
+.ui-rec[data-edit], .ui-anode[data-edit] { position: relative; }
+.ui-rec[data-edit] .ui-rec-main::after, .ui-anode[data-edit] .ui-rec-main::after { content: ""; position: absolute; inset: 0; }
+.ui-rec-acts { position: relative; z-index: 1; }
+
+/* 视图切换按钮前面的小字「切换」：提示这里可以切换（shared/ui-viewsw.js） */
+.ui-vsw-hint { font-size: 11px; font-weight: 500; opacity: .75; }

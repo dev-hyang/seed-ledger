@@ -1,4 +1,4 @@
-/* 视图切换（统一控件）：靠右的深色圆角按钮「[切换图标] 当前视图名」，点开列出几种视图（当前的打 ✓），选中后收起，只显示当前的。
+/* 视图切换（统一控件）：靠右的深色圆角按钮「切换 [切换图标] 当前视图名」（前面的小字「切换」提示这里可以切换），点开列出几种视图（当前的打 ✓），选中后收起，只显示当前的。
  * 外观取自爱家小助手的「物品 / 分类」视图切换；样式在 shared/ui.css 的 .ui-vsw。
  * 【母版在 home-pantry/shared/】姊妹站各留逐字相同的副本 js/shared/ui-viewsw.js（check-shared.mjs 会比）。文件不引用站内模块：翻译函数由调用方传 t。
  *
@@ -16,7 +16,7 @@ export function viewSwitchHTML(options, current, { attr = "v", attrs = "", label
   const list = (options || []).filter(Boolean);
   if (list.length < 2) return "";
   const cur = list.find(o => String(o[0]) === String(current)) || list[0];
-  return `<details class="ui-vsw"><summary aria-label="${esc(`${t(label)}：${t(cur[1])}`)}" title="${esc(t(label))}">${ICON}<span class="ui-vsw-cur">${esc(t(cur[1]))}</span></summary>
+  return `<details class="ui-vsw"><summary aria-label="${esc(`${t(label)}：${t(cur[1])}`)}" title="${esc(t(label))}"><span class="ui-vsw-hint">${esc(t("切换"))}</span>${ICON}<span class="ui-vsw-cur">${esc(t(cur[1]))}</span></summary>
     <div class="ui-vsw-menu" role="menu" aria-label="${esc(t(label))}">${list.map(o => `<button type="button" class="ui-vsw-item" role="menuitemradio" aria-checked="${String(o[0]) === String(cur[0])}" ${attrs} data-${attr}="${esc(o[0])}"><span>${esc(t(o[1]))}</span>${String(o[0]) === String(cur[0]) ? '<span class="ui-vsw-ok" aria-hidden="true">✓</span>' : ""}</button>`).join("")}</div></details>`;
 }
 
