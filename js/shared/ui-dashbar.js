@@ -15,6 +15,7 @@
  *   dashGearHTML({ secs, extra, t })：⚙ 按钮 + 菜单（5 / 10 / 15 / 30 秒、关闭自动切换；extra = 菜单底部另加的 HTML，如「管理卡片」）
  *   watchDashCycle({ key, next, def })：入口调一次——管自动换（走满就调 next(横条元素)）、⚙ 选秒数（记在这台设备 localStorage[key]）、点外面收起菜单。
  *     手指 / 鼠标停在带 data-dash-host 的容器上、键盘焦点在里面、菜单开着时停住；系统「减少动态效果」时不走。
+ *   watchCarouselLoop(selector)：轮播「绕回」变体——入口调一次。在最后一张还往前滑 → 回到第一张；在第一张还往回滑 → 到最后一张（selector = 横向滚动的容器，只管手指滑；‹ › 和自动切换由调用方的 next 自己绕）。
  *   dashSecs(key, def)：读当前设的秒数；markDash(root, i)：把第 i 条设成当前并让进度条从头走（手滑 / 点了以后调）。 */
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const SECS = [5, 10, 15, 30];
@@ -79,4 +80,21 @@ export function watchDashCycle({ key = KEY, next, def = DEF } = {}) {
   document.addEventListener("pointerdown", e => { const h = e.target.closest?.("[data-dash-host]"); if (h) h._down = true; });
   const up = () => document.querySelectorAll("[data-dash-host]").forEach(h => { h._down = false; });
   document.addEventListener("pointerup", up); document.addEventListener("pointercancel", up);
+}
+
+let looping = false;
+export function watchCarouselLoop(selector) {
+  if (looping || typeof document === "undefined") return; looping = true;
+  let st = null;
+  document.addEventListener("touchstart", e => {
+    const el = e.target.closest?.(selector); if (!el || e.touches.length !== 1) { st = null; return; }
+    st = { el, x: e.touches[0].clientX, y: e.touches[0].clientY, first: el.scrollLeft <= 2, last: el.scrollLeft + el.clientWidth >= el.scrollWidth - 2 };   // 按下时停在第一张 / 最后一张吗
+  }, { passive: true });
+  document.addEventListener("touchend", e => {
+    if (!st) return; const { el, x, y, first, last } = st; st = null;
+    const c = e.changedTouches[0], dx = c.clientX - x, dy = c.clientY - y;
+    if (Math.abs(dx) < 40 || Math.abs(dy) > Math.abs(dx)) return;
+    if (dx < 0 && last) el.scrollTo({ left: 0, behavior: "smooth" });
+    else if (dx > 0 && first) el.scrollTo({ left: el.scrollWidth, behavior: "smooth" });
+  }, { passive: true });
 }

@@ -329,10 +329,13 @@ i.ui-dash { height: 12px; }
 .ui-dash-nav:hover { border-color: var(--ink); }
 .ui-dash-nav:focus-visible { outline: 2px solid var(--focus, #1f6feb); outline-offset: 2px; }
 @media (pointer: coarse), (max-width: 640px) { .ui-dash-nav::after { content: ""; position: absolute; inset: -6px; } }
+.ui-dashbar[data-nav] .ui-dash { width: 24px; }
+.ui-dashbar[data-nav] .ui-dash::after { width: 100%; }
 .ui-dashbar[data-nav] .ui-dash[aria-current="true"] { width: 42px; }
 .ui-dash.is-run::after { background: linear-gradient(var(--ink, #1D2733), var(--ink, #1D2733)) no-repeat left center / 0% 100%, var(--line); animation: ui-dash-prog var(--dur, 10s) linear forwards; }
 .ui-dashbar-bars.is-off .ui-dash.is-run::after { animation: none; background: var(--ink, #1D2733); }
-@keyframes ui-dash-prog { to { background-size: 100% 100%; } }
+/* 两层背景（渐变 + 底色）：关键帧里的 background-size 也要写两个值，否则不会逐渐变长，而是最后一下子变满 */
+@keyframes ui-dash-prog { to { background-size: 100% 100%, auto; } }
 [data-dash-host]:hover .ui-dash.is-run::after, [data-dash-host]:focus-within .ui-dash.is-run::after, [data-dash-host]:has(.ui-dash-gear[open]) .ui-dash.is-run::after { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) { .ui-dash.is-run::after { animation: none; background: var(--ink, #1D2733); } }
 .ui-dash-gear { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
