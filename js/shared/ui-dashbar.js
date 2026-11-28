@@ -77,6 +77,14 @@ export function watchDashCycle({ key = KEY, next, def = DEF } = {}) {
     document.querySelectorAll(".ui-dash-gear[open]").forEach(d => { if (!d.contains(e.target)) d.removeAttribute("open"); });
     const b = e.target.closest?.(".ui-dash-nav, .ui-dash[data-i]"); if (b && e.detail) setTimeout(() => b.blur(), 0);   // 鼠标 / 手指点的：别把焦点留在按钮上（焦点在里面进度条会停）
   });
+  // ⚙ 菜单默认向上展开；上面放不下（会钻到粘性栏 / 屏幕外）且下面更宽裕时，改成向下（data-flip）。details 的 toggle 不冒泡，用捕获监听。
+  document.addEventListener("toggle", e => {
+    const d = e.target; if (!d.classList?.contains("ui-dash-gear")) return;
+    d.removeAttribute("data-flip"); if (!d.open) return;
+    const m = d.querySelector(".ui-dash-menu"); if (!m) return;
+    const g = d.getBoundingClientRect(), r = m.getBoundingClientRect(), above = g.top, below = innerHeight - g.bottom - 72;   // 72 ≈ 底部导航
+    if (r.top < 64 && below > above) d.setAttribute("data-flip", "");
+  }, true);
   document.addEventListener("pointerdown", e => { const h = e.target.closest?.("[data-dash-host]"); if (h) h._down = true; });
   const up = () => document.querySelectorAll("[data-dash-host]").forEach(h => { h._down = false; });
   document.addEventListener("pointerup", up); document.addEventListener("pointercancel", up);
