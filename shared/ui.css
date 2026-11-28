@@ -340,6 +340,7 @@ i.ui-dash { height: 12px; }
 [data-dash-host]:hover .ui-dash.is-run::after, [data-dash-host]:focus-within .ui-dash.is-run::after, [data-dash-host]:has(.ui-dash-gear[open]) .ui-dash.is-run::after { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) { .ui-dash.is-run::after { animation: none; background: var(--ink, #1D2733); } }
 .ui-dash-gear { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
+.ui-dash-gear[open] { z-index: 40; }   /* transform 让 ⚙ 自成层叠上下文，菜单的 z-index 出不来；展开时整体抬到粘性栏（目录行 / 顶部小条 / 底部导航 / FAB）之上，弹窗（≥60）之下 */
 .ui-dash-gear > summary { list-style: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: 15px; cursor: pointer; position: relative; }
 .ui-dash-gear > summary::-webkit-details-marker { display: none; }
 .ui-dash-gear > summary::after { content: ""; position: absolute; inset: -6px; }

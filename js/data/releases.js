@@ -1,6 +1,9 @@
 /* 发布日志（更多 → 发布日志；新版本第一次打开起，概览页顶上提示最多 5 次）。每次发布加一条，和版本号同一个 commit（最新在前）。
    写给店主看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。界面在 js/ui/releases-ui.js（和姊妹应用同一份）。 */
 export const RELEASES = [
+  { v: "2026-11-27.7", title: { zh: "内部整理（界面和用法不变）", en: "Behind-the-scenes tidy-up (no change to how it looks or works)" }, items: [
+    { k: "better", zh: "更新了和牧羊人、小月亮共用的 ⚙ 设置菜单样式（展开时显示在最上层），这个应用里暂时用不到；你现在看到的界面和操作都和上一版一样。", en: "Updated the shared ⚙ menu style (it now opens on top), which this app doesn't use yet; what you see and how it works is unchanged." }
+  ] },
   { v: "2026-11-27.6", title: { zh: "内部整理（界面和用法不变）", en: "Behind-the-scenes tidy-up (no change to how it looks or works)" }, items: [
     { k: "better", zh: "更新了和爱家小助手、牧羊人共用的「切换视图」按钮样式（加了「切换」小字、竖线和 ▾），这个应用里暂时用不到；你现在看到的界面和操作都和上一版一样。", en: "Updated the shared “switch view” button style (a “Switch” label, divider and ▾). This app does not use it yet; nothing you see or do has changed." },
   ] },
