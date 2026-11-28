@@ -16,7 +16,7 @@ export function viewSwitchHTML(options, current, { attr = "v", attrs = "", label
   const list = (options || []).filter(Boolean);
   if (list.length < 2) return "";
   const cur = list.find(o => String(o[0]) === String(current)) || list[0];
-  return `<details class="ui-vsw"><summary aria-label="${esc(`${t(label)}：${t(cur[1])}`)}" title="${esc(t(label))}"><span class="ui-vsw-hint">${esc(t("切换"))}</span>${ICON}<span class="ui-vsw-cur">${esc(t(cur[1]))}</span></summary>
+  return `<details class="ui-vsw"><summary aria-label="${esc(`${t(label)}：${t(cur[1])}`)}" title="${esc(t(label))}"><span class="ui-vsw-hint">${esc(t("切换"))}</span>${ICON}<span class="ui-vsw-cur">${esc(t(cur[1]))}</span><span class="ui-vsw-caret" aria-hidden="true">▾</span></summary>
     <div class="ui-vsw-menu" role="menu" aria-label="${esc(t(label))}">${list.map(o => `<button type="button" class="ui-vsw-item" role="menuitemradio" aria-checked="${String(o[0]) === String(cur[0])}" ${attrs} data-${attr}="${esc(o[0])}"><span>${esc(t(o[1]))}</span>${String(o[0]) === String(cur[0]) ? '<span class="ui-vsw-ok" aria-hidden="true">✓</span>' : ""}</button>`).join("")}</div></details>`;
 }
 
